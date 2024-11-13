@@ -33,3 +33,6 @@
 
 # Compiled outputs
 *build/*
+
+# Vscode
+*.Vscode/*
