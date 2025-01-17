@@ -4,3 +4,10 @@
 
 # build
 /build*/
+
+# vscode
+.vscode/*
+
+# Cmake artifacts
+CMakeCache*
+CMakeFiles/*
