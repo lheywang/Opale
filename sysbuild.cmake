@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
+# Configuring remote board to be used when building
+set(SB_CONFIG_REMOTE_BOARD "opale_cpunet")
+
 if("${SB_CONFIG_REMOTE_BOARD}" STREQUAL "")
   message(FATAL_ERROR "REMOTE_BOARD must be set to a valid board name")
 endif()
@@ -20,6 +23,7 @@ set_property(GLOBAL PROPERTY DOMAIN_APP_CPUNET remote)
 set(CPUNET_PM_DOMAIN_DYNAMIC_PARTITION remote CACHE INTERNAL "")
 
 # Add a dependency so that the remote sample will be built and flashed first
-add_dependencies(hello_world remote)
+add_dependencies(Opale remote)
+
 # Add dependency so that the remote image is flashed first.
-sysbuild_add_dependencies(FLASH hello_world remote)
+sysbuild_add_dependencies(FLASH Opale remote)

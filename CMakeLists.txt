@@ -15,4 +15,4 @@ endif()
 
 project(Opale)
 
-target_sources(app PRIVATE core_app/src/main.c)
+target_sources(app PRIVATE core/app/src/main.c)
