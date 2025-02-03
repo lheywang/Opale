@@ -151,6 +151,18 @@ pos_ailerons: &pwm0 {
 			psels = <NRF_PSEL(UART_TX, 1, 11)>, <NRF_PSEL(UART_RX, 0, 31)>;
 		};
 	};
+
+    uart2_default: uart2_default {
+        group1 {
+            psels = <NRF_PSEL(UART_TX, 1, 11)>, <NRF_PSEL(UART_RX, 0, 31)>;
+        };
+    };
+
+    uart3_default: uart3_default {
+        group1 {
+            psels = <NRF_PSEL(UART_TX, 1, 2)>, <NRF_PSEL(UART_RX, 0, 9)>;
+        };
+    };
 };
 
 &spi0 {
@@ -184,14 +196,14 @@ buzzer: &pwm2 {
 };
 
 &uart0 {
-	status = "okay";
+	status = "disabled";
 	current-speed = <115200>;
 	pinctrl-0 = <&uart0_default>;
 	pinctrl-names = "default";
 };
 
 &uart1 {
-	status = "okay";
+	status = "disabled";
 	current-speed = <115200>;
 	pinctrl-0 = <&uart1_default>;
 	pinctrl-names = "default";
@@ -265,3 +277,15 @@ buzzer: &pwm2 {
 	status = "disabled";
 };
 
+
+&uart3 {
+    status = "okay";
+    pinctrl-0 = <&uart3_default>;
+    pinctrl-names = "default";
+};
+
+&uart2 {
+    status = "okay";
+    pinctrl-0 = <&uart2_default>;
+    pinctrl-names = "default";
+};

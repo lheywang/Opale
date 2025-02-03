@@ -11,6 +11,10 @@
 		zephyr,flash = &flash1;
 		zephyr,code-partition = &slot0_partition;
 	};
+
+    zephyr,user {
+        Act_led-gpios = <&gpio0 31 0>;
+    };
 };
 
 &flash1 {
@@ -42,3 +46,34 @@
 };
 
 #include "opale-shared_sram.dtsi"
+
+&radio {
+    /delete-property/ ble-2mbps-supported;
+    /delete-property/ ieee802154-supported;
+    /delete-property/ dfe-supported;
+    /delete-property/ ble-coded-phy-supported;
+};
+
+&power {
+    status = "disabled";
+};
+
+&wdt {
+    status = "disabled";
+};
+
+&gpio0 {
+    status = "okay";
+};
+
+&rng {
+    status = "disabled";
+};
+
+&ccm {
+    status = "disabled";
+};
+
+&gpiote {
+    status = "okay";
+};
