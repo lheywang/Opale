@@ -10,9 +10,9 @@
 
 #include <hal/nrf_gpio.h> 
 
-#define LED_PIN2     NRF_GPIO_PIN_MAP(0,31)
+#define LED_PIN2     NRF_GPIO_PIN_MAP(0,29)
 
-LOG_MODULE_REGISTER(net);
+LOG_MODULE_REGISTER(app);
 
 int main(void)
 {
