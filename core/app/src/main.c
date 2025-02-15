@@ -42,11 +42,21 @@ int main(void)
     GPIO_Write(LED1, 1);
     GPIO_Write(LED2, 0);
 
+    PWM *PWM1 = PWM_Open();
+    PWM_AddPin(PWM1, 0, 28);
+    PWM_AddPin(PWM1, 0, 29);
+    PWM_Configure(PWM1, NRF_PWM_CLK_500kHz, NRF_PWM_MODE_UP, 255);
+
 	while (1) {
 		k_msleep(500);
         GPIO_Toggle(LED1);
         GPIO_Toggle(LED2);
 	};
+
+    GPIO_Close(LED1);
+    GPIO_Close(LED2);
+
+    PWM_Close(PWM1);
 
 	return 0;
 }
