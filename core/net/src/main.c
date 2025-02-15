@@ -1,7 +1,18 @@
-/*
- * Copyright (c) 2022 Nordic Semiconductor ASA
+/**
+ * ---------------------------------------------------------------
+ * 
+ * @file    core/net/src/main.c
  *
- * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ * @brief   This file is the entry point for the network core,
+ *          for both of the secure and non secure images !
+ *
+ * @author  l.heywang (leonard.heywang@proton.me)
+ *
+ * @date    15-02-2025
+ *
+ * @version 1.0.0
+ * 
+ * ---------------------------------------------------------------
  */
 
 #include <zephyr/kernel.h>

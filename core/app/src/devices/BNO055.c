@@ -1,15 +1,16 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/devices/BNO055.c
+ * @file    core/app/src/devices/BNO055.c
  *
- * Define standard function for the BNO055 9 axis sensor on the 
- * board.
+ * @brief   Define standard function for the BNO055 9 axis sensor 
+ *          on the board.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang (leonard.heywang@proton.me)
  *
- * TER M1 SEME 24-25
+ * @date    15/02/2025
+ *
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */

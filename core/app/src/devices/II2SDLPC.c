@@ -1,15 +1,16 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/devices/II2SDLPC.c
+ * @file    core/app/src/devices/II2SDLPC.c
  *
- * Define standard function for the II2SDLPC accelerometer sensor 
- * on the board.
+ * @brief   Define standard function for the II2SDLPC accelerometer 
+ *          sensor on the board.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang (leonard.heywang@proton.me)
+ * 
+ * @date    15/02/2025
  *
- * TER M1 SEME 24-25
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */

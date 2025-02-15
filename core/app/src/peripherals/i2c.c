@@ -1,14 +1,16 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/peripherals/i2c.c
+ * @file    core/app/src/peripherals/i2c.c
  *
- * Define standard functions for the I2C usage on the nRF5340 SoC.
+ * @brief   Define standard functions for the I2C usage on the 
+ *          nRF5340 SoC.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang (leonard.heywang@proton.me)
  *
- * TER M1 SEME 24-25
+ * @date    15/02/2025
+ *
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */

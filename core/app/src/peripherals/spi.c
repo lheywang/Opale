@@ -1,14 +1,16 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/peripherals/spi.c
+ * @file    core/app/src/peripherals/spi.c
  *
- * Define standard functions for the SPI usage on the nRF5340 SoC.
+ * @brief   Define standard functions for the SPI usage on the 
+ *          nRF5340 SoC.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang (leonard.heywang@proton.me)
+ *  
+ * @date    15/02/2025
  *
- * TER M1 SEME 24-25
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */

@@ -1,15 +1,16 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/devices/MS5611.h
+ * @file    core/app/src/devices/MS5611.h
  *
- * Expose standard function for the MS5611 barometer sensor on 
- * the board.
+ * @brief   Expose standard function for the MS5611 barometer sensor 
+ *          on the board.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang (leonard.heywang@proton.me)
  *
- * TER M1 SEME 24-25
+ * @date    15/02/2025
+ *
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */

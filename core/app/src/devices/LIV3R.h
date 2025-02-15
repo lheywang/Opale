@@ -1,14 +1,16 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/devices/LIV3R.h
+ * @file    core/app/src/devices/LIV3R.h
  *
- * Expose standard function for the LIV3R GPS sensor on the board.
+ * @brief   Expose standard function for the LIV3R GPS sensor 
+ *          on the board.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang (leonard.heywang@proton.me)
  *
- * TER M1 SEME 24-25
+ * @date    15/02/2025
+ *
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */

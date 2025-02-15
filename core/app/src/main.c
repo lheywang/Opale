@@ -1,9 +1,20 @@
-/*
- * Copyright (c) 2022 Nordic Semiconductor ASA
+/**
+ * ---------------------------------------------------------------
+ * 
+ * @file    core/app/src/main.c
  *
- * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ * @brief   Entry point code for the application core !
+ *          This code applies for both secure and non-
+ *          secure firmware !
+ *
+ * @author  l.heywang (leonard.heywang@proton.me)
+ *
+ * @date    15/02/2025
+ *
+ * @version 1.0.0
+ *
+ * ---------------------------------------------------------------
  */
-
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>

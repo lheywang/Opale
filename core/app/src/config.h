@@ -6,10 +6,18 @@
  * @brief   Define the standard GPIO used for different usages, 
  *          and some standard configs for the Opale project.
  *
- * @author  l.heywang
- * @date    15/02/2025
+ * @details All of the GPIOs on the nRF5340 are mappable, which 
+ *          mean we can can assign any function to any output 
+ *          (within some limits, relatives to analog or RF 
+ *          functions...).
+ *          The rest of this file define pins for the Application 
+ *          core, which handle most of the computation about 
+ *          flight control.
+ *          All of theses pins are identfied by two values : 
+ *          Pin, and port.
  *
- * @project TER M1 SEME 24-25
+ * @author  l.heywang (leonard.heywang@proton.me)
+ * @date    15/02/2025
  *
  * @version 1.0.0
  *
@@ -17,14 +25,7 @@
  */
 
 /*
- * All of the GPIOs on the nRF5340 are mappable, which mean we can
- * can assign any function to any output (within some limits, relatives
- * to analog or RF functions...).
- *
- * The rest of this file define pins for the Application core, which 
- * handle most of the computation about flight control.
- *
- * All of theses pins are identfied by two values : Pin, and port.
+ *  
  *
  */
 
