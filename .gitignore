@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+# editors
+*.swp
+*~
+
 # Compiled Object files
 *.slo
 *.lo
@@ -36,3 +40,10 @@
 
 # Vscode
 *.Vscode/*
+
+# Cmake artifacts
+CMakeCache*
+CMakeFiles/*
+
+# Doxygen outputs :
+documentation/
