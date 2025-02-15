@@ -50,11 +50,11 @@ config FLASH_LOAD_SIZE
 endif # BOARD_OPALE_CPUAPP_NS
 
 choice BT_HCI_BUS_TYPE
-	default BT_RPMSG if BT
+	default BT_HCI_IPC if BT
 endchoice
 
 config HEAP_MEM_POOL_SIZE
-	default 4096 if BT_RPMSG
+	default 4096 if BT_HCI_IPC
 
 endif #  BOARD_OPALE_CPUAPP || BOARD_OPALE_CPUAPP_NS
 

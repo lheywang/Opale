@@ -15,4 +15,5 @@ if(CONFIG_BOARD_OPALE_CPUNET)
 endif()
 
 include(${ZEPHYR_BASE}/boards/common/nrfjprog.board.cmake)
+include(${ZEPHYR_BASE}/boards/common/nrfutil.board.cmake)
 include(${ZEPHYR_BASE}/boards/common/jlink.board.cmake)
