@@ -5,7 +5,7 @@
 #
 
 # Configuring remote board to be used when building
-set(SB_CONFIG_REMOTE_BOARD "opale_cpunet")
+set(SB_CONFIG_REMOTE_BOARD "nrf5340dk/nrf5340/cpunet")
 
 if("${SB_CONFIG_REMOTE_BOARD}" STREQUAL "")
   message(FATAL_ERROR "REMOTE_BOARD must be set to a valid board name")
