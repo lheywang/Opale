@@ -25,13 +25,15 @@
 var NAVTREE =
 [
   [ "Opale", "index.html", [
-    [ "Opale", "d3/dcc/md__r_e_a_d_m_e.html", null ]
+    [ "Files", "files.html", [
+      [ "File List", "files.html", "files_dup" ]
+    ] ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"d3/dcc/md__r_e_a_d_m_e.html"
+"d2/d86/uart_8h_source.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';
