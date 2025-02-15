@@ -10,6 +10,21 @@
 
 #include <hal/nrf_gpio.h> 
 
+// tests for includes
+#include "config.h"
+#include "peripherals/adc.h"
+#include "peripherals/gpio.h"
+#include "peripherals/i2c.h"
+#include "peripherals/pwm.h"
+#include "peripherals/spi.h"
+#include "peripherals/uart.h"
+#include "devices/BNO055.h"
+#include "devices/II2SDLPC.h"
+#include "devices/LIV3R.h"
+#include "devices/M95256.h"
+#include "devices/MS5611.h"
+
+
 #define LED_PIN1     NRF_GPIO_PIN_MAP(0,30)
 #define LED_PIN2     NRF_GPIO_PIN_MAP(0,31)
 
