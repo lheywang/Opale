@@ -1,15 +1,17 @@
-/*
+/**
  * ---------------------------------------------------------------
  * 
- * core/app/src/config.h
+ * @file    core/app/src/config.h
  *
- * Define the standard GPIO used for different usages, 
- * and some standard configs for the Opale project.
+ * @brief   Define the standard GPIO used for different usages, 
+ *          and some standard configs for the Opale project.
  *
- * l.heywang
- * 15/02/2025
+ * @author  l.heywang
+ * @date    15/02/2025
  *
- * TER M1 SEME 24-25
+ * @project TER M1 SEME 24-25
+ *
+ * @version 1.0.0
  *
  * ---------------------------------------------------------------
  */
