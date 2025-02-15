@@ -6,9 +6,6 @@
  * @brief   Expose standard functions for the GPIO usage on the 
  *          nRF5340 SoC.
  *
- * @warning Theses function are customized for our board, and thus 
- *          may not be specified for a specific peripheral.
- *
  * @author  l.heywang (leonard.heywang@proton.me)
  *
  * @date    15/02/2025
@@ -17,6 +14,9 @@
  *
  * ---------------------------------------------------------------
  */
+
+// STDLIB 
+#include <stdint.h>
 
 // ==============================================================
 // Enums
@@ -60,7 +60,7 @@ typedef struct {
  *
  * @return  GPIO    A GPIO struct 
  */
-GPIO GPIO_Open(uint8_t Port, uint8_t Pin, GPIOMode Mode);
+GPIO* GPIO_Open(uint8_t Port, uint8_t Pin, GPIOMode Mode);
 
 /**
  * @brief   Close and delete the GPIO struct.
@@ -68,7 +68,7 @@ GPIO GPIO_Open(uint8_t Port, uint8_t Pin, GPIOMode Mode);
  * @param   Target  Pointer to a GPIO struct
  *
  * @return  0 :     Structure correctly deleted
- * @return -1 :     Error while deleting the struct
+                    and memory was freed
  */
 int GPIO_Close(GPIO *Target);
 
@@ -79,8 +79,7 @@ int GPIO_Close(GPIO *Target);
  * @param   Value   The value to be written (0 or 1)
  *
  * @return  0 :     Value was written
- * @return -1 :     GPIO not in the correct mode
- * @return -2 :     Error while writting to the GPIO    
+ * @return -1 :     Pin is configured as input. Cannot write.   
  */
 int GPIO_Write(GPIO *Target, int Value);
 
@@ -93,6 +92,15 @@ int GPIO_Write(GPIO *Target, int Value);
  *                  will be stored.
  * 
  * @return  0 :     Value was read
- * @return -1 :     Error while reading.
  */
 int GPIO_Read(GPIO *Target, int *Value);
+
+/**
+ * @brief   Toggle the GPIO if configured as output
+ * 
+ * @param   Target  Pointer to a GPIO struct
+ *
+ * @return  0 :     Pin was toggled
+ * @return -1 :     Cannot toggle pin, pin is configured as input. 
+ */
+int GPIO_Toggle(GPIO *Target);

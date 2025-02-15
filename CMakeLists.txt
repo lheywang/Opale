@@ -15,4 +15,31 @@ endif()
 
 project(Opale)
 
+# ====================================================================================
+# MAIN
+# ====================================================================================
 target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/main.c)
+
+# ====================================================================================
+# PERIPHERALS
+# ====================================================================================
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/peripherals/adc.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/peripherals/gpio.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/peripherals/i2c.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/peripherals/pwm.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/peripherals/spi.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/peripherals/uart.c)
+
+# ====================================================================================
+# DEVICES
+# ====================================================================================
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/devices/BNO055.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/devices/II2SDLPC.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/devices/LIV3R.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/devices/M95256.c)
+target_sources(app PRIVATE ${CMAKE_SOURCE_DIR}/core/app/src/devices/MS5611.c)
+
+# ====================================================================================
+# TASK
+# ====================================================================================
+# ...

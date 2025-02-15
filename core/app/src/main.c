@@ -36,17 +36,17 @@
 
 int main(void)
 {
-    GPIO LED1 = GPIO_Open(0, 30, GPIO_OUTPUT);
-    GPIO LED2 = GPIO_Open(0, 31, GPIO_OUTPUT);
+    GPIO *LED1 = GPIO_Open(0, 30, GPIO_OUTPUT);
+    GPIO *LED2 = GPIO_Open(0, 31, GPIO_OUTPUT);
 
-    GPIO_Write(&LED1, 1);
-    GPIO_Write(&LED2, 1);
+    GPIO_Write(LED1, 1);
+    GPIO_Write(LED2, 0);
 
 	while (1) {
-		printk("Hello world from %s\n", CONFIG_BOARD);
-        printk("Application core :)\n");
-
-	}
+		k_msleep(500);
+        GPIO_Toggle(LED1);
+        GPIO_Toggle(LED2);
+	};
 
 	return 0;
 }
