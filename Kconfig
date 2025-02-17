@@ -1,7 +1,0 @@
-source "Kconfig.zephyr"
-
-# Enable custom files for compilation...
-config GPIOHANDLE
-    bool "Enable GPIO custom HAL..."
-    default n
-
