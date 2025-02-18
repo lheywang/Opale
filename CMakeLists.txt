@@ -8,4 +8,5 @@ project(Opale)
 # Main source
 target_sources(app PRIVATE src/main.c)
 
+# Conditionnal build...
 target_sources_ifdef(CONFIG_GPIOHANDLE app PRIVATE src/peripherals/gpio.c)
