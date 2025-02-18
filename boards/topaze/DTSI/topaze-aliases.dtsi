@@ -1,0 +1,23 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 18/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// ALIASES
+// ============================================================
+/{
+    aliases {
+        led0 = &led0;
+        pwm0 = &pwm0;
+        servo1 = &servo1;
+        servo2 = &servo2;
+        servo3 = &servo3;
+    };
+};

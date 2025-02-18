@@ -1,0 +1,18 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze.
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * To simplify this process, I used multiples files that are
+ * included, and define a single peripheral. This make the
+ * reading easier !
+ *
+ * l.heywang
+ * 18/02/2025
+ *
+ * ============================================================
+ */
+
+// peripheral files
+#include "topaze-pwm-servo.dtsi"
+#include "topaze-leds.dtsi"
