@@ -1,0 +1,40 @@
+# ============================================================
+# This file is the base DTS for the topaze board.
+# 
+# It only serve the purpose of including required files,
+# do not place any modifications here or they will need to be
+# multiple times.
+#
+# l.heywang
+# 18/02/2025
+#
+# ============================================================
+CONFIG_ARM_MPU=y
+CONFIG_HW_STACK_PROTECTION=y
+
+CONFIG_ARM_TRUSTZONE_M=y
+CONFIG_TRUSTED_EXECUTION_NONSECURE=y
+
+# Enabling some hardware
+# enable GPIO
+CONFIG_GPIO=y
+
+# Enable RTT
+CONFIG_USE_SEGGER_RTT=y
+
+# enable uart driver
+CONFIG_SERIAL=y
+
+# enable console
+CONFIG_CONSOLE=y
+CONFIG_UART_CONSOLE=y
+
+CONFIG_LOG=y
+CONFIG_LOG_PRINTK=y
+
+CONFIG_PWM=y
+CONFIG_LED=y
+CONFIG_LED_PWM=y
+CONFIG_NRFX_PWM1=y
+CONFIG_NRFX_PWM2=y
+CONFIG_NRFX_PWM3=y
