@@ -34,7 +34,7 @@ GPIO* GPIO_Open(uint8_t Port, uint8_t Pin, GPIOMode Mode){
     // Allocate a new struct and make sure everything is set to 0
     GPIO *GPIO = malloc(sizeof(GPIO));
     if (!GPIO)
-        return NULL;
+        return -1;
     memset(GPIO, 0, sizeof(*GPIO));
 
     // Fill settings

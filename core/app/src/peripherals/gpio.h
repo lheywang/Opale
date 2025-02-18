@@ -14,6 +14,7 @@
  *
  * ---------------------------------------------------------------
  */
+#pragma once
 
 // STDLIB 
 #include <stdint.h>
@@ -53,6 +54,11 @@ typedef struct {
 
 /**
  * @brief   Open and create a new GPIO struct to handle standard IO
+ *
+ * @warning If the remaining memory isn't enough, the function will return
+ *          -1, which will mostly cause the program to crash.
+ *          This is intendend since the code can't execute correctly then, 
+ *          and error can't be handled.
  * 
  * @param   Port    Port number (uint8_t)
  * @param   Pin     Pin number (uint8_t
