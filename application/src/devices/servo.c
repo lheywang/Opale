@@ -25,6 +25,9 @@
 // Local libs
 #include "servo.h"
 
+// STD
+#include <math.h>
+
 /* -----------------------------------------------------------------
 * LOGGER CONFIG
 * -----------------------------------------------------------------
@@ -37,19 +40,33 @@ LOG_MODULE_REGISTER(Servo, LOG_LEVEL_DBG);
 * -----------------------------------------------------------------
 */
 
-int SetServoPosition(const void* Target, float Position){
+int SetServoPosition(const void* Target, const float Position){
     
     // Checking the parameters
-    if ((Position < PWM_SERVO_MIN_ANGLE) || (Position > PWM_SERVO_MAX_ANGLE)) 
+    // MIN =< Pos <= MAX
+    if (Position < PWM_SERVO_MIN_ANGLE){
+        LOG_ERR("Incorrect command passed on the servo %.3f", (double)Position);
         return -1;
+    }
+    if (Position > PWM_SERVO_MAX_ANGLE){
+        LOG_ERR("Incorrect command passed on the servo %.3f", (double)Position);
+        return -1;
+    }
 
-    // Computing the values (cross product...)
-    Position += PWM_SERVO_MIN_ANGLE; // Offset the value to get a 0-MAX+MIN 
-    int pulse = (Position * PWM_SERVO_MAX_PULSE_WIDTH) / PWM_SERVO_MAX_ANGLE;
+    // Computing the pulse length
+    // Due to negative values that are offseted, we need to handle that case too.
+    int pulse = Position;
+    pulse += PWM_SERVO_MAX_ANGLE;
+    pulse *= PWM_SERVO_MAX_PULSE_WIDTH;
+    pulse /= 2 * PWM_SERVO_MAX_RANGE;
+    pulse += PWM_SERVO_MIN_PULSE_WIDTH;
+    pulse = round(pulse);
 
     // Configure the PWM engine
     int err = pwm_set_dt(Target, PWM_SERVO_PERIOD, pulse); // pulse is ns, check that ?
-    if (err != 0)
+    if (err != 0){
+        LOG_ERR("Failed to configure the PWM duty cycle for the servo : %d", err);
         return -2;
+    }
     return 0;
 }

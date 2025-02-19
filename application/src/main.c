@@ -66,9 +66,9 @@ int main(void)
     }
 
     // Configure PWM position of servos
-    SetServoPosition(&pwm0_servo0, -45);
-    SetServoPosition(&pwm0_servo1, 45);
-    SetServoPosition(&pwm0_servo2, 0);
+    ret += SetServoPosition(&pwm0_servo0, -45);
+    ret += SetServoPosition(&pwm0_servo1, 45);
+    ret += SetServoPosition(&pwm0_servo2, 0);
 
     // error here :
     // servo aren't controlled, because of the expansion of a value incorrecly.

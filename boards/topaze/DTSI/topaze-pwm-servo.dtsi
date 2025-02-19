@@ -33,7 +33,6 @@
                         <NRF_PSEL(PWM_OUT1, 0, 30)>, 
                         <NRF_PSEL(PWM_OUT2, 0, 31)>;
                         // <NRF_PSEL(PWM_OUT3, 0, 28)>;
-            nordic,invert;
         };
     };
 };
@@ -49,10 +48,9 @@
         servo1: pwm_led_0 {
             pwms = <&pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
             period = <PWM_HZ(50)>;
-            min-pulse = <PWM_USEC(700)>;
-            max-pulse = <PWM_USEC(2300)>;
-            min-angle = <(-90)>;
-            max-angle = <(90)>;
+            min-pulse = <PWM_MSEC(1)>;
+            max-pulse = <PWM_MSEC(2)>;
+            max-angle = <180>;
         };
         servo2: pwm_led_1 {
             pwms = <&pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;

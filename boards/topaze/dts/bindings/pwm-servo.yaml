@@ -42,20 +42,22 @@ child-binding:
       description: |
         Minimal value of the output pulse for the PWM servo. Generally, this is around 1 millisec.
 
+        This value shall correspond to the minimal angle wanted.
+
     max-pulse:
       required: false
       type: int
       description: |
-        Maximal value of the output pulse for the PWM servo. Generally, this is around 2 millisec.
+        Maximal value of the output pulse for the PWM servo. Generally, this is around 2 millisecs.
 
-    min-angle:
-      required: false
-      type: int
-      description: |
-        Minimal angle reachable by the servo engine
+        This shall correspond to the maximum angle wanted.
 
     max-angle:
       required: false
       type: int
       description: |
-        Maximal angle reachable by the servo engine
+        The maximal area that can be covered, as an unsigned integer :
+
+        This value assume to be centered arround 0 and is calculated as MAX - MIN in absolute degrees.
+        For our servo, this is :
+          90 - (-90) -> 180°
