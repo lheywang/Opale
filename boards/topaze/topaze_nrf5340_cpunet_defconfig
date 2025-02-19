@@ -1,15 +1,25 @@
 # ============================================================
-# This file is the base KConfig fragment for the board, for 
-# the network cpu.
+# boards/topaze/topaze_arm_defconfig 
 # 
-# It only serve the purpose of including required files,
-# do not place any modifications here or they will need to be
-# multiple times.
+# This file is seen as a fragment of a defconfig file, and used
+# to configure some things related to ARM core only.
 #
 # l.heywang
 # 19/02/2025
 #
 # ============================================================
 
-# Load the global include files
-source "defconfig/topaze_includes_defconfig"
+# ------------------------------------------------------------
+# CORE CONFIG
+# ------------------------------------------------------------
+# MPU
+CONFIG_ARM_MPU=y
+
+# HSP (Hardware Stack Protection)
+CONFIG_HW_STACK_PROTECTION=y
+
+# Trustzone
+CONFIG_ARM_TRUSTZONE_M=y
+
+# Enable execution in nonsecure env.
+CONFIG_TRUSTED_EXECUTION_NONSECURE=y

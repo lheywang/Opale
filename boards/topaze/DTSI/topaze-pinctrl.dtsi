@@ -16,3 +16,4 @@
 // peripheral files
 #include "topaze-pwm-servo.dtsi"
 #include "topaze-leds.dtsi"
+#include "topaze-serial.dtsi"

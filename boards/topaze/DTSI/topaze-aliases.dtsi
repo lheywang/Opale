@@ -19,5 +19,6 @@
         servo1 = &servo1;
         servo2 = &servo2;
         servo3 = &servo3;
+        uart0 = &uart0;
     };
 };
