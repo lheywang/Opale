@@ -15,12 +15,15 @@ CONFIG_HW_STACK_PROTECTION=y
 
 CONFIG_ARM_TRUSTZONE_M=y
 
+CONFIG_LOG=y
+
 # Enabling some hardware
 # enable GPIO
 CONFIG_GPIO=y
 
 # Enable RTT
 CONFIG_USE_SEGGER_RTT=y
+CONFIG_LOG_BACKEND_UART=n
 
 # enable uart driver
 CONFIG_SERIAL=y
