@@ -8,3 +8,4 @@ project(Opale)
 # Main source
 target_sources(app PRIVATE application/src/main.c)
 target_sources(app PRIVATE application/src/init/init.c)
+target_sources(app PRIVATE application/src/devices/servo.c)
