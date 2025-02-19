@@ -12,4 +12,4 @@
 # ============================================================
 
 # Load the global include files
-source "kconfig/topaze_includes_defconfig"
+source "defconfig/topaze_includes_defconfig"
