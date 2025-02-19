@@ -1,7 +1,7 @@
 # boards/topaze/bindings/pwm-servo.yml
 #
-#
-#
+# l.heywang
+# 19/02/2025
 #
 
 description: PWM Servos parent node
@@ -30,6 +30,12 @@ child-binding:
         application to identify this LED or to retrieve its number/index
         (i.e. child node number) on the parent device.
 
+    period:
+      type: int
+      required: false
+      description: |
+        The duration of a PWM cycle (use NRF macros to get the correct format !)
+
     min-pulse:
       required: false
       type: int
@@ -41,3 +47,15 @@ child-binding:
       type: int
       description: |
         Maximal value of the output pulse for the PWM servo. Generally, this is around 2 millisec.
+
+    min-angle:
+      required: false
+      type: int
+      description: |
+        Minimal angle reachable by the servo engine
+
+    max-angle:
+      required: false
+      type: int
+      description: |
+        Maximal angle reachable by the servo engine
