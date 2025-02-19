@@ -62,6 +62,14 @@
      *          pulse lenght won't change the position. A call to this function may in 
      *          this case initiate a little to no movement.
      * 
+     *          The value produced are :
+     * 
+     *                     Angle  | Pulse len
+     *              ------------- | -------------
+     *                        -90 | MIN_PULSE
+     *                         90 | MAX_PULSE
+     * 
+     * 
      * @param   Target      The pwm_dt_spec that correspond to the servo 
      *                      (defined as const)
      * @param   Position    The position in degrees that is wanted.
