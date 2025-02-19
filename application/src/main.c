@@ -25,6 +25,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/drivers/uart.h>
 
 
 // Custom headers
@@ -43,6 +44,7 @@ extern const struct     pwm_dt_spec     pwm0_servo0;
 extern const struct     pwm_dt_spec     pwm0_servo1;
 extern const struct     pwm_dt_spec     pwm0_servo2;
 
+const struct device *uart= DEVICE_DT_GET(DT_NODELABEL(uart0));
 
 /* -----------------------------------------------------------------
 * MAIN LOOP
@@ -55,10 +57,21 @@ int main(void)
     err += CheckLedsPeripherals();
     err += CheckPWMPeripherals();
 
+    if (!device_is_ready(uart)){
+		printk("UART device not ready\r\n");
+		return 1 ;
+	}
+
+    static uint8_t tx_buf[] =   {"nRF Connect SDK Fundamentals Course\r\n"
+        "Press 1-3 on your keyboard to toggle LEDS 1-3 on your development kit\r\n"};
+
+    int ret = uart_tx(uart, tx_buf, sizeof(tx_buf), SYS_FOREVER_US);
+	if (ret) {
+		return 1;
+	}
+
     if (err != 0)
         return 0;
-
-    int ret;
 
     ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
