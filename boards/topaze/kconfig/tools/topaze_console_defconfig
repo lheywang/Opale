@@ -1,0 +1,22 @@
+# ============================================================
+# boards/topaze/kconfig/tools/topaze_console_defconfig 
+# 
+# This file is seen as a fragment of a defconfig file, and used
+# to configure some things related to the console only 
+# (debugging)
+#
+# l.heywang
+# 19/02/2025
+#
+# ============================================================
+
+# ------------------------------------------------------------
+# ENABLING MODULE
+# ------------------------------------------------------------
+CONFIG_CONSOLE=y
+
+# ------------------------------------------------------------
+# MODULE CONFIG
+# ------------------------------------------------------------
+# Using the console over UART bus.
+CONFIG_UART_CONSOLE=y
