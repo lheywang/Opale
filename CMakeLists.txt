@@ -6,7 +6,5 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(Opale)
 
 # Main source
-target_sources(app PRIVATE src/main.c)
-
-# Conditionnal build...
-target_sources_ifdef(CONFIG_GPIOHANDLE app PRIVATE src/peripherals/gpio.c)
+target_sources(app PRIVATE application/src/main.c)
+target_sources(app PRIVATE application/src/init/init.c)
