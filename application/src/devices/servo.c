@@ -24,6 +24,7 @@
 
 // Local libs
 #include "servo.h"
+#include "../config.h"
 
 // STD
 #include <math.h>
@@ -33,7 +34,7 @@
 * -----------------------------------------------------------------
 */
 // Identify the module on the LOG Output
-LOG_MODULE_REGISTER(Servo, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(Servo, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
 * FUNCTIONS TO COMMAND A SERVO

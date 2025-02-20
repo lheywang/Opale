@@ -23,13 +23,14 @@
 #include <zephyr/kernel.h>
 
 #include "init.h"
+#include "../config.h"
 
 /* -----------------------------------------------------------------
 * LOGGER CONFIG
 * -----------------------------------------------------------------
 */
 // Identify the module on the LOG Output
-LOG_MODULE_REGISTER(Initializer, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(Initializer, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
 * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
