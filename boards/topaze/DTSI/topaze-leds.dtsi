@@ -30,8 +30,8 @@
     leds {
 		compatible = "gpio-leds";
 		led0: led_0 {
-			gpios = <&gpio0 28 GPIO_ACTIVE_LOW>;
-			label = "Green LED 0";
+			gpios =     <&gpio0 28 GPIO_ACTIVE_LOW>;
+			label =     "Green LED 0";
 		};
 		// led1: led_1 {
 		// 	gpios = <&gpio0 29 GPIO_ACTIVE_LOW>;
@@ -46,5 +46,11 @@
 		// 	label = "Green LED 3";
 		// };
 	};
+};
+
+/{
+    aliases {
+        led0 = &led0;
+    };
 };
 

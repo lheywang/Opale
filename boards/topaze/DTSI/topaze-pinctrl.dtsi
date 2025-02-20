@@ -14,6 +14,12 @@
  */
 
 // peripheral files
+// PWM
 #include "topaze-pwm-servo.dtsi"
+#include "topaze-pwm-rgb.dtsi"
+
+// GPIOS
 #include "topaze-leds.dtsi"
+
+// UARTS
 #include "topaze-serial.dtsi"

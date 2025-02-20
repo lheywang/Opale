@@ -36,11 +36,16 @@
 	};
 };
 
-// Configure the console output as UART0.
+// Configure the console output as UART0 and 
+// set aliases for this module
 / {
     chosen {
         zephyr,console = &uart0;
         zephyr,shell-uart = &uart0;
 		zephyr,uart-mcumgr = &uart0;
+    };
+
+    aliases {
+        uart0 = &uart0;
     };
 };

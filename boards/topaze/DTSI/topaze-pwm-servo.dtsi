@@ -1,6 +1,6 @@
 /* ============================================================
  * This file is the overlay DTS for topaze that define the PWM
- * peripheral
+ * peripheral for the servo engines specifically.
  *
  * We describe here the peripherals configuration, and so on...
  *
@@ -10,29 +10,33 @@
  * ============================================================
  */
 
-/* todo
- *  - Change pins for final PCB version
- *  - Configure PWM for final servo usage
- */
-
 // ============================================================
 // PWM
 // ============================================================
 // Peripheral configuration
 &pwm0 {
     status = "okay";
-    pinctrl-0 = <&pwm0_default>;
+    pinctrl-0 = <&pwm0_topaze>;
     pinctrl-names = "default";
 };
 
 // Pin muxing configuration
 &pinctrl {
-    pwm0_default: pwm0_default {
+    // This first group is unused, and is pointing to the leds on the dk.
+    pwm0_dk: pwm0_dk {
         group1 {
-            psels =     <NRF_PSEL(PWM_OUT0, 0, 29)>,
-                        <NRF_PSEL(PWM_OUT1, 0, 30)>, 
-                        <NRF_PSEL(PWM_OUT2, 0, 31)>;
-                        // <NRF_PSEL(PWM_OUT3, 0, 28)>;
+            psels =     <NRF_PSEL(PWM_OUT0, 0, 28)>,
+                        <NRF_PSEL(PWM_OUT1, 0, 29)>,
+                        <NRF_PSEL(PWM_OUT2, 0, 30)>, 
+                        <NRF_PSEL(PWM_OUT3, 0, 31)>;
+        };
+    };
+    pwm0_topaze: pwm0_topaze {
+        group1 {
+            psels =     <NRF_PSEL(PWM_OUT0, 1, 14)>,
+                        <NRF_PSEL(PWM_OUT1, 1, 12)>, 
+                        <NRF_PSEL(PWM_OUT2, 1, 0)>,
+                        <NRF_PSEL(PWM_OUT3, 0, 2)>;
         };
     };
 };
@@ -45,21 +49,37 @@
 /{
     servos {
         compatible = "pwm-servo";
-        servo1: pwm_led_0 {
-            pwms = <&pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-            period = <PWM_HZ(50)>;
+        servo1: pwm0_servo0 {
+            pwms =      <&pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+            period =    <PWM_HZ(50)>;
             min-pulse = <PWM_MSEC(1)>;
             max-pulse = <PWM_MSEC(2)>;
             max-angle = <180>;
         };
-        servo2: pwm_led_1 {
-            pwms = <&pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+        servo2: pwm0_servo1 {
+            pwms =      <&pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
         };
-        servo3: pwm_led_2 {
-            pwms = <&pwm0 2 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+        servo3: pwm0_servo2 {
+            pwms =      <&pwm0 2 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+        };
+        servo4: pwm0_servo3 {
+            pwms =      <&pwm0 4 PWM_HZ(50) PWM_POLARITY_NORMAL>;
         };
     };
 };
+
+// Set aliases for this module
+/{
+    aliases {
+        pwm0    =  &pwm0;
+        servo1  = &servo1;
+        servo2  = &servo2;
+        servo3  = &servo3;
+        servo4  = &servo4;
+    };
+};
+
+
 
 
 
