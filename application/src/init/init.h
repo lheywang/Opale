@@ -27,6 +27,7 @@
     // Zephyr driver libs
     #include <zephyr/drivers/gpio.h>
     #include <zephyr/drivers/pwm.h>
+    #include <zephyr/devicetree.h>
 
     /* -----------------------------------------------------------------
     * DEFINING NODE ALIASES
@@ -40,7 +41,10 @@
     #define SERVO_0     DT_ALIAS(servo1)
     #define SERVO_1     DT_ALIAS(servo2)
     #define SERVO_2     DT_ALIAS(servo3)
-    // #define SERVO_3     DT_ALIAS(servo4)
+    #define SERVO_3     DT_ALIAS(servo4)
+
+    // RGB Leds (As a path since we're using three values here);
+    #define RGB_1       DT_PATH(rgb, rgb1)
 
     /* -----------------------------------------------------------------
     * FETCHING C STRUCTS THAT DESCRIBE EACH PERIPHERALS
@@ -48,13 +52,18 @@
     */
 
     // Onboard leds
-    static const struct gpio_dt_spec    led            = GPIO_DT_SPEC_GET(LED0, gpios);
+    static const struct gpio_dt_spec    led             = GPIO_DT_SPEC_GET(LED0, gpios);
 
     // Servo engines (wings) commands
-    static const struct pwm_dt_spec     pwm0_servo0    = PWM_DT_SPEC_GET(SERVO_0);
-    static const struct pwm_dt_spec     pwm0_servo1    = PWM_DT_SPEC_GET(SERVO_1);
-    static const struct pwm_dt_spec     pwm0_servo2    = PWM_DT_SPEC_GET(SERVO_2);
-    // static const struct pwm_dt_spec     pwm0_servo3    = PWM_DT_SPEC_GET(SERVO_3);
+    static const struct pwm_dt_spec     pwm0_servo0     = PWM_DT_SPEC_GET(SERVO_0);
+    static const struct pwm_dt_spec     pwm0_servo1     = PWM_DT_SPEC_GET(SERVO_1);
+    static const struct pwm_dt_spec     pwm0_servo2     = PWM_DT_SPEC_GET(SERVO_2);
+    static const struct pwm_dt_spec     pwm0_servo3     = PWM_DT_SPEC_GET(SERVO_3);
+
+    // RGB Leds
+    static const struct pwm_dt_spec     pwm_rgb[]       = { PWM_DT_SPEC_GET_BY_IDX(RGB_1, 0), 
+                                                            PWM_DT_SPEC_GET_BY_IDX(RGB_1, 1), 
+                                                            PWM_DT_SPEC_GET_BY_IDX(RGB_1, 2)};
 
     /* -----------------------------------------------------------------
     * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
