@@ -37,14 +37,19 @@
     // Onboard leds
     #define LED0        DT_ALIAS(led0)
 
-    // Servo engines (wings) commands
-    #define SERVO_0     DT_ALIAS(servo1)
-    #define SERVO_1     DT_ALIAS(servo2)
-    #define SERVO_2     DT_ALIAS(servo3)
-    #define SERVO_3     DT_ALIAS(servo4)
-
-    // RGB Leds (As a path since we're using three values here);
+    // PWM related peripherals
+    #define WINGS_1     DT_PATH(wings, wings1)
     #define RGB_1       DT_PATH(rgb, rgb1)
+
+    // Serial related peripherals
+    #define UART_0      DT_NODELABEL(uart0)
+
+    // Fetching lengh of different DT PROP
+    #define PWM_RGB_LEN               DT_PROP_LEN(RGB_1, pwms)
+    #define PWM_SERVO_LEN             DT_PROP_LEN(WINGS_1, pwms)
+
+    // Module settings
+    #define INIT_MAX_TRY              3 // Number of try before declaring peripheral out.
 
     /* -----------------------------------------------------------------
     * FETCHING C STRUCTS THAT DESCRIBE EACH PERIPHERALS
@@ -52,18 +57,22 @@
     */
 
     // Onboard leds
-    static const struct gpio_dt_spec    led             = GPIO_DT_SPEC_GET(LED0, gpios);
+    static const struct gpio_dt_spec    led                      =      GPIO_DT_SPEC_GET(LED0, gpios);
+    // UARTS
+    // static const struct device          *uart                    =      DEVICE_DT_GET(UART_0);
 
     // Servo engines (wings) commands
-    static const struct pwm_dt_spec     pwm0_servo0     = PWM_DT_SPEC_GET(SERVO_0);
-    static const struct pwm_dt_spec     pwm0_servo1     = PWM_DT_SPEC_GET(SERVO_1);
-    static const struct pwm_dt_spec     pwm0_servo2     = PWM_DT_SPEC_GET(SERVO_2);
-    static const struct pwm_dt_spec     pwm0_servo3     = PWM_DT_SPEC_GET(SERVO_3);
+    static const struct pwm_dt_spec     pwm_wings[PWM_SERVO_LEN] = {    PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 0),
+                                                                        PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 1),
+                                                                        PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 2),
+                                                                        PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 3)};
 
     // RGB Leds
-    static const struct pwm_dt_spec     pwm_rgb[]       = { PWM_DT_SPEC_GET_BY_IDX(RGB_1, 0), 
-                                                            PWM_DT_SPEC_GET_BY_IDX(RGB_1, 1), 
-                                                            PWM_DT_SPEC_GET_BY_IDX(RGB_1, 2)};
+    static const struct pwm_dt_spec     pwm_rgb[PWM_RGB_LEN]     = {    PWM_DT_SPEC_GET_BY_IDX(RGB_1, 0), 
+                                                                        PWM_DT_SPEC_GET_BY_IDX(RGB_1, 1), 
+                                                                        PWM_DT_SPEC_GET_BY_IDX(RGB_1, 2)};
+
+
 
     /* -----------------------------------------------------------------
     * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK

@@ -25,6 +25,7 @@
 // Local libs
 #include "servo.h"
 #include "../config.h"
+#include "../init/init.h"
 
 // STD
 #include <math.h>
@@ -41,30 +42,61 @@ LOG_MODULE_REGISTER(Servo, PROJECT_LOG_LEVEL);
 * -----------------------------------------------------------------
 */
 
-int SetServoPosition(const void* Target, const float Position){
+int ServosSetPosition(  const struct pwm_dt_spec Target[PWM_SERVO_LEN], 
+                        ServoAngles const *Command){
     
     // Checking the parameters
     // MIN =< Pos <= MAX
-    if (Position < PWM_SERVO_MIN_ANGLE){
-        LOG_ERR("Incorrect command passed on the servo %.3f", (double)Position);
+    if ((Command->north < PWM_SERVO_MIN_ANGLE) || 
+        (Command->south < PWM_SERVO_MIN_ANGLE) || 
+        (Command->east < PWM_SERVO_MIN_ANGLE) || 
+        (Command->west < PWM_SERVO_MIN_ANGLE)){
+        LOG_ERR("Incorrect command passed on the servo. At least one command was under the threshold");
         return -1;
     }
-    if (Position > PWM_SERVO_MAX_ANGLE){
-        LOG_ERR("Incorrect command passed on the servo %.3f", (double)Position);
+    if ((Command->north > PWM_SERVO_MAX_ANGLE) || 
+        (Command->south > PWM_SERVO_MAX_ANGLE) || 
+        (Command->east > PWM_SERVO_MAX_ANGLE) || 
+        (Command->west > PWM_SERVO_MAX_ANGLE)){
+        LOG_ERR("Incorrect command passed on the servo. At least one command was under the threshold");
         return -1;
     }
 
-    // Computing the pulse length
+    // Computing the pulses length
     // Due to negative values that are offseted, we need to handle that case too.
-    int pulse = Position;
-    pulse += PWM_SERVO_MAX_ANGLE;
-    pulse *= PWM_SERVO_MAX_PULSE_WIDTH;
-    pulse /= 2 * PWM_SERVO_MAX_RANGE;
-    pulse += PWM_SERVO_MIN_PULSE_WIDTH;
-    pulse = round(pulse);
+    int pulses[4] = {0};
+    for (uint8_t k = 0; k < 4; k++)
+    {
+        switch (k) {
+            case 1:
+                pulses[k] = Command->north;
+                break;
+            case 2:
+                pulses[k] = Command->south;
+                break;
+            case 3:
+                pulses[k] = Command->east;
+                break;
+            case 4:
+                pulses[k] = Command->west;
+                break;
+        }
 
-    // Configure the PWM engine
-    int err = pwm_set_dt(Target, PWM_SERVO_PERIOD, pulse); // pulse is ns, check that ?
+        pulses[k] += PWM_SERVO_MAX_ANGLE;
+        pulses[k] *= PWM_SERVO_MAX_PULSE_WIDTH;
+        pulses[k] /= 2 * PWM_SERVO_MAX_RANGE;
+        pulses[k] += PWM_SERVO_MIN_PULSE_WIDTH;
+        pulses[k] = round(pulses[k]);
+    }
+
+    // Configure the PWM engines
+    int err = 0;
+    for (uint8_t k = 0; k < 4; k++)
+    {
+        err += pwm_set_dt(&Target[k], PWM_SERVO_PERIOD, pulses[k]);
+    }
+
+    // End log, and return
     if (err != 0){
         LOG_ERR("Failed to configure the PWM duty cycle for the servo : %d", err);
         return -2;

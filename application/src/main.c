@@ -30,8 +30,11 @@
 
 // Custom headers
 #include "init/init.h"
-#include "devices/servo.h"
 #include "config.h"
+
+#include "devices/servo.h"
+#include "devices/rgb.h"
+#include "devices/gpio.h"
 
 /* -----------------------------------------------------------------
 * LOGGER CONFIG
@@ -53,8 +56,6 @@ extern const struct     pwm_dt_spec     pwm0_servo0;
 extern const struct     pwm_dt_spec     pwm0_servo1;
 extern const struct     pwm_dt_spec     pwm0_servo2;
 
-const struct device *uart= DEVICE_DT_GET(DT_NODELABEL(uart0));
-
 /* -----------------------------------------------------------------
 * MAIN LOOP
 * -----------------------------------------------------------------
@@ -66,32 +67,33 @@ int main(void)
     err += CheckLedsPeripherals();
     err += CheckPWMPeripherals();
 
-    if (!device_is_ready(uart)){
-		printk("UART device not ready\r\n");
-		return 1 ;
-	}
-
     if (err != 0)
         return 0;
 
-    int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    int ret = GPIOSetAsOutput(&led, 0);
     if (ret < 0) {
         return 0;
     }
 
-    // Configure PWM position of servos
-    ret += SetServoPosition(&pwm0_servo0, -45);
-    ret += SetServoPosition(&pwm0_servo1, 45);
-    ret += SetServoPosition(&pwm0_servo2, 0);
+    ServoAngles Command = { .north = 66, 
+                            .south = 33, 
+                            .east = -33, 
+                            .west = -66};
 
-    // error here :
-    // servo aren't controlled, because of the expansion of a value incorrecly.
+    ret += ServosSetPosition(pwm_wings, &Command);
+
+    Color Command2 = {  .red = 255,
+                        .green = 127,
+                        .blue = 0,
+                        .alpha = 100};
+                
+    ret += LedSetColor(pwm_rgb, &Command2);
 
 	while (1) {
 		LOG_INF("Hello World !");
 		k_msleep(500);
 
-        ret = gpio_pin_toggle_dt(&led);
+        ret = GPIOToggle(&led);
         if (ret < 0) {
             return 0 ;
         }

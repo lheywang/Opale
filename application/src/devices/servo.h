@@ -22,6 +22,9 @@
     * INCLUDING LIBS
     * -----------------------------------------------------------------
     */
+
+    // Zephyr
+    #include <zephyr/drivers/pwm.h>
     
     // Libs
     #include "../init/init.h"
@@ -32,16 +35,55 @@
     */
 
     // Period
-    #define PWM_SERVO_PERIOD            DT_PROP(SERVO_0, period)
+    #define PWM_SERVO_PERIOD            DT_PROP(WINGS_1, period)
 
     // Pulse specs
-    #define PWM_SERVO_MIN_PULSE_WIDTH   DT_PROP(SERVO_0, min_pulse)
-    #define PWM_SERVO_MAX_PULSE_WIDTH   DT_PROP(SERVO_0, max_pulse)
+    #define PWM_SERVO_MIN_PULSE_WIDTH   DT_PROP(WINGS_1, min_pulse)
+    #define PWM_SERVO_MAX_PULSE_WIDTH   DT_PROP(WINGS_1, max_pulse)
 
     // Motor specs (and compute the correct values)
-    #define PWM_SERVO_MAX_RANGE         DT_PROP(SERVO_0, max_angle)
+    #define PWM_SERVO_MAX_RANGE         DT_PROP(WINGS_1, max_angle)
     #define PWM_SERVO_MAX_ANGLE         (PWM_SERVO_MAX_RANGE / 2)
     #define PWM_SERVO_MIN_ANGLE         (-PWM_SERVO_MAX_RANGE / 2)
+
+    /* -----------------------------------------------------------------
+    * Defining command structure
+    * -----------------------------------------------------------------
+    */
+
+    /**
+     * @brief   Define a structure used to pass angle commands to the servo
+     *          servo engines.
+     * 
+     *
+     * @details The pwms parameters are assigned in the following order : 
+     *              - first :   north 
+     *              - second :  south
+     *              - third :   east
+     *              - last :    west
+     *
+     *              Direction are designated as :
+     *
+     *                      North
+     *                        |
+     *                West-- PCB -- East
+     *                        |
+     *                      South
+     * 
+     *          The commands are passed in positive / negative angles
+     *          from the origin
+     *
+     * @var     ServoAngles::north  Command for the north servo
+     * @var     ServoAngles::south  Command for the south servo
+     * @var     ServoAngles::east   Command for the north servo
+     * @var     ServoAngles::west   Command for the west  servo
+     */
+    typedef struct {
+        float north;
+        float south;
+        float east;
+        float west;
+    } ServoAngles;
 
     /* -----------------------------------------------------------------
     * FUNCTIONS TO COMMAND A SERVO
@@ -49,8 +91,7 @@
     */
 
     /**
-     * @brief   Compute the PWM duty cycle needed to place a servo engine
-     *          in a defined position.
+     * @brief   Compute the PWM duty cycle needed to place all servos position
      * 
      * @details This function compute, in the backend a cross product to get
      *          the wanted pulse duration over the standard period.
@@ -72,13 +113,15 @@
      * 
      * @param   Target      The pwm_dt_spec that correspond to the servo 
      *                      (defined as const)
-     * @param   Position    The position in degrees that is wanted.
+     * @param   Command     A ServoAngles struct that contain the wanted position 
+     *                      for all the servos.
      * 
      * @return  0 : Controlled servo position
      * @return -1 : Invalid angle
      * @return -2 : Error while controlling the peripheral
      */
-    int SetServoPosition(const void* Target, const float Position);
+    int ServosSetPosition ( const struct pwm_dt_spec Target[PWM_SERVO_LEN], 
+                            ServoAngles const *Command);
 
 #endif
 
