@@ -36,5 +36,11 @@
 	};
 };
 
-// No root node here, since we're using direct read to the peripheral.
-
+// Configure the console output as UART0.
+/ {
+    chosen {
+        zephyr,console = &uart0;
+        zephyr,shell-uart = &uart0;
+		zephyr,uart-mcumgr = &uart0;
+    };
+};

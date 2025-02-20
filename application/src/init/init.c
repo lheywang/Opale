@@ -43,7 +43,7 @@ int CheckLedsPeripherals(){
     for (uint8_t k = 0; k < 3; k++) {
         if (!gpio_is_ready_dt(&led)) {
             if (k < 2){
-                LOG_WRN("LED peripheral is not ready for now...");
+                LOG_WRN("LED peripheral is not ready for now. Retrying in 5 ms...");
                 k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
             }
             else {
@@ -55,6 +55,8 @@ int CheckLedsPeripherals(){
             break;
     }
 
+    if (ErrCounter == 0)
+        LOG_INF("Leds are working !");
     return -ErrCounter;
 }
 
@@ -65,11 +67,11 @@ int CheckPWMPeripherals(){
     for (uint8_t k = 0; k < 3; k++) {
         if (!pwm_is_ready_dt(&pwm0_servo0)) {
             if (k < 2){
-                LOG_WRN("PWM1 peripheral is not ready for now...");
+                LOG_WRN("Servo1 peripheral is not ready for now. Retrying in 5 ms...");
                 k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
             }
             else {
-                LOG_ERR("LED peripheral is not working properly.");
+                LOG_ERR("Servo1 peripheral is not working properly.");
                 ErrCounter += 1;
             }
         }
@@ -80,11 +82,11 @@ int CheckPWMPeripherals(){
     for (uint8_t k = 0; k < 3; k++) {
         if (!pwm_is_ready_dt(&pwm0_servo1)) {
             if (k < 2){
-                LOG_WRN("LED peripheral is not ready for now...");
+                LOG_WRN("Servo2 peripheral is not ready for now. Retrying in 5 ms...");
                 k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
             }
             else {
-                LOG_ERR("LED peripheral is not working properly.");
+                LOG_ERR("Servo2 peripheral is not working properly.");
                 ErrCounter += 1;
             }
         }
@@ -95,11 +97,11 @@ int CheckPWMPeripherals(){
     for (uint8_t k = 0; k < 3; k++) {
         if (!pwm_is_ready_dt(&pwm0_servo2)) {
             if (k < 2){
-                LOG_WRN("LED peripheral is not ready for now...");
+                LOG_WRN("Servo3 peripheral is not ready for now. Retrying in 5 ms...");
                 k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
             }
             else {
-                LOG_ERR("LED peripheral is not working properly.");
+                LOG_ERR("Servo3 peripheral is not working properly.");
                 ErrCounter += 1;
             }
         }
@@ -110,11 +112,11 @@ int CheckPWMPeripherals(){
     // for (uint8_t k = 0; k < 3; k++) {
     //     if (!pwm_is_ready_dt(&pwm0_servo3)) {
     //         if (k < 2){
-    //             LOG_WRN("LED peripheral is not ready for now...");
+    //             LOG_WRN("Servo4 peripheral is not ready for now. Retrying in 5 ms...");
     //             k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
     //         }
     //         else {
-    //             LOG_ERR("LED peripheral is not working properly.");
+    //             LOG_ERR("Servo3 peripheral is not working properly.");
     //             ErrCounter += 1;
     //         }
     //     }
@@ -122,5 +124,11 @@ int CheckPWMPeripherals(){
     //         break;
     // }
 
+    if (ErrCounter == 0){
+        LOG_INF("All servo engines are working properly !");
+    }
+    else {
+        LOG_ERR("Some servos engines aren't working properly... Err = %d", ErrCounter);
+    }
     return -ErrCounter;
 }

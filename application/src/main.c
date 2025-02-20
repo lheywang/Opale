@@ -22,15 +22,24 @@
 // Zephyr
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
-#include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/logging/log.h>
 
 
 // Custom headers
 #include "init/init.h"
 #include "devices/servo.h"
+#include "config.h"
+
+/* -----------------------------------------------------------------
+* LOGGER CONFIG
+* -----------------------------------------------------------------
+*/
+// Identify the module on the LOG Output
+LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
+
 
 /* -----------------------------------------------------------------
 * INCLUDING VARIABLES
@@ -62,18 +71,13 @@ int main(void)
 		return 1 ;
 	}
 
-    static uint8_t tx_buf[] =   {"nRF Connect SDK Fundamentals Course\r\n"
-        "Press 1-3 on your keyboard to toggle LEDS 1-3 on your development kit\r\n"};
-
-    int ret = uart_tx(uart, tx_buf, sizeof(tx_buf), SYS_FOREVER_US);
-	if (ret) {
-		return 1;
-	}
+    LOG_ERR("Test");
+    LOG_WRN("Test2");
 
     if (err != 0)
         return 0;
 
-    ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
         return 0;
     }
@@ -87,8 +91,8 @@ int main(void)
     // servo aren't controlled, because of the expansion of a value incorrecly.
 
 	while (1) {
-		printk("Hello World!\n");
-		k_msleep(1000);
+		LOG_INF("Hello World !");
+		k_msleep(500);
 
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0) {
