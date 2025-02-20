@@ -1,0 +1,75 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the PWM
+ * peripheral
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 20/02/2025
+ *
+ * ============================================================
+ */
+
+/* todo
+ *  - Change pins for final PCB version
+ *  - Configure PWM for final servo usage
+ */
+
+// ============================================================
+// PWM
+// ============================================================
+// Peripheral configuration
+&pwm3 {
+    status = "okay";
+    pinctrl-0 = <&pwm3_dk>;
+    pinctrl-names = "default";
+};
+
+// Pin muxing configuration
+&pinctrl {
+    // This first group is unused, and is pointing to the leds on the dk.
+    pwm3_dk: pwm3_dk {
+        group1 {
+            psels =     // <NRF_PSEL(PWM_OUT0, 0, 28)>,
+                        <NRF_PSEL(PWM_OUT1, 0, 29)>,
+                        <NRF_PSEL(PWM_OUT2, 0, 30)>,
+                        <NRF_PSEL(PWM_OUT3, 0, 31)>;
+        };
+    };
+    pwm3_topaze: pwm3_topaze {
+        group1 {
+            psels =     <NRF_PSEL(PWM_OUT0, 0, 30)>,
+                        <NRF_PSEL(PWM_OUT1, 1, 10)>, 
+                        <NRF_PSEL(PWM_OUT2, 0, 29)>;
+        };
+    };
+};
+
+// Operating parameters configuration
+/{
+    rgb {
+        compatible = "pwm-rgb";
+        rgb1: rgb1 {
+            pwms =      <&pwm3 0 PWM_KHZ(2) PWM_POLARITY_INVERTED>,
+                        <&pwm3 1 PWM_KHZ(2) PWM_POLARITY_INVERTED>,
+                        <&pwm3 2 PWM_KHZ(2) PWM_POLARITY_INVERTED>;
+            period =    <PWM_KHZ(2)>;
+        };
+    };
+};
+
+// Set aliases for this module
+/{
+    aliases {
+        pwm3 = &pwm3;
+        rgb1 = &rgb1;
+    };
+};
+
+
+
+
+
+
+
+
