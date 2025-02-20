@@ -7,5 +7,11 @@ project(Opale)
 
 # Main source
 target_sources(app PRIVATE application/src/main.c)
+
+# Initializer
 target_sources(app PRIVATE application/src/init/init.c)
+
+# Devices
 target_sources(app PRIVATE application/src/devices/servo.c)
+target_sources(app PRIVATE application/src/devices/rgb.c)
+target_sources(app PRIVATE application/src/devices/gpio.c)
