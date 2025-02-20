@@ -43,27 +43,33 @@
 
 // Operating parameters configuration
 /*
- *  WARNING :   Only the settings for MIN_PULSE, MAX_PULSE and PERIOD of the
- *              first line are used. That's why not all servo define them.
+ * The pwms parameters are assigned in the following order : 
+ *  - first :   north 
+ *  - second :  south
+ *  - third :   east
+ *  - last :    west
+ *
+ * Direction are designated as :
+ *
+ *        North
+ *          |
+ *  West-- PCB -- East
+ *          |
+ *        South
+ *
  */
 /{
-    servos {
-        compatible = "pwm-servo";
-        servo1: pwm0_servo0 {
-            pwms =      <&pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+    wings {
+        compatible = "pwm-wings";
+        wings1: wings1 {
+            pwms =      <&pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>, 
+                        <&pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>,
+                        <&pwm0 2 PWM_HZ(50) PWM_POLARITY_NORMAL>,
+                        <&pwm0 3 PWM_HZ(50) PWM_POLARITY_NORMAL>;
             period =    <PWM_HZ(50)>;
             min-pulse = <PWM_MSEC(1)>;
             max-pulse = <PWM_MSEC(2)>;
             max-angle = <180>;
-        };
-        servo2: pwm0_servo1 {
-            pwms =      <&pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-        };
-        servo3: pwm0_servo2 {
-            pwms =      <&pwm0 2 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-        };
-        servo4: pwm0_servo3 {
-            pwms =      <&pwm0 4 PWM_HZ(50) PWM_POLARITY_NORMAL>;
         };
     };
 };
@@ -72,10 +78,7 @@
 /{
     aliases {
         pwm0    =  &pwm0;
-        servo1  = &servo1;
-        servo2  = &servo2;
-        servo3  = &servo3;
-        servo4  = &servo4;
+        wings1  = &wings1;
     };
 };
 
