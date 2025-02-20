@@ -71,9 +71,6 @@ int main(void)
 		return 1 ;
 	}
 
-    LOG_ERR("Test");
-    LOG_WRN("Test2");
-
     if (err != 0)
         return 0;
 
