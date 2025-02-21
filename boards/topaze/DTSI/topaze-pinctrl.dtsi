@@ -23,3 +23,6 @@
 
 // UARTS
 #include "topaze-serial.dtsi"
+
+// I2C
+#include "topaze-I2C.dtsi"

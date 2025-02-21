@@ -1,0 +1,111 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the I2C 
+ * devices
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 21/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// I2C and PINCTRL
+// ============================================================
+// Enable I2C and configure it
+&i2c0 {
+    status = "okay";
+    clock-frequency = <400000>;
+    pinctrl-0 = <&i2c0_topaze>;
+    pinctrl-names = "default";
+};
+
+// We're using here default pins for UART0 and 1, to match the DK
+// Sensors are bound to the UART 2 and 3
+&pinctrl {
+    /omit-if-no-ref/ i2c0_topaze: i2c0_topaze {
+        group1  {
+            psels = <NRF_PSEL(TWIM_SCL, 0, 12)>,
+                    <NRF_PSEL(TWIM_SDA, 0, 13)>;
+		};
+	};
+    /omit-if-no-ref/ i2c0_dk: i2c0_dk {
+        group1  {
+            psels = <NRF_PSEL(TWIM_SCL, 1, 14)>,
+                    <NRF_PSEL(TWIM_SDA, 1, 15)>;
+		};
+	};
+};
+
+// Register the devices.
+&i2c0 {
+
+    // Two I2C address for the barometer. One is disabled.
+    barometer0: barometer0@76{
+        compatible = "i2c-device";
+        status = "okay";
+        reg = <0x76>;
+    };
+    barometer1: barometer1@77{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x77>;
+    };
+
+    // Two I2C address for the accelerometers. Both are disabled for now
+    accelerometer0: accelerometer0@18{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x18>;
+    };
+
+    accelerometer1: accelerometer1@19{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x19>;
+    };
+
+    // Possibility of 8 address for the gpio expander.
+    // Only the first is on the PCB design. Others are here as info.
+    expander0: expander0@20{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x20>;
+    };
+    expander1: expander1@21{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x21>;
+    };
+    expander2: expander2@22{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x22>;
+    };
+    expander3: expander3@23{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x23>;
+    };
+    expander4: expander4@24{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x24>;
+    };
+    expander5: expander5@25{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x25>;
+    };
+    expander6: expander6@26{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x26>;
+    };
+    expander7: expander7@27{
+        compatible = "i2c-device";
+        status = "disabled";
+        reg = <0x27>;
+    };
+};
