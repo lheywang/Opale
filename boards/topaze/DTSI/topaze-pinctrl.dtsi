@@ -28,3 +28,24 @@
 
 // I2C
 #include "topaze-I2C.dtsi"
+
+// SPI
+#include "topaze-SPI.dtsi"
+
+/*
+ * Note about enabling devices : 
+ * Each group of serial peripherals share a single address :
+ * SPIn / I2Cn UARTn (n = 0-3)
+ * + SPI4
+ *
+ * This mean that we can't enable more than theses serial peripherals on the chip.
+ * 
+ * SPI4 -> EEPROM
+ * I2C3 -> I2C bus
+ * UART0 -> DEBUG / LOGS
+ * UART1 -> IMU
+ * UART2 -> GPS
+ *
+ * Other options are possible, but the SPI bus shall be reserved to
+ * SPI4, since this peripheral is only capable of SPI.
+ */

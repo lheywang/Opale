@@ -14,23 +14,23 @@
 // I2C and PINCTRL
 // ============================================================
 // Enable I2C and configure it
-&i2c0 {
+&i2c3 {
     status = "okay";
     clock-frequency = <400000>;
-    pinctrl-0 = <&i2c0_topaze>;
+    pinctrl-0 = <&i2c3_dk>;
     pinctrl-names = "default";
 };
 
 // We're using here default pins for UART0 and 1, to match the DK
 // Sensors are bound to the UART 2 and 3
 &pinctrl {
-    /omit-if-no-ref/ i2c0_topaze: i2c0_topaze {
+    i2c3_topaze: i2c3_topaze {
         group1  {
             psels = <NRF_PSEL(TWIM_SCL, 0, 12)>,
                     <NRF_PSEL(TWIM_SDA, 0, 13)>;
 		};
 	};
-    /omit-if-no-ref/ i2c0_dk: i2c0_dk {
+    i2c3_dk: i2c3_dk {
         group1  {
             psels = <NRF_PSEL(TWIM_SCL, 1, 14)>,
                     <NRF_PSEL(TWIM_SDA, 1, 15)>;
@@ -39,7 +39,7 @@
 };
 
 // Register the devices.
-&i2c0 {
+&i2c3 {
 
     // Two I2C address for the barometer. One is disabled.
     barometer0: barometer0@76{
@@ -70,7 +70,7 @@
     // Only the first is on the PCB design. Others are here as info.
     expander0: expander0@20{
         compatible = "i2c-device";
-        status = "disabled";
+        status = "okay";
         reg = <0x20>;
     };
     expander1: expander1@21{
@@ -107,5 +107,19 @@
         compatible = "i2c-device";
         status = "disabled";
         reg = <0x27>;
+    };
+};
+
+// And aliases
+// We only add aliases for real devices, and not only the "possibles" ones.
+
+/ {
+    aliases {
+        barometer = &barometer0;
+        accelerometer0 = &accelerometer0;
+        accelerometer1 = &accelerometer1;
+        expander = &expander0;
+
+        i2c3 = &i2c3;
     };
 };

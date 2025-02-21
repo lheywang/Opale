@@ -1,0 +1,83 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the UARTS
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 21/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// UARTS and PINCTRL
+// ============================================================
+// Enable SPI drivers with defined settings
+&spi4 {
+    compatible = "nordic,nrf-spim"; // Shall be SPIM otherwise it fails...
+    status = "okay";
+    pinctrl-0 = <&spi4_dk>;
+    pinctrl-names = "default";
+
+    // Theses propeerties need to be deleted,
+    // otherwise the project cannot be build.
+    // They're defined on the root DTS, but does not seems to be compatibles.
+    // This does not seems to be legal.
+    /delete-property/ rx-delay-supported;
+    /delete-property/ rx-delay;
+};
+
+// UART for IMU. No flow control.
+// On the DK, exposed pins to an header.
+&pinctrl {
+    spi4_dk: spi4_dk {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 14)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 16)>,
+                    <NRF_PSEL(SPIM_MISO, 0, 18)>;
+		};
+	};
+
+    spi4_topaze: spi4_topaze {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 21)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 19)>,
+                    <NRF_PSEL(SPIM_MISO, 1, 21)>;
+		};
+	};
+};
+
+// Add devices to the bus
+&spi4 {
+    cs-gpios =  <&gpio1 8 GPIO_ACTIVE_LOW>,
+                <&gpio1 5 GPIO_ACTIVE_LOW>,
+                <&gpio1 6 GPIO_ACTIVE_LOW>;
+
+    eeprom0: spi-eeprom0@0 {
+        compatible = "spi-device";
+        reg = <0>;
+        spi-max-frequency = <20000000>;
+    };
+
+    eeprom1: spi-eeprom0@1 {
+        compatible = "spi-device";
+        reg = <1>;
+        spi-max-frequency = <20000000>;
+    };
+
+    eeprom2: spi-eeprom0@2 {
+        compatible = "spi-device";
+        reg = <2>;
+        spi-max-frequency = <20000000>;
+    };
+};
+
+/ {
+    aliases {
+        spi1 = &spi1;
+
+        eeprom0 = &eeprom0;
+        eeprom1 = &eeprom1;
+        eeprom2 = &eeprom2;
+    };
+};
