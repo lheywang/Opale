@@ -66,6 +66,9 @@ int main(void)
     int err = 0;
     err += CheckLedsPeripherals();
     err += CheckPWMPeripherals();
+    err += CheckUARTPeripherals();
+    err += CheckI2CPeripherals();
+    err += CheckSPIPeripherals();
 
     if (err != 0)
         return 0;

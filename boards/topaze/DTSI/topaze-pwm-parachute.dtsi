@@ -49,6 +49,7 @@
 /{
     aliases {
         pwm1 = &pwm1;
+        parachute = &parachute;
     };
 };
 
