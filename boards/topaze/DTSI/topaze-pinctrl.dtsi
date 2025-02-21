@@ -17,6 +17,8 @@
 // PWM
 #include "topaze-pwm-servo.dtsi"
 #include "topaze-pwm-rgb.dtsi"
+#include "topaze-pwm-buzzer.dtsi"
+#include "topaze-pwm-parachute.dtsi"
 
 // GPIOS
 #include "topaze-leds.dtsi"
