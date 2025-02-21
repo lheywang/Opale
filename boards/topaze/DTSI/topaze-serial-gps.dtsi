@@ -4,7 +4,7 @@
  * We describe here the peripherals configuration, and so on...
  *
  * l.heywang
- * 19/02/2025
+ * 21/02/2025
  *
  * ============================================================
  */
@@ -13,24 +13,36 @@
 // UARTS and PINCTRL
 // ============================================================
 // Enable UART drivers with defined settings
-&uart0 {
+&uart3 {
     status = "okay";
     current-speed = <115200>;
-    pinctrl-0 = <&uart0_default>;
+    pinctrl-0 = <&uart3_dk>;
     pinctrl-names = "default";
 };
 
-// We're using here default pins for UART0 and 1, to match the DK
-// Sensors are bound to the UART 2 and 3
+// UART for GPS. No flow control.
+// On the DK, exposed pins to an header.
 &pinctrl {
-    uart0_default: uart0_default {
+    uart3_dk: uart3_dk {
 		group1 {
-			psels = <NRF_PSEL(UART_TX, 0, 20)>,
-				    <NRF_PSEL(UART_RTS, 0, 19)>;
+			psels = <NRF_PSEL(UART_TX, 1, 2)>,
+                    <0xffffffff>; // RTS : Value for unused pin.
 		};
 		group2 {
-			psels = <NRF_PSEL(UART_RX, 0, 22)>,
-				    <NRF_PSEL(UART_CTS, 0, 21)>;
+			psels = <NRF_PSEL(UART_RX, 1, 3)>,
+                    <0xffffffff>; // CTS : Value for unused pin.
+			bias-pull-up;
+		};
+	};
+
+    uart3_topaze: uart3_topaze {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 31)>,
+                    <0xffffffff>; // RTS : Value for unused pin.
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 1, 11)>,
+                    <0xffffffff>; // CTS : Value for unused pin.
 			bias-pull-up;
 		};
 	};
@@ -39,13 +51,7 @@
 // Configure the console output as UART0 and 
 // set aliases for this module
 / {
-    chosen {
-        zephyr,console = &uart0;
-        zephyr,shell-uart = &uart0;
-		zephyr,uart-mcumgr = &uart0;
-    };
-
     aliases {
-        uart0 = &uart0;
+        uart3 = &uart3;
     };
 };

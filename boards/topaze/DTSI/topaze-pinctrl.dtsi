@@ -22,7 +22,9 @@
 #include "topaze-leds.dtsi"
 
 // UARTS
-#include "topaze-serial.dtsi"
+#include "topaze-serial-debug.dtsi"
+#include "topaze-serial-gps.dtsi"
+#include "topaze-serial-imu.dtsi"
 
 // I2C
 #include "topaze-I2C.dtsi"

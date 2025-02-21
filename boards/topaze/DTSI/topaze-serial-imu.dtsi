@@ -1,0 +1,57 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the UARTS
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 21/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// UARTS and PINCTRL
+// ============================================================
+// Enable UART drivers with defined settings
+&uart2 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&uart2_dk>;
+    pinctrl-names = "default";
+};
+
+// UART for IMU. No flow control.
+// On the DK, exposed pins to an header.
+&pinctrl {
+    uart2_dk: uart2_dk {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 1, 0)>,
+				    <0xffffffff>; // RTS : Value for unused pin.
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 1, 1)>,
+                    <0xffffffff>; // CTS : Value for unused pin.
+			bias-pull-up;
+		};
+	};
+
+    uart2_topaze: uart2_topaze {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 1, 2)>,
+                    <0xffffffff>; // RTS : Value for unused pin.
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 9)>,
+                    <0xffffffff>; // CTS : Value for unused pin.
+			bias-pull-up;
+		};
+	};
+};
+
+// Configure the console output as UART0 and 
+// set aliases for this module
+/ {
+    aliases {
+        uart2 = &uart2;
+    };
+};
