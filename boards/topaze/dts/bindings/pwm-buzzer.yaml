@@ -1,0 +1,30 @@
+# boards/topaze/bindings/pwm-buzzer.yml
+#
+# l.heywang
+# 21/02/2025
+#
+
+description: PWM Buzzer parent node
+
+compatible: "pwm-buzzer"
+
+child-binding:
+  description: PWM Buzzer chil note
+  properties:
+    pwms:
+      required: true
+      type: phandle-array
+      description: |
+        Three PWM outputs, in the order for : Red Green Blue.
+
+    label:
+      type: string
+      description: |
+        Human readable string describing the LED. It can be used by an
+        application to identify this LED or to retrieve its number/index
+        (i.e. child node number) on the parent device.
+
+    period:
+      type: int
+      description: |
+        Frequency of the PWM engine for the RGB led.

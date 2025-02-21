@@ -1,0 +1,63 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the PWM
+ * peripheral
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 21/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// PWM
+// ============================================================
+// Peripheral configuration
+&pwm2 {
+    status = "okay";
+    pinctrl-0 = <&pwm2_dk>;
+    pinctrl-names = "default";
+};
+
+// Pin muxing configuration
+&pinctrl {
+    pwm2_dk: pwm2_dk {
+        group1 {
+            psels =     <NRF_PSEL(PWM_OUT1, 0, 0)>;
+        };
+    };
+    pwm2_topaze: pwm2_topaze {
+        group1 {
+            psels =     <NRF_PSEL(PWM_OUT0, 1, 01)>;
+        };
+    };
+};
+
+// Operating parameters configuration
+/{
+    // Best power is achieved here
+    buzzer {
+        compatible = "pwm-buzzer";
+        buzzer: buzzer {
+            pwms =      <&pwm2 0 PWM_HZ(2400) PWM_POLARITY_NORMAL>;
+            period =    <PWM_HZ(2400)>;
+        };
+    };
+};
+
+// Set aliases for this module
+/{
+    aliases {
+        pwm2 = &pwm2;
+        buzzer = &buzzer;
+    };
+};
+
+
+
+
+
+
+
+
