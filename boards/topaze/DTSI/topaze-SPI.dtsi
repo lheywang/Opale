@@ -75,9 +75,5 @@
 / {
     aliases {
         spi4 = &spi4;
-
-        eeprom0 = &eeprom0;
-        eeprom1 = &eeprom1;
-        eeprom2 = &eeprom2;
     };
 };
