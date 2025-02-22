@@ -30,6 +30,8 @@
     #include <zephyr/devicetree.h>
     #include <zephyr/drivers/spi.h>
     #include <zephyr/drivers/i2c.h>
+    #include <zephyr/kernel.h>
+    #include <zephyr/device.h>
 
     /* -----------------------------------------------------------------
     * DEFINING NODE ALIASES

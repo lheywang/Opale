@@ -14,7 +14,6 @@
 // ============================================================
 // Enable SPI drivers with defined settings
 &spi4 {
-    compatible = "nordic,nrf-spim"; // Shall be SPIM otherwise it fails...
     status = "okay";
     pinctrl-0 = <&spi4_dk>;
     pinctrl-names = "default";
@@ -23,8 +22,8 @@
     // otherwise the project cannot be build.
     // They're defined on the root DTS, but does not seems to be compatibles.
     // This does not seems to be legal.
-    /delete-property/ rx-delay-supported;
-    /delete-property/ rx-delay;
+    // /delete-property/ rx-delay-supported;
+    // /delete-property/ rx-delay;
 };
 
 // UART for IMU. No flow control.
@@ -53,27 +52,44 @@
                 <&gpio1 5 GPIO_ACTIVE_LOW>,
                 <&gpio1 6 GPIO_ACTIVE_LOW>;
 
+    /*
+     * Here another strange behavior :
+     * With spi-device only, some errors will exists. 
+     * They remain unknown.
+     * 
+     * But, as https://devzone.nordicsemi.com/f/nordic-q-a/108613/yet-another-zephyr-devicetree-problem-this-time-with-spi-spi-max-frequency-amongst-others
+     * say, if we change it to vnd,spi-device it then works.
+     *
+     * Why ?
+     *
+     * And don't forget : Fuck up VSCode for your complains...
+     *
+     */
     eeprom0: eeprom0@0 {
-        compatible = "spi-device";
+        compatible = "vnd,spi-device";
         reg = <0>;
-        spi-max-frequency = <20000000>;
+        spi-max-frequency = <DT_FREQ_M(20)>;
     };
 
     eeprom1: eeprom1@1 {
-        compatible = "spi-device";
+        compatible = "vnd,spi-device";
         reg = <1>;
-        spi-max-frequency = <20000000>;
+        spi-max-frequency = <DT_FREQ_M(20)>;
     };
 
     eeprom2: eeprom2@2 {
-        compatible = "spi-device";
+        compatible = "vnd,spi-device";
         reg = <2>;
-        spi-max-frequency = <20000000>;
+        spi-max-frequency = <DT_FREQ_M(20)>;
     };
 };
 
 / {
     aliases {
         spi4 = &spi4;
+
+        eeprom0 = &eeprom0;
+        eeprom1 = &eeprom1;
+        eeprom2 = &eeprom2;
     };
 };

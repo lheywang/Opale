@@ -264,36 +264,36 @@ int CheckI2CPeripherals(){
     return -ErrCounter;
 }
 
-// int CheckSPIPeripherals(){
+int CheckSPIPeripherals(){
 
-//     int ErrCounter = 0;
+    int ErrCounter = 0;
 
-//     for (uint8_t i = 0; i < EEPROM_NB; i ++)
-//     {
-//         for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-//             if (!spi_is_ready_dt(&spi_eeproms[i])) {
-//                 if (k < 2){
-//                     LOG_WRN("EEPROM %d peripheral (SPI) is not ready for now. Retrying in 5 ms...", i);
-//                     k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-//                 }
-//                 else {
-//                     LOG_ERR("EEPROM %d peripheral (SPI) is not working properly.", i);
-//                     ErrCounter += 1;
-//                 }
-//             }
-//             else {
-//                 LOG_INF("EEPROM %d peripheral (SPI)is working correctly...", i);
-//                 break;
-//             }
-//         } 
-//     }
+    for (uint8_t i = 0; i < EEPROM_NB; i ++)
+    {
+        for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
+            if (!spi_is_ready_dt(&spi_eeproms[i])) {
+                if (k < 2){
+                    LOG_WRN("EEPROM %d peripheral (SPI) is not ready for now. Retrying in 5 ms...", i);
+                    k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
+                }
+                else {
+                    LOG_ERR("EEPROM %d peripheral (SPI) is not working properly.", i);
+                    ErrCounter += 1;
+                }
+            }
+            else {
+                LOG_INF("EEPROM %d peripheral (SPI)is working correctly...", i);
+                break;
+            }
+        } 
+    }
 
-//     if (ErrCounter == 0){
-//         LOG_INF("All SPI peripherals are working properly !");
-//     }
-//     else {
-//         LOG_ERR("Some SPI peripheralsaren't working properly... Err = %d", ErrCounter);
-//     }
-//     return -ErrCounter;
+    if (ErrCounter == 0){
+        LOG_INF("All SPI peripherals are working properly !");
+    }
+    else {
+        LOG_ERR("Some SPI peripheralsaren't working properly... Err = %d", ErrCounter);
+    }
+    return -ErrCounter;
 
-// }
+}
