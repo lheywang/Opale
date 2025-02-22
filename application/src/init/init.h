@@ -62,10 +62,10 @@
     #define EEPROM_NB                   3 // There is 3 eeprom on the board
 
     // I2C related peripherals
-    #define BAROMETER_0                 DT_NODELABEL(barometer)
+    #define BAROMETER_0                 DT_NODELABEL(barometer0)
     #define ACCELEROMETER_0             DT_NODELABEL(accelerometer0)
     #define ACCELEROMETER_1             DT_NODELABEL(accelerometer1)
-    #define EXPANDER_0                  DT_NODELABEL(expander)
+    #define EXPANDER_0                  DT_NODELABEL(expander0)
 
     #define ACCEL_NB                    2 // There is two optionnal I2C accelerometers on the board.
     
@@ -99,9 +99,9 @@
     static const struct pwm_dt_spec     pwm_parachute            =      PWM_DT_SPEC_GET(PARACHUTE);
 
     // SPI devices
-    static const struct spi_dt_spec     spi_eeproms[EEPROM_NB]   = {    SPI_DT_SPEC_GET(EEPROM_0, SPIOP, 0),
-                                                                        SPI_DT_SPEC_GET(EEPROM_1, SPIOP, 0),
-                                                                        SPI_DT_SPEC_GET(EEPROM_2, SPIOP, 0)};
+    // static const struct spi_dt_spec     spi_eeproms[EEPROM_NB]   = {    SPI_DT_SPEC_GET(EEPROM_0, SPIOP, 0),
+    //                                                                     SPI_DT_SPEC_GET(EEPROM_1, SPIOP, 0),
+    //                                                                     SPI_DT_SPEC_GET(EEPROM_2, SPIOP, 0)};
 
     // I2C devices
     static const struct i2c_dt_spec     i2c_barometer             =     I2C_DT_SPEC_GET(BAROMETER_0);

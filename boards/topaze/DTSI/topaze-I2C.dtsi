@@ -115,11 +115,6 @@
 
 / {
     aliases {
-        barometer = &barometer0;
-        accelerometer0 = &accelerometer0;
-        accelerometer1 = &accelerometer1;
-        expander = &expander0;
-
         i2c3 = &i2c3;
     };
 };
