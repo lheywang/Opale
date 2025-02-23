@@ -38,12 +38,12 @@ LOG_MODULE_REGISTER(Initializer, PROJECT_LOG_LEVEL);
 * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
 * -----------------------------------------------------------------
 */
-int CheckLedsPeripherals(){
+int CheckGPIOPeripherals(){
 
     int ErrCounter = 0;
 
     for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!gpio_is_ready_dt(&led)) {
+        if (!gpio_is_ready_dt(&peripheral_reset)) {
             if (k < 2){
                 LOG_WRN("LED peripheral is not ready for now. Retrying in 5 ms...");
                 k_msleep(5); // Small delay, if the kernel was too busy to initialize it...

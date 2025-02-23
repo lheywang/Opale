@@ -38,8 +38,19 @@
     * -----------------------------------------------------------------
     */
 
-    // Onboard leds
-    #define LED0                        DT_ALIAS(led0)
+    // GPIOS
+    // Outputs
+    #define PERIPH_RESET                DT_ALIAS(peripheralreset)
+    #define ROCKET_LATCH                DT_ALIAS(latch)
+    // Inputs
+    #define IMU_BOOT                    DT_ALIAS(imuboot)
+    #define IMU_STATUS                  DT_ALIAS(imustatus)
+    #define ROCKET_MODE                 DT_ALIAS(mode)
+    // Interruptibles inputs
+    #define INT_IMU                     DT_ALIAS(intimu)
+    #define INT_GPS                     DT_ALIAS(intgps)
+    #define INT_ACCEL1                  DT_ALIAS(intaccel1)
+    #define INT_ACCEL2                  DT_ALIAS(intaccel2)
 
     // PWM related peripherals
     #define WINGS_1                     DT_PATH(wings, wings1)
@@ -70,8 +81,6 @@
     #define EXPANDER_0                  DT_NODELABEL(expander0)
 
     #define ACCEL_NB                    2 // There is two optionnal I2C accelerometers on the board.
-    
-
 
     // Module settings
     #define INIT_MAX_TRY                3 // Number of try before declaring peripheral out.
@@ -81,35 +90,48 @@
     * -----------------------------------------------------------------
     */
 
-    // Onboard leds
-    static const struct gpio_dt_spec    led                      =      GPIO_DT_SPEC_GET(LED0, gpios);
+    // GPIOS
+    // Outputs
+    static const struct gpio_dt_spec    peripheral_reset            =       GPIO_DT_SPEC_GET(PERIPH_RESET, gpios);
+    static const struct gpio_dt_spec    rocket_latch                =       GPIO_DT_SPEC_GET(ROCKET_LATCH, gpios);
+    // Inputs
+    static const struct gpio_dt_spec    imu_boot                    =       GPIO_DT_SPEC_GET(IMU_BOOT, gpios);  
+    static const struct gpio_dt_spec    imu_status                  =       GPIO_DT_SPEC_GET(IMU_STATUS, gpios);  
+    static const struct gpio_dt_spec    rocket_mode                 =       GPIO_DT_SPEC_GET(ROCKET_MODE, gpios);  
+    // Interruptibles inputs
+    static const struct gpio_dt_spec    imu_int                     =       GPIO_DT_SPEC_GET(INT_IMU, gpios); 
+    static const struct gpio_dt_spec    gps_int                     =       GPIO_DT_SPEC_GET(INT_GPS, gpios); 
+    static const struct gpio_dt_spec    accel1_int                  =       GPIO_DT_SPEC_GET(INT_ACCEL1, gpios); 
+    static const struct gpio_dt_spec    accel2_int                  =       GPIO_DT_SPEC_GET(INT_ACCEL2, gpios);      
+
+
     // UARTS
-    static const struct device          *uart_imu                =      DEVICE_DT_GET(UART_IMU);
-    static const struct device          *uart_gps                =      DEVICE_DT_GET(UART_GPS);
+    static const struct device          *uart_imu                   =       DEVICE_DT_GET(UART_IMU);
+    static const struct device          *uart_gps                   =       DEVICE_DT_GET(UART_GPS);
 
     // Servo engines (wings) commands
-    static const struct pwm_dt_spec     pwm_wings[PWM_SERVO_LEN] = {    PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 0),
-                                                                        PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 1),
-                                                                        PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 2),
-                                                                        PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 3)};
+    static const struct pwm_dt_spec     pwm_wings[PWM_SERVO_LEN]    = {     PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 0),
+                                                                            PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 1),
+                                                                            PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 2),
+                                                                            PWM_DT_SPEC_GET_BY_IDX(WINGS_1, 3)};
 
-    static const struct pwm_dt_spec     pwm_rgb[PWM_RGB_LEN]     = {    PWM_DT_SPEC_GET_BY_IDX(RGB_1, 0), 
-                                                                        PWM_DT_SPEC_GET_BY_IDX(RGB_1, 1), 
-                                                                        PWM_DT_SPEC_GET_BY_IDX(RGB_1, 2)};
+    static const struct pwm_dt_spec     pwm_rgb[PWM_RGB_LEN]        = {     PWM_DT_SPEC_GET_BY_IDX(RGB_1, 0), 
+                                                                            PWM_DT_SPEC_GET_BY_IDX(RGB_1, 1), 
+                                                                            PWM_DT_SPEC_GET_BY_IDX(RGB_1, 2)};
 
-    static const struct pwm_dt_spec     pwm_buzzer               =      PWM_DT_SPEC_GET(BUZZER);
-    static const struct pwm_dt_spec     pwm_parachute            =      PWM_DT_SPEC_GET(PARACHUTE);
+    static const struct pwm_dt_spec     pwm_buzzer                  =       PWM_DT_SPEC_GET(BUZZER);
+    static const struct pwm_dt_spec     pwm_parachute               =       PWM_DT_SPEC_GET(PARACHUTE);
 
     // SPI devices
-    static const struct spi_dt_spec     spi_eeproms[EEPROM_NB]   = {    SPI_DT_SPEC_GET(EEPROM_0, SPIOP, 0),
-                                                                        SPI_DT_SPEC_GET(EEPROM_1, SPIOP, 0),
-                                                                        SPI_DT_SPEC_GET(EEPROM_2, SPIOP, 0)};
+    static const struct spi_dt_spec     spi_eeproms[EEPROM_NB]      = {     SPI_DT_SPEC_GET(EEPROM_0, SPIOP, 0),
+                                                                            SPI_DT_SPEC_GET(EEPROM_1, SPIOP, 0),
+                                                                            SPI_DT_SPEC_GET(EEPROM_2, SPIOP, 0)};
 
     // I2C devices
-    static const struct i2c_dt_spec     i2c_barometer             =     I2C_DT_SPEC_GET(BAROMETER_0);
-    static const struct i2c_dt_spec     i2c_expander              =     I2C_DT_SPEC_GET(EXPANDER_0);
-    static const struct i2c_dt_spec     i2c_accels[ACCEL_NB]      = {   I2C_DT_SPEC_GET(ACCELEROMETER_0),
-                                                                        I2C_DT_SPEC_GET(ACCELEROMETER_1)};
+    static const struct i2c_dt_spec     i2c_barometer               =       I2C_DT_SPEC_GET(BAROMETER_0);
+    static const struct i2c_dt_spec     i2c_expander                =       I2C_DT_SPEC_GET(EXPANDER_0);
+    static const struct i2c_dt_spec     i2c_accels[ACCEL_NB]        = {     I2C_DT_SPEC_GET(ACCELEROMETER_0),
+                                                                            I2C_DT_SPEC_GET(ACCELEROMETER_1)};
     // DT_PROP(BAROMETER0_NODE, status); --> To check while init
 
     /* -----------------------------------------------------------------
@@ -128,7 +150,7 @@
      * @return ...
      * @return -n : n peipherals are not working
      */
-    int CheckLedsPeripherals();
+    int CheckGPIOPeripherals();
 
     /**
      * @brief   This function check if all of the PWMs are working properly

@@ -49,7 +49,7 @@ LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 * -----------------------------------------------------------------
 */
 // Onboard leds
-extern const struct     gpio_dt_spec    led;
+extern const struct     gpio_dt_spec    peripheral_reset;
 
 // Servo PWM
 extern const struct     pwm_dt_spec     pwm0_servo0;
@@ -64,7 +64,7 @@ int main(void)
 {
     // Checking that all of the peripherals were functionnal
     int err = 0;
-    err += CheckLedsPeripherals();
+    err += CheckGPIOPeripherals();
     err += CheckPWMPeripherals();
     err += CheckUARTPeripherals();
     err += CheckI2CPeripherals();
@@ -73,7 +73,7 @@ int main(void)
     if (err != 0)
         return 0;
 
-    int ret = GPIOSetAsOutput(&led, 0);
+    int ret = GPIOSetAsOutput(&peripheral_reset, 0);
     if (ret < 0) {
         return 0;
     }
@@ -96,7 +96,7 @@ int main(void)
 		LOG_INF("Hello World !");
 		k_msleep(500);
 
-        ret = GPIOToggle(&led);
+        ret = GPIOToggle(&peripheral_reset);
         if (ret < 0) {
             return 0 ;
         }
