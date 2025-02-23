@@ -27,34 +27,22 @@
     
     // Libs
     #include "../init/init.h"
-
-    /* -----------------------------------------------------------------
-    * FETCHING NODE PARAMETERS
-    * -----------------------------------------------------------------
-    */
-
-    // Period
+    // STDBLIB
+    #include <assert.h>
 
     /* -----------------------------------------------------------------
     * SOME DEFINES ABOUT THE EEPROM
     * -----------------------------------------------------------------
     */
-   #define EEPROM_PAGE_SIZE         64
-   #define EEPROM_PAGE_PER_SAMPLE   2
+    // Global EEPROM specs
+    #define EEPROM_MAX_ADDRESS      0x1FFFFF
 
-    /* -----------------------------------------------------------------
-    * SECURITY WITH THE OBJECTS SIZE
-    * -----------------------------------------------------------------
-    */
-   #define EVEN_STRUCT_SIZE (uint8_t)sizeof(EvenPage)
-   #define ODD_STRUCT_SIZE (uint8_t)sizeof(OddPage)
+    // Page specs
+    #define EEPROM_PAGE_SIZE        512
+    #define EEPROM_PAGE_PER_SAMPLE  0.25 // 4 samples per pages !
 
-    // The preprocessor will check for correcty defined structs.
-    #if sizeof(uint8_t[EEPROM_PAGE_PER_SAMPLE * EEPROM_PAGE_SIZE]) != sizeof(uint8_t[EEPROM_PAGE_SIZE])
-        #error "Invalid data structure detected. Please ensure your custom \
-                Data payload is correctly padded or correctly defined. \
-                Data MUST be 64 bytes length."
-    #endif
+    // Container specs
+    #define DATA_BYTE_LEN           sizeof(Measure)
 
     /* -----------------------------------------------------------------
     * Defining data structure
@@ -62,11 +50,18 @@
     */
 
     /*
-     * We're using two structs here to store all of the measured data.
-     * Both are complementary and are used together, each one on two consecutive pages.
+     * We're using a single struct, of 128 bytes long that is used to store 
+     * all measures for a single timestamp.
      * 
-     * TO DO : 
-     * - Check padding of the data to fit on a single page.
+     * The EEPROM we chose has page of 512 bytes, we can write four measures
+     * per page. Since the EEPROM can at most perform write on a single page 
+     * per command, we can't go on the next page until wrote is done (~5 ms).
+     * Thus, is the struct is longer, we'll need to wait, which is not wanted.
+     * 
+     * We may use QSPI, but that's not needed, since we're writting a lot, and
+     * the transfer time (140 us @8 MHz or 56 us @20 MHZ) is way smaller than
+     * the page write time (~5 ms) (factor of 100 !).
+     * 
      */
 
     typedef struct {
@@ -115,17 +110,14 @@
             uint16_t d;
         } Quaternion;
 
-        uint8_t __padding[8];
-    } EvenPage;
-
-    typedef struct {
+        uint8_t __padding1[8];
 
         // ST II2SDLPT 1
         struct {
             uint16_t X;
             uint16_t Y;
             uint16_t Z;
-        } Acceleration1
+        } Acceleration1;
 
         // ST II2SDLPT 2
         struct {
@@ -148,8 +140,17 @@
 
         uint16_t CRC16;
 
-        uint8_t __padding[32];
-    } OddPage;
+        uint8_t __padding2[32];
+    } Measure;
+
+    /* -----------------------------------------------------------------
+    * Enums
+    * -----------------------------------------------------------------
+    */
+    typedef enum {
+        EEPROM_READ,
+        EEPROM_WRITE
+    } EEPROM_RW;
 
     /* -----------------------------------------------------------------
     * Defining IO structure
@@ -157,25 +158,58 @@
     */
 
     typedef struct {
-        bool RWn;
-        uint16_t address;
+        EEPROM_RW RWn;
+        uint8_t eeprom_id;
+        uint32_t address;
 
         union {
             // first field is used as "cast" before any IO operation 
             // to the EEPROM
-            uint8_t Binary[EEPROM_PAGE_SIZE];
+            uint8_t Binary[DATA_BYTE_LEN];
 
             // Add here you're Data io in the format
-            EvenPage Data1;
-            OddPage Data2;
+            Measure Data;
 
         } Data;
     } MemoryIO;
 
     /* -----------------------------------------------------------------
-    * FUNCTIONS TO COMMAND AN RGB LED
+    * FUNCTIONS TO COMMAND AN EEPROM
     * -----------------------------------------------------------------
     */
+
+    /**
+     * @brief   This function return, on the pointer value the next 
+     *          write address for the data.
+     * 
+     * @warning Any dummy call will create empty bytes 
+     *          (and thus, lost EEPROM space)
+     * 
+     * @param   Address     A pointer to a MemoryIO structure
+     *                      that will be flushed and filled with
+     *                      computed values.
+     * @param   ReadOrWrite A bool that defined the IO to be performed.
+     *                      Set to True to Write, otherwise Read.
+     * 
+     * @return  0   Value got correctly
+     * @return -1   No more address available.
+     */
+    int EEPROM_GetNextAddress(MemoryIO* const Command, const EEPROM_RW ReadOrWrite);
+
+    /**
+     * @brief   This function perform an IO operation on the eeprom, 
+     *          following the instructions and parameters passed on
+     *          the Command struct.
+     * 
+     * @param   Eeproms     The array of EEPROM available
+     * @param   Command     The command struct that define parameters
+     *                      for the operation.
+     * 
+     * @return  0   IO completer correctly.
+     * @return -1   EEPROM is busy (to recent write operation, within 5ms)
+     * @return -2   Invalid Command structure
+     */
+    int EEPROM_IO(const struct spi_dt_spec *Target[], const MemoryIO Command);
 
 #endif
 
