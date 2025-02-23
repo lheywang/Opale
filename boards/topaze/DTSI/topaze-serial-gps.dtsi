@@ -15,7 +15,7 @@
 // Enable UART drivers with defined settings
 &uart2 {
     status = "okay";
-    current-speed = <115200>;
+    current-speed = <9600>;
     pinctrl-0 = <&uart2_dk>;
     pinctrl-names = "default";
 };
