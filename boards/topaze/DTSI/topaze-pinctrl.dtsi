@@ -21,7 +21,10 @@
 #include "topaze-pwm-parachute.dtsi"
 
 // GPIOS
-#include "topaze-leds.dtsi"
+#include "topaze-gpio.dtsi"
+#include "topaze-inputs.dtsi"
+#include "topaze-outputs.dtsi"
+#include "topaze-interrupts.dtsi"
 
 // UARTS
 #include "topaze-serial-debug.dtsi"
@@ -33,6 +36,9 @@
 
 // SPI
 #include "topaze-SPI.dtsi"
+
+// ADC
+#include "topaze-saadc.dtsi"
 
 /*
  * Note about enabling devices : 

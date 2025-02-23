@@ -17,13 +17,6 @@
     status = "okay";
     pinctrl-0 = <&spi4_dk>;
     pinctrl-names = "default";
-
-    // Theses propeerties need to be deleted,
-    // otherwise the project cannot be build.
-    // They're defined on the root DTS, but does not seems to be compatibles.
-    // This does not seems to be legal.
-    // /delete-property/ rx-delay-supported;
-    // /delete-property/ rx-delay;
 };
 
 // UART for IMU. No flow control.

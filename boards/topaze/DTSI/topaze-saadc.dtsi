@@ -1,0 +1,32 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the ADC
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 23/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// ADC
+// ============================================================
+/*
+ * Due to the limitations by the zephyr API listed here : 
+ *      https://academy.nordicsemi.com/courses/nrf-connect-sdk-intermediate/lessons/lesson-6-analog-to-digital-converter-adc/topic/exercise-3-interfacing-with-adc-using-nrfx-drivers-and-timer-ppi/
+ *
+ * We're going to configure the ADC by hand using the nrfx API rather 
+ * than the zephyr one. This will gave us a better control over the ADC.
+ *
+ */
+
+&adc {
+    status = "okay";
+};
+
+/ {
+    aliases {
+        adc = &adc;
+    };
+};

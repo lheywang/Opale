@@ -1,0 +1,40 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the GPIOs
+ *
+ * We describe here the peripherals configuration for the outputs 
+ * only.
+ *
+ * l.heywang
+ * 23/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// GPIO OUTPUTS CONTROL
+// ============================================================
+&pinctrl {
+    outputs {
+		compatible = "gpio-leds";
+
+        peripheralreset: peripheralreset {
+            // gpios =     <&gpio1 3 GPIO_ACTIVE_LOW>; // Valid for TOPAZE BOARD !
+            gpios =     <&gpio0 28 GPIO_ACTIVE_LOW>; // Valid for DK !
+            label =     "Peripheral reset pins, active low...";
+        };
+
+        latch: latch {
+            gpios =     <&gpio0 8 GPIO_ACTIVE_HIGH>;
+            label =     "CLK command for the DLATCH";
+        };
+	};
+};
+
+/{
+    aliases {
+        peripheralreset = &peripheralreset;
+        latch = &latch;
+    };
+};
+
+
