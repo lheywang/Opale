@@ -120,7 +120,7 @@
      * @return -1 : Invalid angle
      * @return -2 : Error while controlling the peripheral
      */
-    int ServosSetPosition ( const struct pwm_dt_spec Target[PWM_SERVO_LEN], 
+    int SERVO_SetPosition ( const struct pwm_dt_spec Target[PWM_SERVO_LEN], 
                             ServoAngles const *Command);
 
 #endif

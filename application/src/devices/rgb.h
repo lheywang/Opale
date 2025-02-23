@@ -74,7 +74,7 @@
      * @return -1   Incorrect command passed (alpha field)
      * @return -2   Error while calling the OS
      */
-    int LedSetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN], 
+    int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN], 
                     Color const *Command);
 
 #endif

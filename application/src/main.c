@@ -35,6 +35,7 @@
 #include "devices/servo.h"
 #include "devices/rgb.h"
 #include "devices/gpio.h"
+#include "devices/eeprom.h"
 
 /* -----------------------------------------------------------------
 * LOGGER CONFIG
@@ -73,7 +74,7 @@ int main(void)
     if (err != 0)
         return 0;
 
-    int ret = GPIOSetAsOutput(&peripheral_reset, 0);
+    int ret = GPIO_SetAsOutput(&peripheral_reset, 0);
     if (ret < 0) {
         return 0;
     }
@@ -83,20 +84,20 @@ int main(void)
                             .east = -33, 
                             .west = -66};
 
-    ret += ServosSetPosition(pwm_wings, &Command);
+    ret += SERVO_SetPosition(pwm_wings, &Command);
 
     Color Command2 = {  .red = 255,
                         .green = 127,
                         .blue = 0,
                         .alpha = 100};
                 
-    ret += LedSetColor(pwm_rgb, &Command2);
+    ret += RGB_SetColor(pwm_rgb, &Command2);
 
 	while (1) {
 		LOG_INF("Hello World !");
 		k_msleep(500);
 
-        ret = GPIOToggle(&peripheral_reset);
+        ret = GPIO_Toggle(&peripheral_reset);
         if (ret < 0) {
             return 0 ;
         }

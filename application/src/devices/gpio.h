@@ -42,7 +42,7 @@
      * @return  0 Pin configured
      * @return !0 Error
      */
-    int GPIOSetAsInput(const struct gpio_dt_spec *Target);
+    int GPIO_SetAsInput(const struct gpio_dt_spec *Target);
 
     /**
      * @brief   Set a defined GPIO as output.
@@ -56,7 +56,7 @@
      * @return  0 Pin configured
      * @return !0 Error
      */
-    int GPIOSetAsOutput(const struct gpio_dt_spec *Target, const uint8_t State);
+    int GPIO_SetAsOutput(const struct gpio_dt_spec *Target, const uint8_t State);
 
     /**
      * @brief 
@@ -69,7 +69,7 @@
      * @return  0 Pin configured
      * @return !0 Error
      */
-    int GPIOSetAsHighZ(const struct gpio_dt_spec *Target);
+    int GPIO_SetAsHighZ(const struct gpio_dt_spec *Target);
 
     /**
      * @brief 
@@ -82,7 +82,7 @@
      * @return  0 Pin configured
      * @return !0 Error
      */
-    int GPIOToggle(const struct gpio_dt_spec *Target);
+    int GPIO_Toggle(const struct gpio_dt_spec *Target);
 
     /**
      * @brief 
@@ -96,7 +96,7 @@
      * @return  0 Pin configured
      * @return !0 Error
      */
-    int GPIOSet(const struct gpio_dt_spec *Target, const int Value);
+    int GPIO_Set(const struct gpio_dt_spec *Target, const int Value);
 
     /**
      * @brief 
@@ -109,7 +109,7 @@
      * 
      * @return  0 Always 0.
      */
-    int GPIORead(const struct gpio_dt_spec *Target, int *const Value);
+    int GPIO_Read(const struct gpio_dt_spec *Target, int *const Value);
 
 #endif
 
