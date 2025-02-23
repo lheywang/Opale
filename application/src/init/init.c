@@ -35,265 +35,193 @@
 LOG_MODULE_REGISTER(Initializer, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
+* PRIVATES FUNCTIONS (For a single peripheral instance)
+* -----------------------------------------------------------------
+*/
+
+int CheckAGPIO(const struct gpio_dt_spec *Target)
+{
+    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
+        if (!gpio_is_ready_dt(&Target->port)) {
+            if (k < 2){
+                LOG_WRN("%s:%d is not ready for now. Retrying in 5 ms...", Target->port->name, Target->pin);
+                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
+            }
+            else {
+                LOG_ERR("%s:%d is not working properly.", Target->port->name, Target->pin);
+                return 1;
+            }
+        }
+        else {
+            LOG_INF("%s:%d is working correctly !", Target->port->name, Target->pin);
+            return 0;
+        }
+    }
+
+    // Shall not get here...
+    return 0xdeadbeef;
+}
+
+int CheckAPWM(const struct pwm_dt_spec *Target)
+{
+    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
+        if (!pwm_is_ready_dt(Target)) {
+            if (k < 2){
+                LOG_WRN("%s:%d is not ready for now. Retrying in 5 ms...", Target->dev->name, Target->channel);
+                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
+            }
+            else {
+                LOG_ERR("%s:%d is not working properly.", Target->dev->name, Target->channel);
+                return 1;
+            }
+        }
+        else {
+            LOG_INF("%s:%d is working correctly !", Target->dev->name, Target->channel);
+            return 0;
+        }
+    }
+
+    // Shall not get here...
+    return 0xdeadbeef;
+}
+
+int CheckAnUART(const struct device *Target)
+{
+    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
+        if (!device_is_ready(Target)) {
+            if (k < 2){
+                LOG_WRN("%s is not ready for now. Retrying in 5 ms...", Target->name);
+                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
+            }
+            else {
+                LOG_ERR("%s is not working properly.", Target->name);
+                return 1;
+            }
+        }
+        else {
+            LOG_INF("%s is working correctly !", Target->name);
+            return 0;
+        }
+    }
+
+    // Shall not get here...
+    return 0xdeadbeef; 
+}
+
+int CheckAnI2C(const struct i2c_dt_spec *Target)
+{
+    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
+        if (!device_is_ready(Target->bus)) {
+            if (k < 2){
+                LOG_WRN("%s@0x%xRW is not ready for now. Retrying in 5 ms...", Target->bus->name, Target->addr);
+                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
+            }
+            else {
+                LOG_ERR("%s@0x%xRW is not working properly.", Target->bus->name, Target->addr);
+                return 1;
+            }
+        }
+        else {
+            LOG_INF("%s@0x%xRW is working correctly !", Target->bus->name, Target->addr);
+            return 0;
+        }
+    } 
+    
+    // Shall not get here...
+    return 0xdeadbeef; 
+}
+
+int CheckAnSPI(const struct spi_dt_spec *Target)
+{
+    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
+        if (!spi_is_ready_dt(Target)) {
+            if (k < 2){
+                LOG_WRN("%s@%d is not ready for now. Retrying in 5 ms...", 
+                    Target->bus->name, 
+                    Target->config.cs.gpio.pin);
+                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
+            }
+            else {
+                LOG_ERR("%s@%d is not working properly.", 
+                    Target->bus->name, 
+                    Target->config.cs.gpio.pin);
+                return 1;
+            }
+        }
+        else {
+            LOG_INF("%s@%d is working correctly !", 
+                Target->bus->name, 
+                Target->config.cs.gpio.pin);
+            return 0;
+        }
+    } 
+    
+    // Shall not get here...
+    return 0xdeadbeef; 
+}
+/* -----------------------------------------------------------------
 * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
 * -----------------------------------------------------------------
 */
-int CheckGPIOPeripherals(){
+
+int INIT_CheckGPIO(){
 
     int ErrCounter = 0;
 
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!gpio_is_ready_dt(&peripheral_reset)) {
-            if (k < 2){
-                LOG_WRN("LED peripheral is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("LED peripheral is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else 
-            break;
-    }
-
-    if (ErrCounter == 0)
-        LOG_INF("Leds are working !");
+    ErrCounter += CheckAGPIO(&peripheral_reset);
+    ErrCounter += CheckAGPIO(&rocket_latch);
+    ErrCounter += CheckAGPIO(&imu_boot);
+    ErrCounter += CheckAGPIO(&imu_status);
+    ErrCounter += CheckAGPIO(&rocket_mode);
+    ErrCounter += CheckAGPIO(&imu_int);
+    ErrCounter += CheckAGPIO(&gps_int);
+    ErrCounter += CheckAGPIO(&accel1_int);
+    ErrCounter += CheckAGPIO(&accel2_int);
     return -ErrCounter;
 }
 
-int CheckPWMPeripherals(){
+int INIT_CheckPWM(){
 
     int ErrCounter = 0;
 
-    for (uint8_t i = 0; i < PWM_SERVO_LEN; i++) {
-        for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-            if (!pwm_is_ready_dt(&pwm_wings[i])) {
-                if (k < 2){
-                    LOG_WRN("Servo %d (wings) peripheral is not ready for now. Retrying in 5 ms...", i);
-                    k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-                }
-                else {
-                    LOG_ERR("Servo %d (wings) peripheral is not working properly.", i);
-                    ErrCounter += 1;
-                }
-            }
-            else {
-                LOG_INF("Servo engines (wings) %d is working correctly...", i);
-                break;
-            }
-        }
-    }
+    for (uint8_t i = 0; i < PWM_SERVO_LEN; i++)
+        ErrCounter += CheckAPWM(&pwm_wings[i]);
 
-    for (uint8_t i = 0; i < PWM_RGB_LEN; i++) {
-        for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-            if (!pwm_is_ready_dt(&pwm_rgb[i])) {
-                if (k < 2){
-                    LOG_WRN("RGB Led %d peripheral is not ready for now. Retrying in 5 ms...", i);
-                    k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-                }
-                else {
-                    LOG_ERR("RGB Led %d peripheral is not working properly.", i);
-                    ErrCounter += 1;
-                }
-            }
-            else {
-                LOG_INF("RGB Led %d is working correctly...", i);
-                break;
-            }
-        }       
-    }
+    for (uint8_t i = 0; i < PWM_RGB_LEN; i++)
+        ErrCounter += CheckAPWM(&pwm_rgb[i]);
 
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!pwm_is_ready_dt(&pwm_parachute)) {
-            if (k < 2){
-                LOG_WRN("Parachute peripheral is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("Parachute peripheral is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else {
-            LOG_INF("Parachute is working correctly...");
-            break;
-        }
-    } 
-
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!pwm_is_ready_dt(&pwm_buzzer)) {
-            if (k < 2){
-                LOG_WRN("Buzzer peripheral is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("Buzzer peripheral is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else {
-            LOG_INF("Buzzer is working correctly...");
-            break;
-        }
-    } 
-
-    if (ErrCounter == 0){
-        LOG_INF("All PWM peripherals are working properly !");
-    }
-    else {
-        LOG_ERR("Some PWM peripheralsaren't working properly... Err = %d", ErrCounter);
-    }
+    ErrCounter += CheckAPWM(&pwm_buzzer);
+    ErrCounter += CheckAPWM(&pwm_parachute);
     return -ErrCounter;
 }
 
-
-
-int CheckUARTPeripherals(){
+int INIT_CheckUART(){
 
     int ErrCounter = 0;
 
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!device_is_ready(uart_gps)) {
-            if (k < 2){
-                LOG_WRN("GPS (UART) is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("GPS (UART) is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else {
-            LOG_INF("GPS (UART) is working correctly...");
-            break;
-        }
-    }  
-
-    
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!device_is_ready(uart_imu)) {
-            if (k < 2){
-                LOG_WRN("IMU (UART) is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("IMU (UART) is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else {
-            LOG_INF("IMU (UART) is working correctly...");
-            break;
-        }
-    } 
-
-    if (ErrCounter == 0){
-        LOG_INF("All UARTS peripherals are working properly !");
-    }
-    else {
-        LOG_ERR("Some UARTS peripheralsaren't working properly... Err = %d", ErrCounter);
-    }
+    ErrCounter += CheckAnUART(uart_imu);
+    ErrCounter += CheckAnUART(uart_gps); 
     return -ErrCounter;
 }
 
-int CheckI2CPeripherals(){
+int INIT_CheckI2C(){
 
     int ErrCounter = 0;
 
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!device_is_ready(i2c_barometer.bus)) {
-            if (k < 2){
-                LOG_WRN("Barometer peripheral (I2C) is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("Barometer peripheral (I2C) is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else {
-            LOG_INF("Barometer (I2C) is working correctly...");
-            break;
-        }
-    } 
-
-    for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-        if (!device_is_ready(i2c_expander.bus)) {
-            if (k < 2){
-                LOG_WRN("Barometer peripheral (I2C) is not ready for now. Retrying in 5 ms...");
-                k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-            }
-            else {
-                LOG_ERR("Barometer peripheral (I2C) is not working properly.");
-                ErrCounter += 1;
-            }
-        }
-        else {
-            LOG_INF("Barometer (I2C) is working correctly...");
-            break;
-        }
-    }
+    ErrCounter += CheckAnI2C(&i2c_barometer);
+    ErrCounter += CheckAnI2C(&i2c_expander);
 
     for (uint8_t i = 0; i < ACCEL_NB; i++)
-    {
-        for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-            if (!device_is_ready(i2c_accels[i].bus)) {
-                if (k < 2){
-                    LOG_WRN("Accelerometer %d peripheral (I2C) is not ready for now. Retrying in 5 ms...", i);
-                    k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-                }
-                else {
-                    LOG_ERR("Accelerometer %d peripheral (I2C) is not working properly.",i);
-                    ErrCounter += 1;
-                }
-            }
-            else {
-                LOG_INF("Accelerometer %d (I2C) is working correctly...", i);
-                break;
-            }
-        }
-    }
-
-    if (ErrCounter == 0){
-        LOG_INF("All I2C peripherals are working properly !");
-    }
-    else {
-        LOG_ERR("Some I2C peripheralsaren't working properly... Err = %d", ErrCounter);
-    }
+        ErrCounter += CheckAnI2C(&i2c_accels[i]);
     return -ErrCounter;
 }
 
-int CheckSPIPeripherals(){
+int INIT_CheckSPI(){
 
     int ErrCounter = 0;
 
     for (uint8_t i = 0; i < EEPROM_NB; i ++)
-    {
-        for (uint8_t k = 0; k < INIT_MAX_TRY; k++) {
-            if (!spi_is_ready_dt(&spi_eeproms[i])) {
-                if (k < 2){
-                    LOG_WRN("EEPROM %d peripheral (SPI) is not ready for now. Retrying in 5 ms...", i);
-                    k_msleep(5); // Small delay, if the kernel was too busy to initialize it...
-                }
-                else {
-                    LOG_ERR("EEPROM %d peripheral (SPI) is not working properly.", i);
-                    ErrCounter += 1;
-                }
-            }
-            else {
-                LOG_INF("EEPROM %d peripheral (SPI)is working correctly...", i);
-                break;
-            }
-        } 
-    }
-
-    if (ErrCounter == 0){
-        LOG_INF("All SPI peripherals are working properly !");
-    }
-    else {
-        LOG_ERR("Some SPI peripheralsaren't working properly... Err = %d", ErrCounter);
-    }
+        ErrCounter += CheckAnSPI(&spi_eeproms[i]);
     return -ErrCounter;
 
 }

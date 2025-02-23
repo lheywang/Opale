@@ -72,7 +72,8 @@
     #define EEPROM_1                    DT_NODELABEL(eeprom1)
     #define EEPROM_2                    DT_NODELABEL(eeprom2)
 
-    #define EEPROM_NB                   3 // There is 3 eeprom on the board
+    // Count the number of cs used, and thus, the number of devices.
+    #define EEPROM_NB                   DT_PROP_LEN(DT_PATH(soc, peripheral_40000000, spi_a000), cs_gpios)
 
     // I2C related peripherals
     #define BAROMETER_0                 DT_NODELABEL(barometer0)
@@ -80,7 +81,7 @@
     #define ACCELEROMETER_1             DT_NODELABEL(accelerometer1)
     #define EXPANDER_0                  DT_NODELABEL(expander0)
 
-    #define ACCEL_NB                    2 // There is two optionnal I2C accelerometers on the board.
+    #define ACCEL_NB                    2
 
     // Module settings
     #define INIT_MAX_TRY                3 // Number of try before declaring peripheral out.
@@ -150,7 +151,7 @@
      * @return ...
      * @return -n : n peipherals are not working
      */
-    int CheckGPIOPeripherals();
+    int INIT_CheckGPIO();
 
     /**
      * @brief   This function check if all of the PWMs are working properly
@@ -163,7 +164,7 @@
      * @return ...
      * @return -n : n peipherals are not working
      */
-    int CheckPWMPeripherals();
+    int INIT_CheckPWM();
     
     /**
      * @brief   This function check if all of the UARTs are working properly
@@ -176,7 +177,7 @@
      * @return ...
      * @return -n : n peipherals are not working
      */
-    int CheckUARTPeripherals();
+    int INIT_CheckUART();
 
     /**
      * @brief   This function check if all of the I2C are working properly
@@ -189,7 +190,7 @@
      * @return ...
      * @return -n : n peipherals are not working
      */
-    int CheckI2CPeripherals();
+    int INIT_CheckI2C();
     
     /**
      * @brief   This function check if all of the SPI are working properly
@@ -202,7 +203,7 @@
      * @return ...
      * @return -n : n peipherals are not working
      */
-    int CheckSPIPeripherals();
+    int INIT_CheckSPI();
 
 #endif
 

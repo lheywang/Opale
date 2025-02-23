@@ -1,23 +1,23 @@
 /** ================================================================
  * @file    application/src/main.c
  *
- * @brief   This file is the entry point for the application core. 
+ * @brief   This file is the entry point for the application core.
  *          It handle the initialization of all the tasks, and then
  *          launch child threads to handle for each one they're task.
  *
  * @date    19-02-2025
  *
  * @version 1.0.0
- * 
+ *
  * @author  l.heywang (leonard.heywang@proton.me)
- * 
+ *
  *  ================================================================
  */
 
 /* -----------------------------------------------------------------
-* INCLUDING LIBS
-* -----------------------------------------------------------------
-*/
+ * INCLUDING LIBS
+ * -----------------------------------------------------------------
+ */
 
 // Zephyr
 #include <zephyr/kernel.h>
@@ -26,7 +26,6 @@
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/logging/log.h>
-
 
 // Custom headers
 #include "init/init.h"
@@ -38,69 +37,102 @@
 #include "devices/eeprom.h"
 
 /* -----------------------------------------------------------------
-* LOGGER CONFIG
-* -----------------------------------------------------------------
-*/
+ * LOGGER CONFIG
+ * -----------------------------------------------------------------
+ */
 // Identify the module on the LOG Output
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 
-
 /* -----------------------------------------------------------------
-* INCLUDING VARIABLES
-* -----------------------------------------------------------------
-*/
+ * INCLUDING VARIABLES
+ * -----------------------------------------------------------------
+ */
 // Onboard leds
-extern const struct     gpio_dt_spec    peripheral_reset;
+extern const struct gpio_dt_spec peripheral_reset;
+extern const struct gpio_dt_spec rocket_latch;
 
 // Servo PWM
-extern const struct     pwm_dt_spec     pwm0_servo0;
-extern const struct     pwm_dt_spec     pwm0_servo1;
-extern const struct     pwm_dt_spec     pwm0_servo2;
+extern const struct pwm_dt_spec pwm0_servo0;
+extern const struct pwm_dt_spec pwm0_servo1;
+extern const struct pwm_dt_spec pwm0_servo2;
+extern const struct gpio_dt_spec imu_boot;
+extern const struct gpio_dt_spec imu_status;
+extern const struct gpio_dt_spec rocket_mode;
+// Interruptibles inputs
+extern const struct gpio_dt_spec imu_int;
+extern const struct gpio_dt_spec gps_int;
+extern const struct gpio_dt_spec accel1_int;
+extern const struct gpio_dt_spec accel2_int;
+
+// UARTS
+extern const struct device *uart_imu;
+extern const struct device *uart_gps;
+
+// Servo engines (wings) commands
+extern const struct pwm_dt_spec pwm_wings[PWM_SERVO_LEN];
+
+extern const struct pwm_dt_spec pwm_rgb[PWM_RGB_LEN];
+
+extern const struct pwm_dt_spec pwm_buzzer;
+extern const struct pwm_dt_spec pwm_parachute;
+
+// SPI devices
+extern const struct spi_dt_spec spi_eeproms[EEPROM_NB];
+
+// I2C devices
+extern const struct i2c_dt_spec i2c_barometer;
+extern const struct i2c_dt_spec i2c_expander;
+extern const struct i2c_dt_spec i2c_accels[ACCEL_NB];
 
 /* -----------------------------------------------------------------
-* MAIN LOOP
-* -----------------------------------------------------------------
-*/
+ * MAIN LOOP
+ * -----------------------------------------------------------------
+ */
 int main(void)
 {
     // Checking that all of the peripherals were functionnal
     int err = 0;
-    err += CheckGPIOPeripherals();
-    err += CheckPWMPeripherals();
-    err += CheckUARTPeripherals();
-    err += CheckI2CPeripherals();
-    err += CheckSPIPeripherals();
+    err += INIT_CheckGPIO();
+    err += INIT_CheckPWM();
+    err += INIT_CheckUART();
+    err += INIT_CheckI2C();
+    err += INIT_CheckSPI();
 
-    if (err != 0)
-        return 0;
-
-    int ret = GPIO_SetAsOutput(&peripheral_reset, 0);
-    if (ret < 0) {
+    if (err != 0){
+        LOG_ERR("Some peripherals aren't fine. Aborting...");
         return 0;
     }
 
-    ServoAngles Command = { .north = 66, 
-                            .south = 33, 
-                            .east = -33, 
-                            .west = -66};
+    int ret = GPIO_SetAsOutput(&peripheral_reset, 0);
+    if (ret < 0)
+    {
+        return 0;
+    }
+
+    ServoAngles Command = {.north = 66,
+                           .south = 33,
+                           .east = -33,
+                           .west = -66};
 
     ret += SERVO_SetPosition(pwm_wings, &Command);
 
-    Color Command2 = {  .red = 255,
-                        .green = 127,
-                        .blue = 0,
-                        .alpha = 100};
-                
+    Color Command2 = {.red = 255,
+                      .green = 127,
+                      .blue = 0,
+                      .alpha = 100};
+
     ret += RGB_SetColor(pwm_rgb, &Command2);
 
-	while (1) {
-		LOG_INF("Hello World !");
-		k_msleep(500);
+    while (1)
+    {
+        LOG_INF("Hello World !");
+        k_msleep(500);
+        k_yield();
 
         ret = GPIO_Toggle(&peripheral_reset);
-        if (ret < 0) {
-            return 0 ;
+        if (ret < 0)
+        {
+            return 0;
         }
-	}
+    }
 }
-
