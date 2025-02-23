@@ -41,6 +41,12 @@
 
 // Add devices to the bus
 &spi4 {
+    /*
+     * Warning : The number of CS-GPIOS is used by a C macro to count 
+     * the number of slaves on the SPI bus.
+     *
+     * Make sure to comment them if they're disabled.
+     */
     cs-gpios =  <&gpio1 8 GPIO_ACTIVE_LOW>,
                 <&gpio1 5 GPIO_ACTIVE_LOW>,
                 <&gpio1 6 GPIO_ACTIVE_LOW>;

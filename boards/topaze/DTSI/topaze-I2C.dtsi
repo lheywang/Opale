@@ -41,72 +41,28 @@
 // Register the devices.
 &i2c3 {
 
-    // Two I2C address for the barometer. One is disabled.
     barometer0: barometer0@76{
         compatible = "i2c-device";
         status = "okay";
         reg = <0x76>;
     };
-    barometer1: barometer1@77{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x77>;
-    };
 
-    // Two I2C address for the accelerometers. Both are disabled for now
     accelerometer0: accelerometer0@18{
         compatible = "i2c-device";
-        status = "disabled";
+        status = "okay";
         reg = <0x18>;
     };
 
     accelerometer1: accelerometer1@19{
         compatible = "i2c-device";
-        status = "disabled";
+        status = "okay";
         reg = <0x19>;
     };
 
-    // Possibility of 8 address for the gpio expander.
-    // Only the first is on the PCB design. Others are here as info.
     expander0: expander0@20{
         compatible = "i2c-device";
         status = "okay";
         reg = <0x20>;
-    };
-    expander1: expander1@21{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x21>;
-    };
-    expander2: expander2@22{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x22>;
-    };
-    expander3: expander3@23{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x23>;
-    };
-    expander4: expander4@24{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x24>;
-    };
-    expander5: expander5@25{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x25>;
-    };
-    expander6: expander6@26{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x26>;
-    };
-    expander7: expander7@27{
-        compatible = "i2c-device";
-        status = "disabled";
-        reg = <0x27>;
     };
 };
 
