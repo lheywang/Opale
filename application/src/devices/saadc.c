@@ -79,8 +79,11 @@ int SAADC_Configure(nrfx_timer_t *Target_Timer){
     }
 
     // Configure the ADC gain
-    channel.channel_config.gain = NRF_SAADC_GAIN1_6;
-    err = nrfx_saadc_channels_config(&channel, 1);
+    for (uint8_t k = 0; k < 8; k++)
+        channels[k].channel_config.gain = NRF_SAADC_GAIN1_6;
+
+    // Configuring the channels used
+    err = nrfx_saadc_channels_config(channels, 8);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("Failed to configure the SAADC gain: %08x", err);
         return -3;
@@ -88,7 +91,7 @@ int SAADC_Configure(nrfx_timer_t *Target_Timer){
 
     // Configure the SAADC operation mode (NO OVERSAMPLING, NO BURST, no autostart...)
     nrfx_saadc_adv_config_t saadc_adv_config = NRFX_SAADC_DEFAULT_ADV_CONFIG;
-    err = nrfx_saadc_advanced_mode_set( BIT(0),
+    err = nrfx_saadc_advanced_mode_set( 255UL,
                                         NRF_SAADC_RESOLUTION_12BIT,
                                         &saadc_adv_config,
                                         saadc_event_handler);
@@ -129,7 +132,7 @@ int SAADC_Configure(nrfx_timer_t *Target_Timer){
 
     err = nrfx_gppi_channel_alloc(&m_saadc_start_ppi_channel);
     if (err != NRFX_SUCCESS) {
-        LOG_ERR("Failed to allocate a GPPI channel : %08x", err);
+        LOG_ERR("Failed to allocate a GPPI channels : %08x", err);
         return -9;
     }
 
@@ -147,6 +150,11 @@ int SAADC_Configure(nrfx_timer_t *Target_Timer){
 
     // Launch the timer
     nrfx_timer_enable(Target_Timer);
+    return 0;
+}
+
+int SAADC_Stop(nrfx_timer_t *Target_Timer){
+    nrfx_timer_disable(Target_Timer);
     return 0;
 }
 

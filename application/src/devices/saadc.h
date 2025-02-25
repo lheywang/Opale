@@ -37,16 +37,32 @@
     * -----------------------------------------------------------------
     */
 
-    // Sample rate
-    #define SAADC_SAMPLE_INTERVAL_US    1000
-
+    // Sample rate of the ADC
+    #define SAADC_CHANNEL_SAMPLE_RATE   1000
+    
     // Buffer settings
-    #define SAADC_BUFFER_SIZE           1000
+    #define SAADC_BUFFER_SIZE           2000
 
     // Analog inputs settings
-    #define SAADC_INPUT_PIN NRF_SAADC_INPUT_AIN0
+    #define SAADC_INPUT_COUNT           8
 
-    static nrfx_saadc_channel_t channel = NRFX_SAADC_DEFAULT_CHANNEL_SE(SAADC_INPUT_PIN, 0);
+    // Analog inputs channels
+    static nrfx_saadc_channel_t channels[SAADC_INPUT_COUNT] = {     NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN7, 0),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN6, 1),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN1, 2),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN0, 3),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN4, 4),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN3, 5),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN2, 6),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN5, 7)};
+                                            
+    /*
+     * The defined channels here may seem to be in disorder, but this is intentional.
+     * Actully, this match our PCB layout and our needs.
+     */
+
+    // Internal defines
+    #define SAADC_SAMPLE_INTERVAL_US    SAADC_INPUT_COUNT * SAADC_CHANNEL_SAMPLE_RATE
 
     /* -----------------------------------------------------------------
     * STORAGES BUFFERS
@@ -82,6 +98,14 @@
      * @return -7   Failed to initialize the SAADC to be ready to sample
      */
     int SAADC_Configure(nrfx_timer_t *Target_Timer);
+
+    /**
+     * @brief   This function is able to interrupt the ADC w
+     * 
+     * @param Target_Timer 
+     * @return int 
+     */
+    int SAADC_Stop(nrfx_timer_t *Target_Timer);
 
     /**
      * @brief   This is the main even handler for the SAADC interrupt !
