@@ -71,4 +71,5 @@ int EEPROM_GetNextAddress(  MemoryIO* const Command,
 
 int EEPROM_IO(  const struct spi_dt_spec *Target[], 
                 const MemoryIO Command){
+    return 0;
 }
