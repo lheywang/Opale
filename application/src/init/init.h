@@ -33,6 +33,9 @@
     #include <zephyr/kernel.h>
     #include <zephyr/device.h>
 
+    // nRFX
+    #include <nrfx_timer.h>
+
     /* -----------------------------------------------------------------
     * DEFINING NODE ALIASES
     * -----------------------------------------------------------------
@@ -86,6 +89,9 @@
     // Module settings
     #define INIT_MAX_TRY                3 // Number of try before declaring peripheral out.
 
+    // Timers
+    #define SAADC_TIMER_NUMBER          2 // Timer2 will be used for the SAADC sampling triggering.
+
     /* -----------------------------------------------------------------
     * FETCHING C STRUCTS THAT DESCRIBE EACH PERIPHERALS
     * -----------------------------------------------------------------
@@ -133,7 +139,9 @@
     static const struct i2c_dt_spec     i2c_expander                =       I2C_DT_SPEC_GET(EXPANDER_0);
     static const struct i2c_dt_spec     i2c_accels[ACCEL_NB]        = {     I2C_DT_SPEC_GET(ACCELEROMETER_0),
                                                                             I2C_DT_SPEC_GET(ACCELEROMETER_1)};
-    // DT_PROP(BAROMETER0_NODE, status); --> To check while init
+
+    // Timers
+    static              nrfx_timer_t    saadc_timer                 =       NRFX_TIMER_INSTANCE(SAADC_TIMER_NUMBER);
 
     /* -----------------------------------------------------------------
     * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK

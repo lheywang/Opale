@@ -17,6 +17,8 @@
 * INCLUDING LIBS
 * -----------------------------------------------------------------
 */
+
+// Zephyr
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/spi.h>
@@ -24,6 +26,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
 
+// Custom libs 
 #include "init.h"
 #include "../config.h"
 

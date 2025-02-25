@@ -35,6 +35,7 @@
 #include "devices/rgb.h"
 #include "devices/gpio.h"
 #include "devices/eeprom.h"
+#include "devices/saadc.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
@@ -84,30 +85,46 @@ extern const struct i2c_dt_spec i2c_barometer;
 extern const struct i2c_dt_spec i2c_expander;
 extern const struct i2c_dt_spec i2c_accels[ACCEL_NB];
 
+// Timers
+extern nrfx_timer_t saadc_timer;
+
+// ADC outputs
+extern uint16_t saadc_buffer[2][SAADC_BUFFER_SIZE];
+extern uint32_t saadc_buffer_index;
+
 /* -----------------------------------------------------------------
  * MAIN LOOP
  * -----------------------------------------------------------------
  */
 int main(void)
 {
-    // Checking that all of the peripherals were functionnal
+    /* -----------------------------------------------------------------
+    * PERIPHERALS INITS
+    * -----------------------------------------------------------------
+    */
     int err = 0;
-    err += INIT_CheckGPIO();
-    err += INIT_CheckPWM();
-    err += INIT_CheckUART();
-    err += INIT_CheckI2C();
-    err += INIT_CheckSPI();
+    err -= INIT_CheckGPIO();
+    err -= INIT_CheckPWM();
+    err -= INIT_CheckUART();
+    err -= INIT_CheckI2C();
+    err -= INIT_CheckSPI();
 
-    if (err != 0){
+    if (err != 0)
+    {
         LOG_ERR("Some peripherals aren't fine. Aborting...");
         return 0;
     }
 
     int ret = GPIO_SetAsOutput(&peripheral_reset, 0);
+    ret -= SAADC_Configure(&saadc_timer);
+
     if (ret < 0)
-    {
         return 0;
-    }
+
+    /* -----------------------------------------------------------------
+    * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
+    * -----------------------------------------------------------------
+    */
 
     ServoAngles Command = {.north = 66,
                            .south = 33,
@@ -122,6 +139,11 @@ int main(void)
                       .alpha = 100};
 
     ret += RGB_SetColor(pwm_rgb, &Command2);
+
+    /* -----------------------------------------------------------------
+    * MAIN LOOP
+    * -----------------------------------------------------------------
+    */
 
     while (1)
     {
