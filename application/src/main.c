@@ -129,10 +129,10 @@ int main(void)
     * -----------------------------------------------------------------
     */
 
-    ServoAngles Command = {.north = 66,
-                           .south = 33,
-                           .east = -33,
-                           .west = -66};
+    ServoAngles Command = {.north = 90,
+                           .south = 0,
+                           .east = -90,
+                           .west = 0};
 
     ret += SERVO_SetPosition(pwm_wings, &Command);
 

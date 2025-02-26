@@ -22,6 +22,9 @@
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/logging/log.h>
 
+// nrfx
+#include <nrfx_pwm.h>
+
 // Local libs
 #include "servo.h"
 #include "../config.h"
@@ -91,18 +94,8 @@ int SERVO_SetPosition(  const struct pwm_dt_spec Target[PWM_SERVO_LEN],
 
     // Configure the PWM engines
     int err = 0;
-    pwm_set(Target[0].dev, 0, PWM_MSEC(20), PWM_MSEC(1), Target->flags);
-    pwm_set(Target[0].dev, 1, PWM_MSEC(20), PWM_MSEC(5), Target->flags);
-    pwm_set(Target[0].dev, 2, PWM_MSEC(20), PWM_MSEC(10), Target->flags);
-    pwm_set(Target[0].dev, 3, PWM_MSEC(20), PWM_MSEC(15), Target->flags);
-
-    // pwm_set(, spec->channel, spec->period, pulse,
-    //     spec->flags);
-    
-    // err += pwm_set_pulse_dt(&Target[0], pulses[0]);
-    // err += pwm_set_pulse_dt(&Target[1], pulses[1]);
-    // err += pwm_set_pulse_dt(&Target[2], pulses[2]);
-    // err += pwm_set_pulse_dt(&Target[3], pulses[3]);
+    for (uint8_t k = 0; k < NRF_PWM_CHANNEL_COUNT; k++)
+        err -= pwm_set(Target[k].dev, k, Target[k].period, pulses[k], Target->flags);
 
     // End log, and return
      if (err != 0){

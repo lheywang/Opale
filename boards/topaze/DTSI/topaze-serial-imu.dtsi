@@ -16,7 +16,7 @@
 &uart1 {
     status = "okay";
     current-speed = <115200>;
-    pinctrl-0 = <&uart1_dk>;
+    pinctrl-0 = <&uart1_topaze>;
     pinctrl-names = "default";
 };
 
