@@ -64,20 +64,20 @@ int SERVO_SetPosition(  const struct pwm_dt_spec Target[PWM_SERVO_LEN],
 
     // Computing the pulses length
     // Due to negative values that are offseted, we need to handle that case too.
-    int pulses[4] = {0};
-    for (uint8_t k = 0; k < 4; k++)
+    int pulses[PWM_SERVO_LEN] = {0};
+    for (uint8_t k = 0; k < PWM_SERVO_LEN; k++)
     {
         switch (k) {
-            case 1:
+            case 0:
                 pulses[k] = Command->north;
                 break;
-            case 2:
+            case 1:
                 pulses[k] = Command->south;
                 break;
-            case 3:
+            case 2:
                 pulses[k] = Command->east;
                 break;
-            case 4:
+            case 3:
                 pulses[k] = Command->west;
                 break;
         }
@@ -91,13 +91,21 @@ int SERVO_SetPosition(  const struct pwm_dt_spec Target[PWM_SERVO_LEN],
 
     // Configure the PWM engines
     int err = 0;
-    for (uint8_t k = 0; k < 4; k++)
-    {
-        err += pwm_set_dt(&Target[k], PWM_SERVO_PERIOD, pulses[k]);
-    }
+    pwm_set(Target[0].dev, 0, PWM_MSEC(20), PWM_MSEC(1), Target->flags);
+    pwm_set(Target[0].dev, 1, PWM_MSEC(20), PWM_MSEC(5), Target->flags);
+    pwm_set(Target[0].dev, 2, PWM_MSEC(20), PWM_MSEC(10), Target->flags);
+    pwm_set(Target[0].dev, 3, PWM_MSEC(20), PWM_MSEC(15), Target->flags);
+
+    // pwm_set(, spec->channel, spec->period, pulse,
+    //     spec->flags);
+    
+    // err += pwm_set_pulse_dt(&Target[0], pulses[0]);
+    // err += pwm_set_pulse_dt(&Target[1], pulses[1]);
+    // err += pwm_set_pulse_dt(&Target[2], pulses[2]);
+    // err += pwm_set_pulse_dt(&Target[3], pulses[3]);
 
     // End log, and return
-    if (err != 0){
+     if (err != 0){
         LOG_ERR("Failed to configure the PWM duty cycle for the servo : %d", err);
         return -2;
     }
