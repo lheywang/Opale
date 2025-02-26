@@ -202,7 +202,7 @@ static void saadc_event_handler(nrfx_saadc_evt_t const * p_event)
         
         // Unknown event...
         default:
-            LOG_INF("Unhandled SAADC evt %d", p_event->type);
+            LOG_WRN("Unhandled SAADC evt %d", p_event->type);
             break;
     }
 }

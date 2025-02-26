@@ -30,6 +30,8 @@
     #include <zephyr/devicetree.h>
     #include <zephyr/drivers/spi.h>
     #include <zephyr/drivers/i2c.h>
+    #include <zephyr/usb/usb_device.h>
+    #include <zephyr/usb/usbd.h>
     #include <zephyr/kernel.h>
     #include <zephyr/device.h>
 
@@ -154,10 +156,10 @@
      * @warning Theses function only check the internal peripheral. 
      *          Not the physical actuator.
      * 
-     * @return  0 : All peripherals are working
-     * @return -1 : A peripheral is not working
+     * @return  0   All peripherals are working
+     * @return -1   A peripheral is not working
      * @return ...
-     * @return -n : n peipherals are not working
+     * @return -n   n peipherals are not working
      */
     int INIT_CheckGPIO();
 
@@ -167,10 +169,10 @@
      * @warning Theses function only check the internal peripheral. 
      *          Not the physical actuator.
      * 
-     * @return  0 : All peripherals are working
-     * @return -1 : A peripheral is not working
+     * @return  0   All peripherals are working
+     * @return -1   A peripheral is not working
      * @return ...
-     * @return -n : n peipherals are not working
+     * @return -n   n peipherals are not working
      */
     int INIT_CheckPWM();
     
@@ -180,10 +182,10 @@
      * @warning Theses function only check the internal peripheral. 
      *          Not the physical actuator.
      * 
-     * @return  0 : All peripherals are working
-     * @return -1 : A peripheral is not working
+     * @return  0   All peripherals are working
+     * @return -1   A peripheral is not working
      * @return ...
-     * @return -n : n peipherals are not working
+     * @return -n   n peipherals are not working
      */
     int INIT_CheckUART();
 
@@ -193,10 +195,10 @@
      * @warning Theses function only check the internal peripheral. 
      *          Not the physical actuator.
      * 
-     * @return  0 : All peripherals are working
-     * @return -1 : A peripheral is not working
+     * @return  0   All peripherals are working
+     * @return -1   A peripheral is not working
      * @return ...
-     * @return -n : n peipherals are not working
+     * @return -n   n peipherals are not working
      */
     int INIT_CheckI2C();
     
@@ -206,12 +208,21 @@
      * @warning Theses function only check the internal peripheral. 
      *          Not the physical actuator.
      * 
-     * @return  0 : All peripherals are working
-     * @return -1 : A peripheral is not working
+     * @return  0   All peripherals are working
+     * @return -1   A peripheral is not working
      * @return ...
-     * @return -n : n peipherals are not working
+     * @return -n   n peipherals are not working
      */
     int INIT_CheckSPI();
+
+    /**
+     * @brief   This function check the USB peripheral and initialize it.
+     *          The USB port is then initialized as a virtual com port, and
+     *          is used as a logger output.
+     * 
+     * @return  0
+     */
+    int INIT_CheckUSB();
 
 #endif
 

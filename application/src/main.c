@@ -26,6 +26,8 @@
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/usb/usbd.h>
 
 // Custom headers
 #include "init/init.h"
@@ -108,6 +110,7 @@ int main(void)
     err -= INIT_CheckUART();
     err -= INIT_CheckI2C();
     err -= INIT_CheckSPI();
+    err -= INIT_CheckUSB();
 
     if (err != 0)
     {

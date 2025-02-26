@@ -19,6 +19,8 @@
 */
 
 // Zephyr
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/usb/usbd.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/spi.h>
@@ -227,4 +229,10 @@ int INIT_CheckSPI(){
         ErrCounter += CheckAnSPI(&spi_eeproms[i]);
     return -ErrCounter;
 
+}
+
+int INIT_CheckUSB(){
+    if (usb_enable(NULL))
+		return -1;
+    return 0;
 }
