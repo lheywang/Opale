@@ -40,6 +40,9 @@
 // ADC
 #include "topaze-saadc.dtsi"
 
+// USB
+#include "topaze-usb.dtsi"
+
 /*
  * Note about enabling devices : 
  * Each group of serial peripherals share a single address :

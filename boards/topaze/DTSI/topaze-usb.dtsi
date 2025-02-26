@@ -1,0 +1,32 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the USB
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 26/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// USB
+// ============================================================
+zephyr_udc0: &usbd {
+    status = "okay";
+
+    cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+        tx-fifo-size =<2048>; // Increase TX fifo size to be able to communicate a whole ADC buffer in one operation.
+    };
+};
+
+// Configure the console output as UART0 and 
+// set aliases for this module
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart0;
+        zephyr,shell-uart = &cdc_acm_uart0;
+		zephyr,uart-mcumgr = &cdc_acm_uart0;
+    };
+};
