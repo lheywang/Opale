@@ -5,7 +5,7 @@
  * We describe here the peripherals configuration, and so on...
  *
  * l.heywang
- * 21/02/2025
+ * 01/03/2025
  *
  * ============================================================
  */
@@ -16,20 +16,15 @@
 // Peripheral configuration
 &pwm2 {
     status = "okay";
-    pinctrl-0 = <&pwm2_dk>;
+    pinctrl-0 = <&pwm2_topaze>;
     pinctrl-names = "default";
 };
 
 // Pin muxing configuration
 &pinctrl {
-    pwm2_dk: pwm2_dk {
-        group1 {
-            psels =     <NRF_PSEL(PWM_OUT1, 0, 0)>;
-        };
-    };
     pwm2_topaze: pwm2_topaze {
         group1 {
-            psels =     <NRF_PSEL(PWM_OUT0, 1, 1)>;
+            psels =     <NRF_PSEL(PWM_OUT0, 1, 13)>;
         };
     };
 };

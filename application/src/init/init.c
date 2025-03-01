@@ -173,6 +173,12 @@ int INIT_CheckGPIO(){
 
     int ErrCounter = 0;
 
+    for (uint8_t k = 0; k < 4; k++)
+        ErrCounter += CheckAGPIO(&engines[k]);
+
+    for (uint8_t k = 0; k < 3; k++)
+        ErrCounter += CheckAGPIO(&inputs[k]);
+
     ErrCounter += CheckAGPIO(&peripheral_reset);
     ErrCounter += CheckAGPIO(&rocket_latch);
     ErrCounter += CheckAGPIO(&imu_boot);
@@ -182,6 +188,7 @@ int INIT_CheckGPIO(){
     ErrCounter += CheckAGPIO(&gps_int);
     ErrCounter += CheckAGPIO(&accel1_int);
     ErrCounter += CheckAGPIO(&accel2_int);
+
     return -ErrCounter;
 }
 
@@ -224,11 +231,8 @@ int INIT_CheckI2C(){
 int INIT_CheckSPI(){
 
     int ErrCounter = 0;
-
-    for (uint8_t i = 0; i < EEPROM_NB; i ++)
-        ErrCounter += CheckAnSPI(&spi_eeproms[i]);
+    ErrCounter += CheckAnSPI(&spi_eeproms);
     return -ErrCounter;
-
 }
 
 int INIT_CheckUSB(){
