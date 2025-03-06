@@ -9,6 +9,13 @@ You may found a lot of documentation under the documentation/* folder.
 .. image:: images/opale.jpg
 
 ===================
+Dependencies
+===================
+This project exploit the Bosch BNO055 driver for this 9 axis IMU : 
+
+:ref: https://github.com/boschsensortec/BNO055_SensorAPI
+
+===================
 Folder structure
 ===================
 
