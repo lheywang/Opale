@@ -25,8 +25,8 @@ zephyr_udc0: &usbd {
 // set aliases for this module
 / {
     chosen {
-        // zephyr,console = &cdc_acm_uart0;
-        // zephyr,shell-uart = &cdc_acm_uart0;
-		// zephyr,uart-mcumgr = &cdc_acm_uart0;
+        //zephyr,console = &cdc_acm_uart0;
+        //zephyr,shell-uart = &cdc_acm_uart0;
+		//zephyr,uart-mcumgr = &cdc_acm_uart0;
     };
 };

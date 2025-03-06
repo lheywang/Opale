@@ -198,6 +198,7 @@ static void saadc_event_handler(nrfx_saadc_evt_t const * p_event)
             average = average/p_event->data.done.size;
             LOG_INF("SAADC buffer at 0x%x filled with %d samples", (uint32_t)p_event->data.done.p_buffer, p_event->data.done.size);
             LOG_INF("AVG=%d, MIN=%d, MAX=%d", (int16_t)average, min, max);
+            LOG_HEXDUMP_INF(p_event->data.done.p_buffer, SAADC_BUFFER_SIZE / 2 ,"Sample Data!");
             break;
         
         // Unknown event...
