@@ -4,7 +4,7 @@
  * We describe here the peripherals configuration, and so on...
  *
  * l.heywang
- * 21/02/2025
+ * 01/03/2025
  *
  * ============================================================
  */
@@ -15,26 +15,18 @@
 // Enable SPI drivers with defined settings
 &spi4 {
     status = "okay";
-    pinctrl-0 = <&spi4_dk>;
+    pinctrl-0 = <&spi4_topaze>;
     pinctrl-names = "default";
 };
 
 // UART for IMU. No flow control.
 // On the DK, exposed pins to an header.
 &pinctrl {
-    spi4_dk: spi4_dk {
-		group1 {
-			psels = <NRF_PSEL(SPIM_SCK, 0, 14)>,
-                    <NRF_PSEL(SPIM_MOSI, 0, 16)>,
-                    <NRF_PSEL(SPIM_MISO, 0, 18)>;
-		};
-	};
-
     spi4_topaze: spi4_topaze {
 		group1 {
-			psels = <NRF_PSEL(SPIM_SCK, 0, 21)>,
-                    <NRF_PSEL(SPIM_MOSI, 0, 19)>,
-                    <NRF_PSEL(SPIM_MISO, 1, 21)>;
+			psels = <NRF_PSEL(SPIM_SCK, 0, 14)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 13)>,
+                    <NRF_PSEL(SPIM_MISO, 0, 16)>;
 		};
 	};
 };
@@ -47,9 +39,7 @@
      *
      * Make sure to comment them if they're disabled.
      */
-    cs-gpios =  <&gpio1 8 GPIO_ACTIVE_LOW>,
-                <&gpio1 5 GPIO_ACTIVE_LOW>,
-                <&gpio1 6 GPIO_ACTIVE_LOW>;
+    cs-gpios =  <&gpio0 15 GPIO_ACTIVE_LOW>;
 
     /*
      * Here another strange behavior :
@@ -69,26 +59,11 @@
         reg = <0>;
         spi-max-frequency = <DT_FREQ_M(20)>;
     };
-
-    eeprom1: eeprom1@1 {
-        compatible = "vnd,spi-device";
-        reg = <1>;
-        spi-max-frequency = <DT_FREQ_M(20)>;
-    };
-
-    eeprom2: eeprom2@2 {
-        compatible = "vnd,spi-device";
-        reg = <2>;
-        spi-max-frequency = <DT_FREQ_M(20)>;
-    };
 };
 
 / {
     aliases {
         spi4 = &spi4;
-
         eeprom0 = &eeprom0;
-        eeprom1 = &eeprom1;
-        eeprom2 = &eeprom2;
     };
 };

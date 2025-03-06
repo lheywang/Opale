@@ -47,6 +47,10 @@
     // Outputs
     #define PERIPH_RESET                DT_ALIAS(peripheralreset)
     #define ROCKET_LATCH                DT_ALIAS(latch)
+    #define ENGINE_1                    DT_ALIAS(engine1)
+    #define ENGINE_2                    DT_ALIAS(engine2)
+    #define ENGINE_3                    DT_ALIAS(engine3)
+    #define ENGINE_4                    DT_ALIAS(engine4)
     // Inputs
     #define IMU_BOOT                    DT_ALIAS(imuboot)
     #define IMU_STATUS                  DT_ALIAS(imustatus)
@@ -56,6 +60,9 @@
     #define INT_GPS                     DT_ALIAS(intgps)
     #define INT_ACCEL1                  DT_ALIAS(intaccel1)
     #define INT_ACCEL2                  DT_ALIAS(intaccel2)
+    #define INT_1                       DT_ALIAS(int1)
+    #define INT_2                       DT_ALIAS(int2)
+    #define INT_3                       DT_ALIAS(int3)
 
     // PWM related peripherals
     #define WINGS_1                     DT_PATH(wings, wings1)
@@ -74,8 +81,6 @@
     // SPI related peripherals
     #define SPIOP	                    SPI_WORD_SET(8) | SPI_TRANSFER_MSB // Configure SPI
     #define EEPROM_0                    DT_NODELABEL(eeprom0)
-    #define EEPROM_1                    DT_NODELABEL(eeprom1)
-    #define EEPROM_2                    DT_NODELABEL(eeprom2)
 
     // Count the number of cs used, and thus, the number of devices.
     #define EEPROM_NB                   DT_PROP_LEN(DT_PATH(soc, peripheral_40000000, spi_a000), cs_gpios)
@@ -103,6 +108,10 @@
     // Outputs
     static const struct gpio_dt_spec    peripheral_reset            =       GPIO_DT_SPEC_GET(PERIPH_RESET, gpios);
     static const struct gpio_dt_spec    rocket_latch                =       GPIO_DT_SPEC_GET(ROCKET_LATCH, gpios);
+    static const struct gpio_dt_spec    engines[4]                  =  {    GPIO_DT_SPEC_GET(ENGINE_1, gpios),
+                                                                            GPIO_DT_SPEC_GET(ENGINE_2, gpios),
+                                                                            GPIO_DT_SPEC_GET(ENGINE_3, gpios),
+                                                                            GPIO_DT_SPEC_GET(ENGINE_4, gpios)};
     // Inputs
     static const struct gpio_dt_spec    imu_boot                    =       GPIO_DT_SPEC_GET(IMU_BOOT, gpios);  
     static const struct gpio_dt_spec    imu_status                  =       GPIO_DT_SPEC_GET(IMU_STATUS, gpios);  
@@ -111,7 +120,10 @@
     static const struct gpio_dt_spec    imu_int                     =       GPIO_DT_SPEC_GET(INT_IMU, gpios); 
     static const struct gpio_dt_spec    gps_int                     =       GPIO_DT_SPEC_GET(INT_GPS, gpios); 
     static const struct gpio_dt_spec    accel1_int                  =       GPIO_DT_SPEC_GET(INT_ACCEL1, gpios); 
-    static const struct gpio_dt_spec    accel2_int                  =       GPIO_DT_SPEC_GET(INT_ACCEL2, gpios);      
+    static const struct gpio_dt_spec    accel2_int                  =       GPIO_DT_SPEC_GET(INT_ACCEL2, gpios);  
+    static const struct gpio_dt_spec    inputs[3]                   = {     GPIO_DT_SPEC_GET(INT_1, gpios),
+                                                                            GPIO_DT_SPEC_GET(INT_2, gpios),
+                                                                            GPIO_DT_SPEC_GET(INT_3, gpios)};    
 
 
     // UARTS
@@ -132,9 +144,7 @@
     static const struct pwm_dt_spec     pwm_parachute               =       PWM_DT_SPEC_GET(PARACHUTE);
 
     // SPI devices
-    static const struct spi_dt_spec     spi_eeproms[EEPROM_NB]      = {     SPI_DT_SPEC_GET(EEPROM_0, SPIOP, 0),
-                                                                            SPI_DT_SPEC_GET(EEPROM_1, SPIOP, 0),
-                                                                            SPI_DT_SPEC_GET(EEPROM_2, SPIOP, 0)};
+    static const struct spi_dt_spec     spi_eeproms                 =       SPI_DT_SPEC_GET(EEPROM_0, SPIOP, 0);
 
     // I2C devices
     static const struct i2c_dt_spec     i2c_barometer               =       I2C_DT_SPEC_GET(BAROMETER_0);

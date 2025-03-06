@@ -5,7 +5,7 @@
  * only.
  *
  * l.heywang
- * 23/02/2025
+ * 01/03/2025
  *
  * ============================================================
  */
@@ -18,14 +18,33 @@
 		compatible = "gpio-leds";
 
         peripheralreset: peripheralreset {
-            // gpios =     <&gpio1 3 GPIO_ACTIVE_LOW>; // Valid for TOPAZE BOARD !
-            gpios =     <&gpio0 28 GPIO_ACTIVE_LOW>; // Valid for DK !
+            gpios =     <&gpio1 1 GPIO_ACTIVE_LOW>;
             label =     "Peripheral reset pins, active low...";
         };
 
         latch: latch {
-            gpios =     <&gpio0 8 GPIO_ACTIVE_HIGH>;
+            gpios =     <&gpio0 2 GPIO_ACTIVE_HIGH>;
             label =     "CLK command for the DLATCH";
+        };
+
+        engine1: engine1{
+            gpios =     <&gpio0 22 GPIO_ACTIVE_HIGH>;
+            label =     "Start signal for engine n1";
+        };
+
+        engine2: engine2{
+            gpios =     <&gpio0 23 GPIO_ACTIVE_HIGH>;
+            label =     "Start signal for engine n2";
+        };
+
+        engine3: engine3{
+            gpios =     <&gpio1 8 GPIO_ACTIVE_HIGH>;
+            label =     "Start signal for engine n3";
+        };
+
+        engine4: engine4{
+            gpios =     <&gpio1 6 GPIO_ACTIVE_HIGH>;
+            label =     "Start signal for engine n4";
         };
 	};
 };
@@ -34,6 +53,10 @@
     aliases {
         peripheralreset = &peripheralreset;
         latch = &latch;
+        engine1 = &engine1;
+        engine2 = &engine2;
+        engine3 = &engine3;
+        engine4 = &engine4;
     };
 };
 

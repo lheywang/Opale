@@ -5,7 +5,7 @@
  * interruptibles pins only.
  *
  * l.heywang
- * 23/02/2025
+ * 01/03/2025
  *
  * ============================================================
  */
@@ -24,12 +24,12 @@
         };
 
         imustatus: imustatus {
-            gpios =     <&gpio0 15 GPIO_ACTIVE_HIGH>;
+            gpios =     <&gpio0 21 GPIO_ACTIVE_HIGH>;
             label =     "IMU (9 axis sensor) status pin";
         };
 
         mode: mode{
-            gpios =     <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            gpios =     <&gpio1 5 GPIO_ACTIVE_HIGH>;
             label =     "DLatch output value";
         };
 	};
