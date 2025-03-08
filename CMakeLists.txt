@@ -35,9 +35,7 @@ target_sources(app PRIVATE application/src/devices/rocket/rocket.cpp)
 target_sources(app PRIVATE application/src/drivers/bno055/bno055.cpp)
 target_sources(app PRIVATE application/src/drivers/bno055/imu.cpp)
 ## Teseo
-target_sources(app PRIVATE application/src/drivers/teseo/Components/Teseo/Teseo.cpp)
-target_sources(app PRIVATE application/src/drivers/teseo/Middlewares/NMEAParser.cpp)
-target_sources(app PRIVATE application/src/drivers/teseo/Middlewares/NMEAUtils.cpp)
+
 ## II2SDLPC
 target_sources(app PRIVATE application/src/drivers/iis2dlpc/iis2dlpc_reg.cpp)
 target_sources(app PRIVATE application/src/drivers/iis2dlpc/accelerometer.cpp)
