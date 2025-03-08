@@ -6,16 +6,16 @@
  * @date    23-02-2025
  *
  * @version 1.0.0
- * 
+ *
  * @author  l.heywang (leonard.heywang@proton.me)
- * 
+ *
  *  ================================================================
  */
 
 /* -----------------------------------------------------------------
-* INCLUDING LIBS
-* -----------------------------------------------------------------
-*/
+ * INCLUDING LIBS
+ * -----------------------------------------------------------------
+ */
 
 // Zephyr
 #include <zephyr/drivers/spi.h>
@@ -25,23 +25,24 @@
 #include "../init/init.h"
 
 /* -----------------------------------------------------------------
-* FUNCTIONS TO COMMAND AN EEPROM
-* -----------------------------------------------------------------
-*/
- 
-int EEPROM_GetNextAddress(  MemoryIO* const Command, 
-                            const EEPROM_RW ReadOrWrite){
+ * FUNCTIONS TO COMMAND AN EEPROM
+ * -----------------------------------------------------------------
+ */
+
+int EEPROM_GetNextAddress(MemoryIO *const Command,
+                          const EEPROM_RW ReadOrWrite)
+{
 
     // Initializing a tab if none are existing for now...
     static uint32_t CurrentAddresses[EEPROM_NB] = {0};
-    static uint8_t  CurrentMemory = 0;
+    static uint8_t CurrentMemory = 0;
 
     // Clearing the MemoryIO struct...
     memset(Command, 0, sizeof(MemoryIO));
 
-    uint32_t FutureAddress =    CurrentAddresses[CurrentMemory] + 
-                                (EEPROM_PAGE_SIZE * EEPROM_PAGE_PER_SAMPLE);
-    
+    uint32_t FutureAddress = CurrentAddresses[CurrentMemory] +
+                             (EEPROM_PAGE_SIZE * EEPROM_PAGE_PER_SAMPLE);
+
     // Check if we reached the end of the EEPROM
     if (FutureAddress >= EEPROM_MAX_ADDRESS)
     {
@@ -49,10 +50,10 @@ int EEPROM_GetNextAddress(  MemoryIO* const Command,
         uint8_t FutureEeprom = CurrentMemory + 1;
         if (FutureEeprom > EEPROM_NB)
             return -1;
-        
+
         // Compute the settings...
         CurrentMemory = FutureEeprom;
-        FutureAddress = CurrentAddresses[CurrentMemory] + 
+        FutureAddress = CurrentAddresses[CurrentMemory] +
                         (EEPROM_PAGE_SIZE * EEPROM_PAGE_PER_SAMPLE);
     }
 
@@ -62,14 +63,15 @@ int EEPROM_GetNextAddress(  MemoryIO* const Command,
     Command->RWn = ReadOrWrite;
 
     // Increment counter
-    CurrentAddresses[CurrentMemory] =   CurrentAddresses[CurrentMemory] + 
-                                        (EEPROM_PAGE_SIZE * EEPROM_PAGE_PER_SAMPLE);
+    CurrentAddresses[CurrentMemory] = CurrentAddresses[CurrentMemory] +
+                                      (EEPROM_PAGE_SIZE * EEPROM_PAGE_PER_SAMPLE);
 
     // returning
     return 0;
 }
 
-int EEPROM_IO(  const struct spi_dt_spec *Target[], 
-                const MemoryIO Command){
+int EEPROM_IO(const struct spi_dt_spec *Target[],
+              const MemoryIO Command)
+{
     return 0;
 }

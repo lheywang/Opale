@@ -1,51 +1,51 @@
 /**
-* Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
-*
-* BSD-3-Clause
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-*
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in the
-*    documentation and/or other materials provided with the distribution.
-*
-* 3. Neither the name of the copyright holder nor the names of its
-*    contributors may be used to endorse or promote products derived from
-*    this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-* COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-* STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-* IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-* @file bno055_support.c
-* @date 10/01/2020
-* @version  2.0.6
-*
-*/
+ * Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
+ *
+ * BSD-3-Clause
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @file bno055_support.c
+ * @date 10/01/2020
+ * @version  2.0.6
+ *
+ */
 
 /*---------------------------------------------------------------------------*
-*  Includes
-*---------------------------------------------------------------------------*/
+ *  Includes
+ *---------------------------------------------------------------------------*/
 #include "bno055.h"
 
 /*----------------------------------------------------------------------------*
-*  The following APIs are used for reading and writing of
-*   sensor data using I2C communication
-*----------------------------------------------------------------------------*/
-#ifdef  BNO055_API
+ *  The following APIs are used for reading and writing of
+ *   sensor data using I2C communication
+ *----------------------------------------------------------------------------*/
+#ifdef BNO055_API
 #define BNO055_I2C_BUS_WRITE_ARRAY_INDEX ((u8)1)
 
 /*  \Brief: The API is used as I2C bus read
@@ -295,7 +295,7 @@ s32 bno055_data_readout_template(void)
     /*---------------------------------------------------------------------------*
      *********************** START INITIALIZATION ************************
      *--------------------------------------------------------------------------*/
-#ifdef  BNO055_API
+#ifdef BNO055_API
 
     /*  Based on the user need configure I2C interface.
      *  It is example code to explain how to use the bno055 API*/
@@ -519,7 +519,7 @@ s32 bno055_data_readout_template(void)
     return comres;
 }
 
-#ifdef  BNO055_API
+#ifdef BNO055_API
 
 /*--------------------------------------------------------------------------*
  *  The following API is used to map the I2C bus read, write, delay and
@@ -546,7 +546,7 @@ s8 I2C_routine(void)
 /************** I2C buffer length******/
 
 #define I2C_BUFFER_LEN 8
-#define I2C0           5
+#define I2C0 5
 
 /*-------------------------------------------------------------------*
  *
@@ -609,7 +609,7 @@ return (s8)BNO055_iERROR;
 s8 BNO055_I2C_bus_read(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt)
 {
     s32 BNO055_iERROR = BNO055_INIT_VALUE;
-    u8 array[I2C_BUFFER_LEN] = { BNO055_INIT_VALUE };
+    u8 array[I2C_BUFFER_LEN] = {BNO055_INIT_VALUE};
     u8 stringpos = BNO055_INIT_VALUE;
 
     array[BNO055_INIT_VALUE] = reg_addr;

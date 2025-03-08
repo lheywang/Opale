@@ -7,16 +7,16 @@
  * @date    20-02-2025
  *
  * @version 1.0.0
- * 
+ *
  * @author  l.heywang (leonard.heywang@proton.me)
- * 
+ *
  *  ================================================================
  */
 
 /* -----------------------------------------------------------------
-* INCLUDING LIBS
-* -----------------------------------------------------------------
-*/
+ * INCLUDING LIBS
+ * -----------------------------------------------------------------
+ */
 
 // Zephyr
 #include <zephyr/drivers/pwm.h>
@@ -28,23 +28,25 @@
 #include "../../init/init.h"
 
 /* -----------------------------------------------------------------
-* LOGGER CONFIG
-* -----------------------------------------------------------------
-*/
+ * LOGGER CONFIG
+ * -----------------------------------------------------------------
+ */
 // Identify the module on the LOG Output
 LOG_MODULE_REGISTER(RGB, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
-* FUNCTIONS TO COMMAND A SERVO
-* -----------------------------------------------------------------
-*/
+ * FUNCTIONS TO COMMAND A SERVO
+ * -----------------------------------------------------------------
+ */
 
-int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN], 
-                Color const *Command){
-    
+int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
+                 Color const *Command)
+{
+
     // Checking the parameters
     // MIN =< Pos <= MAX
-    if (Command->alpha > 100){
+    if (Command->alpha > 100)
+    {
         LOG_ERR("Incorrect command passed on the alpha value. (MAX = 100)");
         return -1;
     }
@@ -75,7 +77,8 @@ int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
     }
 
     // End log, and return
-    if (err != 0){
+    if (err != 0)
+    {
         LOG_ERR("Failed to configure the PWM duty cycle for the RGB leds : %d", err);
         return -2;
     }

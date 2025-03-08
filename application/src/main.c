@@ -54,9 +54,9 @@ LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 int main(void)
 {
     /* -----------------------------------------------------------------
-    * PERIPHERALS INITS
-    * -----------------------------------------------------------------
-    */
+     * PERIPHERALS INITS
+     * -----------------------------------------------------------------
+     */
     int err = 0;
     err -= INIT_CheckGPIO();
     err -= INIT_CheckPWM();
@@ -78,9 +78,9 @@ int main(void)
         return 0;
 
     /* -----------------------------------------------------------------
-    * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
-    * -----------------------------------------------------------------
-    */
+     * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
+     * -----------------------------------------------------------------
+     */
 
     ServoAngles Command = {.north = 90,
                            .south = 0,
@@ -97,9 +97,9 @@ int main(void)
     ret += RGB_SetColor(pwm_rgb, &Command2);
 
     /* -----------------------------------------------------------------
-    * MAIN LOOP
-    * -----------------------------------------------------------------
-    */
+     * MAIN LOOP
+     * -----------------------------------------------------------------
+     */
 
     while (1)
     {
@@ -186,7 +186,7 @@ int main(void)
  * - south engine : alternate between 46 and -45 every 5 seconds
  * - east engine : discrete ramp, +5 degree every 2.5 second. (with a final step of -80 degree to restart).
  * - west engine : random response : -50, -10, -30, 10, -10, 30, 10, 50 degrees to measure random response.
- * 
+ *
  * - ADC shall print in console measurements per channel every 2.5 seconds to match the response.
- * 
+ *
  *  */
