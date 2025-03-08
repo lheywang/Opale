@@ -280,6 +280,19 @@ typedef unsigned long int u64; /**< used for unsigned 64bit */
 #endif
 #endif
 
+/*
+ * Note :   To ensure compatiblity with the remaining system, we defined
+ *          our custom bus_write, bus_read and delay_func functions.
+ *          
+ *          They're defined in another header to conserv a clean code.
+ * 
+ *          The ONLY modification we did to the original Bosch code is 
+ *          this include. 
+ *
+ */
+
+#include "imu.h"
+
 /***************************************************************/
 /**\name    BUS READ AND WRITE FUNCTIONS           */
 /***************************************************************/
