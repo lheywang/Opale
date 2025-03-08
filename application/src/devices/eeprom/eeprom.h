@@ -26,7 +26,8 @@
 #include <zephyr/drivers/spi.h>
 
 // Libs
-#include "../init/init.h"
+#include "../../init/init.h"
+
 // STDBLIB
 #include <assert.h>
 

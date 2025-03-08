@@ -22,7 +22,7 @@
 
 // Local libs
 #include "eeprom.h"
-#include "../init/init.h"
+#include "../../init/init.h"
 
 /* -----------------------------------------------------------------
  * FUNCTIONS TO COMMAND AN EEPROM
