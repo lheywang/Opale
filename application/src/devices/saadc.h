@@ -38,10 +38,10 @@
     */
 
     // Sample rate of the ADC
-    #define SAADC_CHANNEL_SAMPLE_RATE   1000
+    #define SAADC_CHANNEL_SAMPLE_RATE   1000 // us
     
     // Buffer settings
-    #define SAADC_BUFFER_SIZE           2000
+    #define SAADC_BUFFER_SIZE           2500 // 2.5 seconds
 
     // Analog inputs settings
     #define SAADC_INPUT_COUNT           8

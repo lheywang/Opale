@@ -154,14 +154,98 @@ int main(void)
 
     while (1)
     {
-        LOG_INF("Hello World !");
-        k_msleep(500);
+        LOG_INF("New cycle started !");
         k_yield();
 
-        ret = GPIO_Toggle(&peripheral_reset);
-        if (ret < 0)
-        {
+        // Command 1
+        ServoAngles Command = { .north = 90,
+                                .south = 45,
+                                .east = -17.5,
+                                .west = -50};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
             return 0;
-        }
+        k_msleep(2500);
+
+        // Command 2
+        ServoAngles Command = { .north = 90,
+                                .south = 45,
+                                .east = -12.5,
+                                .west = -10};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
+
+        // Command 3
+        ServoAngles Command = { .north = -90,
+                                .south = -45,
+                                .east = -7.5,
+                                .west = -30};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
+
+        // Command 4
+        ServoAngles Command = { .north = -90,
+                                .south = -45,
+                                .east = -2.5,
+                                .west = 10};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
+
+        // Command 5
+        ServoAngles Command = { .north = 90,
+                                .south = 45,
+                                .east = 2.5,
+                                .west = -10};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
+
+        // Command 6
+        ServoAngles Command = { .north = 90,
+                                .south = 45,
+                                .east = -7.5,
+                                .west = 30};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
+
+        // Command 7
+        ServoAngles Command = { .north = -90,
+                                .south = -45,
+                                .east = -12.5,
+                                .west = 10};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
+
+        // Command 8
+        ServoAngles Command = { .north = -90,
+                                .south = -45,
+                                .east = -17.5,
+                                .west = 50};
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        if (ret != 0)
+            return 0;
+        k_msleep(2500);
     }
 }
+
+/*
+ * This sample make moves the engine position following different commands :
+ * - north engine : alternate betweeen 90 and -90 every 5 seconds
+ * - south engine : alternate between 46 and -45 every 5 seconds
+ * - east engine : discrete ramp, +5 degree every 2.5 second. (with a final step of -80 degree to restart).
+ * - west engine : random response : -50, -10, -30, 10, -10, 30, 10, 50 degrees to measure random response.
+ * 
+ * - ADC shall print in console measurements per channel every 2.5 seconds to match the response.
+ * 
+ *  */

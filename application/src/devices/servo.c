@@ -67,7 +67,7 @@ int SERVO_SetPosition(  const struct pwm_dt_spec Target[PWM_SERVO_LEN],
 
     // Computing the pulses length
     // Due to negative values that are offseted, we need to handle that case too.
-    int pulses[PWM_SERVO_LEN] = {0};
+    float pulses[PWM_SERVO_LEN] = {0};
     for (uint8_t k = 0; k < PWM_SERVO_LEN; k++)
     {
         switch (k) {
@@ -89,13 +89,12 @@ int SERVO_SetPosition(  const struct pwm_dt_spec Target[PWM_SERVO_LEN],
         pulses[k] *= PWM_SERVO_MAX_PULSE_WIDTH;
         pulses[k] /= 2 * PWM_SERVO_MAX_RANGE;
         pulses[k] += PWM_SERVO_MIN_PULSE_WIDTH;
-        pulses[k] = round(pulses[k]);
     }
 
     // Configure the PWM engines
     int err = 0;
     for (uint8_t k = 0; k < NRF_PWM_CHANNEL_COUNT; k++)
-        err -= pwm_set(Target[k].dev, k, Target[k].period, pulses[k], Target->flags);
+        err -= pwm_set(Target[k].dev, k, Target[k].period, (int)round(pulses[k]), Target->flags);
 
     // End log, and return
      if (err != 0){
