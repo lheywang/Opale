@@ -33,11 +33,12 @@
 #include "init/init.h"
 #include "config.h"
 
-#include "devices/servo.h"
-#include "devices/rgb.h"
-#include "devices/gpio.h"
+#include "devices/servo/servo.h"
+#include "devices/rgb/rgb.h"
 #include "devices/eeprom.h"
-#include "devices/saadc.h"
+
+#include "peripherals/gpio/gpio.h"
+#include "peripherals/saadc/saadc.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
@@ -106,80 +107,72 @@ int main(void)
         k_yield();
 
         // Command 1
-        ServoAngles Command = { .north = 90,
-                                .south = 45,
-                                .east = -17.5,
-                                .west = -50};
+        Command.north = 90;
+        Command.south = 45;
+        Command.east = -17.5;
+        Command.west = -50;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 2
-        ServoAngles Command = { .north = 90,
-                                .south = 45,
-                                .east = -12.5,
-                                .west = -10};
+        Command.east = -12.5;
+        Command.west = -10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 3
-        ServoAngles Command = { .north = -90,
-                                .south = -45,
-                                .east = -7.5,
-                                .west = -30};
+        Command.north = -90;
+        Command.south = -45;
+        Command.east = -7.5;
+        Command.west = -30;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 4
-        ServoAngles Command = { .north = -90,
-                                .south = -45,
-                                .east = -2.5,
-                                .west = 10};
+        Command.east = -2.5;
+        Command.west = 10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 5
-        ServoAngles Command = { .north = 90,
-                                .south = 45,
-                                .east = 2.5,
-                                .west = -10};
+        Command.north = 90;
+        Command.south = 45;
+        Command.east = 2.5;
+        Command.west = 10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 6
-        ServoAngles Command = { .north = 90,
-                                .south = 45,
-                                .east = -7.5,
-                                .west = 30};
+        Command.east = 7.5;
+        Command.west = 30;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 7
-        ServoAngles Command = { .north = -90,
-                                .south = -45,
-                                .east = -12.5,
-                                .west = 10};
+        Command.north = -90;
+        Command.south = -45;
+        Command.east = 12.5;
+        Command.west = 10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;
         k_msleep(2500);
 
         // Command 8
-        ServoAngles Command = { .north = -90,
-                                .south = -45,
-                                .east = -17.5,
-                                .west = 50};
+        Command.east = 17.5;
+        Command.west = 50;
         ret += SERVO_SetPosition(pwm_wings, &Command);
         if (ret != 0)
             return 0;

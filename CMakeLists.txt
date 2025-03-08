@@ -5,20 +5,42 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 # Project name
 project(Opale)
 
-# Main source
+# ============
+# MAIN
+# ============
 target_sources(app PRIVATE application/src/main.c)
 
-# Initializer
+# ============
+# INIT
+# ============
 target_sources(app PRIVATE application/src/init/init.c)
 
-# Devices
-target_sources(app PRIVATE application/src/devices/servo.c)
-target_sources(app PRIVATE application/src/devices/rgb.c)
-target_sources(app PRIVATE application/src/devices/gpio.c)
+# ============
+# PERIPHERALS
+# ============
+target_sources(app PRIVATE application/src/peripherals/gpio/gpio.c)
+target_sources(app PRIVATE application/src/peripherals/saadc/saadc.c)
+
+# ============
+# DEVICES
+# ============
+target_sources(app PRIVATE application/src/devices/servo/servo.c)
+target_sources(app PRIVATE application/src/devices/rgb/rgb.c)
+target_sources(app PRIVATE application/src/devices/rocket/rocket.c)
+
+# ============
+# DRIVERS
+# ============
+## BNO055
+target_sources(app PRIVATE application/src/drivers/bno055/bno055.c)
+target_sources(app PRIVATE application/src/drivers/bno055/imu.c)
+## Teseo
+target_sources(app PRIVATE application/src/drivers/teseo/teseo.c)
+
+
+# Random, for future...
 target_sources(app PRIVATE application/src/devices/eeprom.c)
 target_sources(app PRIVATE application/src/devices/expander.c)
 target_sources(app PRIVATE application/src/devices/barometer.c)
 target_sources(app PRIVATE application/src/devices/accelerometer.c)
 target_sources(app PRIVATE application/src/devices/gps.c)
-target_sources(app PRIVATE application/src/devices/imu.c)
-target_sources(app PRIVATE application/src/devices/saadc.c)

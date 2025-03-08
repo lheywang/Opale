@@ -24,24 +24,27 @@
 // Zephyr
 #include <zephyr/kernel.h>
 
+// BNO lib
+#include "bno055.h"
+
 /* -----------------------------------------------------------------
 * FUNCTIONS TO COMMAND AN IMU SENSOR
 * -----------------------------------------------------------------
 */
 
-bus_read(dev_addr, reg_addr, reg_data, r_len){
+s8 bus_read(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 r_len){
     // To be filled !
-    return 0;
+    return BNO055_SUCCESS;
 }
 
-bus_write(dev_addr, reg_addr, reg_data, wr_len){
+s8 bus_write(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 wr_len){
     // To be filled !
-    return 0;
+    return BNO055_SUCCESS;
 }
 
-delay_func(delay_in_msec){
+void delay_func(int delay_in_msec){
     k_msleep(delay_in_msec);
-    return 0;
+    return;
 }
 
 

@@ -27,8 +27,8 @@
 #include <nrfx_dppi.h> // This line must be replaced with nrfx_ppi for nRF52 and less series.
 
 // Libs
-#include "../init/init.h"
-#include "../config.h"
+#include "../../init/init.h"
+#include "../../config.h"
 #include "saadc.h"
 
 // Zephyr
@@ -208,7 +208,7 @@ static void saadc_event_handler(nrfx_saadc_evt_t const * p_event)
             LOG_INF("AVG=%d, MIN=%d, MAX=%d", (int16_t)average, min, max);
 
             for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
-                LOG_HEXDUMP_INF(channels_data[k], SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT ,"Channel %d data", (k + 1));
+                LOG_HEXDUMP_INF(channels_data[k], SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT ,"Channel data");
             break;
         
         // Unknown event...

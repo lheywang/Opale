@@ -27,8 +27,8 @@
 
 // Local libs
 #include "servo.h"
-#include "../config.h"
-#include "../init/init.h"
+#include "../../config.h"
+#include "../../init/init.h"
 
 // STD
 #include <math.h>

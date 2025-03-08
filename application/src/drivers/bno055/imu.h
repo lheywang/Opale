@@ -24,6 +24,9 @@
     // Libs
     #include "../../init/init.h"
 
+    // BNO lib
+    #include "bno055.h"
+
     /* -----------------------------------------------------------------
     * FETCHING NODE PARAMETERS
     * -----------------------------------------------------------------
@@ -46,7 +49,7 @@
      * @retval  0 (BNO_SUCESS) : OK
      * @retval  1 (BNO_FAIL) : NOK
      */
-    bus_read(dev_addr, reg_addr, reg_data, r_len);
+    s8 bus_read(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 r_len);
 
     /**
      * @brief   This function perform a write on the target device
@@ -60,7 +63,7 @@
      * @retval  0 (BNO_SUCESS) : OK
      * @retval  1 (BNO_FAIL) : NOK
      */
-    bus_write(dev_addr, reg_addr, reg_data, wr_len);
+    s8 bus_write(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 wr_len);
 
     /**
      * @brief   This function delay the system.
@@ -68,8 +71,10 @@
      * @warning Due to the usage of zepyr, this function is actually an alias to the k_msleep function.
      *  
      * @param   delay_in_msec The value in msec to be delayed.
+     * 
+     * @return  Nothing
      */
-    delay_func(delay_in_msec);
+    void delay_func(int delay_in_msec);
 
 #endif
 
