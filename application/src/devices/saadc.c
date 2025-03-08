@@ -185,6 +185,10 @@ static void saadc_event_handler(nrfx_saadc_evt_t const * p_event)
             int16_t max = INT16_MIN;
             int16_t min = INT16_MAX;
             int16_t current_value; 
+
+            int16_t channels_data[SAADC_INPUT_COUNT][SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT] = {0};
+            int16_t sample_number = 0;
+
             for(int i=0; i < p_event->data.done.size; i++){
                 current_value = ((int16_t *)(p_event->data.done.p_buffer))[i];
                 average += current_value;
@@ -194,11 +198,17 @@ static void saadc_event_handler(nrfx_saadc_evt_t const * p_event)
                 if(current_value < min){
                     min = current_value;
                 }
+
+                channels_data[i % SAADC_INPUT_COUNT][sample_number] = current_value;  
+                if ((i % SAADC_INPUT_COUNT) == (SAADC_INPUT_COUNT - 1))
+                    sample_number += 1;
             }
             average = average/p_event->data.done.size;
             LOG_INF("SAADC buffer at 0x%x filled with %d samples", (uint32_t)p_event->data.done.p_buffer, p_event->data.done.size);
             LOG_INF("AVG=%d, MIN=%d, MAX=%d", (int16_t)average, min, max);
-            LOG_HEXDUMP_INF(p_event->data.done.p_buffer, SAADC_BUFFER_SIZE / 2 ,"Sample Data!");
+
+            for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
+                LOG_HEXDUMP_INF(channels_data[k], SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT ,"Channel %d data", (k + 1));
             break;
         
         // Unknown event...
