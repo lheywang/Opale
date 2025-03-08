@@ -38,10 +38,12 @@ target_sources(app PRIVATE application/src/drivers/bno055/imu.c)
 target_sources(app PRIVATE application/src/drivers/teseo/teseo.c)
 ## II2SDLPC
 target_sources(app PRIVATE application/src/drivers/iis2dlpc/ii2sdlpc_reg.c)
+target_sources(app PRIVATE application/src/drivers/iis2dlpc/accelerometer.c)
+## MCP23008
+target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008.c)
 
 
 # Random, for future...
 target_sources(app PRIVATE application/src/devices/eeprom.c)
-target_sources(app PRIVATE application/src/devices/expander.c)
 target_sources(app PRIVATE application/src/devices/barometer.c)
 target_sources(app PRIVATE application/src/devices/gps.c)

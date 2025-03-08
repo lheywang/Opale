@@ -11,9 +11,15 @@ You may found a lot of documentation under the documentation/* folder.
 ===================
 Dependencies
 ===================
-This project exploit the Bosch BNO055 driver for this 9 axis IMU : 
+This project exploit multiple libs :
 
+Bosch BNO055 lib :
 :ref: https://github.com/boschsensortec/BNO055_SensorAPI
+
+STMicro IIS2DLPC lib
+:ref: https://github.com/STMicroelectronics/iis2dlpc-pid
+
+
 
 ===================
 Folder structure
