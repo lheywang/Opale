@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<FileVersion major="1" minor="0" />
+	<ActiveTarget name="Debug" />
+	<File name="main.c" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="-2" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1349" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="mcp23008_driver.c" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="41953" topLine="1192" />
+		</Cursor>
+	</File>
+	<File name="mcp23008_driver_interface.c" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2956" topLine="63" />
+		</Cursor>
+	</File>
+	<File name="mcp23008_driver.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10645" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="mcp23008_driver_basic.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4884" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="mcp23008_driver_basic.c" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5520" topLine="138" />
+		</Cursor>
+	</File>
+	<File name="mcp23008_driver_interface.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2064" topLine="48" />
+		</Cursor>
+	</File>
+</CodeBlocks_layout_file>
