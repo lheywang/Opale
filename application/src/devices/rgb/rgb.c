@@ -24,8 +24,8 @@
 
 // Local libs
 #include "rgb.h"
-#include "../config.h"
-#include "../init/init.h"
+#include "../../config.h"
+#include "../../init/init.h"
 
 /* -----------------------------------------------------------------
 * LOGGER CONFIG

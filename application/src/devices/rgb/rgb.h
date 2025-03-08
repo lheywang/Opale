@@ -27,7 +27,7 @@
     #include <zephyr/drivers/pwm.h>
     
     // Libs
-    #include "../init/init.h"
+    #include "../../init/init.h"
 
     /* -----------------------------------------------------------------
     * FETCHING NODE PARAMETERS
