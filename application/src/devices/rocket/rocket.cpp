@@ -59,6 +59,6 @@ int ROCKET_GetOperationMode(const struct gpio_dt_spec *Latch,
     GPIO_Read(Status, &tmp);
 
     // Copy the data back.
-    *Mode = tmp;
+    *Mode = OperationMode(tmp);
     return 0;
 }

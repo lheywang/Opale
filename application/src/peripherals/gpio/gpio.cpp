@@ -1,5 +1,5 @@
 /** ================================================================
- * @file    application/src/peripherals/gpio/gpio.c
+ * @file    application/src/peripherals/gpio/gpio.cpp
  *
  * @brief   rgb.c implement some higher level functions to control
  *          GPIO

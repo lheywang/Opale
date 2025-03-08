@@ -21,6 +21,9 @@
 // Libs
 #include "../../init/init.h"
 
+// Local lib
+#include "iis2dlpc_reg.h"
+
 /* -----------------------------------------------------------------
  * FUNCTIONS TO COMMAND AN ACCELEROMETER
  * -----------------------------------------------------------------

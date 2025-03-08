@@ -53,12 +53,12 @@
 /** @defgroup ST
  *  @{
  */
- 
+
 /** @defgroup LIB_NMEA
  *  @{
  */
 
-/** @defgroup NMEA_UTILS 
+/** @defgroup NMEA_UTILS
  * @{
  */
 
@@ -69,55 +69,56 @@
  * @brief  Scans a string with UTC info and fills all fields of a
  *         UTC_Info struct
  * @param  utc_str       NMEA UTC string
- * @param  utc           The UTC_Info struct to fill 
+ * @param  utc           The UTC_Info struct to fill
  * @retval None
- */   
-void scan_utc (char* utc_str, UTC_Info* utc) {
-  
-  sscanf(utc_str, "%d", &utc->utc);
-  
-  utc->hh = (utc->utc / 10000);
-  utc->mm = (utc->utc - (utc->hh * 10000)) / 100;
-  utc->ss = utc->utc - ((utc->hh * 10000) + (utc->mm * 100));
-  
-  return;
+ */
+void scan_utc(char *utc_str, UTC_Info *utc)
+{
+
+    sscanf(utc_str, "%d", &utc->utc);
+
+    utc->hh = (utc->utc / 10000);
+    utc->mm = (utc->utc - (utc->hh * 10000)) / 100;
+    utc->ss = utc->utc - ((utc->hh * 10000) + (utc->mm * 100));
+
+    return;
 }
 
 /**
- * @brief  Scans a bidimensional array with longitude and latitude infos and 
+ * @brief  Scans a bidimensional array with longitude and latitude infos and
  *         fills the relative fields of a Coords struct
  * @param  xy_str       NMEA string with latitude and longitude infos
  * @param  str_offset   NMEA string with latitude and longitude infos
- * @param  utc          The Coords struct to fill 
+ * @param  utc          The Coords struct to fill
  * @retval None
  */
-void scan_xy (char* xy_str, uint8_t str_offset, Coords* xy) 
-{  
-  //printf("NMEA (xy_str): %s\n\r", xy_str);
-  sscanf(xy_str,                "%lf", &xy->lat);
-  sscanf(xy_str+str_offset,     "%c", &xy->ns);
-  sscanf(xy_str+(2*str_offset), "%lf", &xy->lon);
-  sscanf(xy_str+(3*str_offset), "%c", &xy->ew);
-   
-  return;  
+void scan_xy(char *xy_str, uint8_t str_offset, Coords *xy)
+{
+    // printf("NMEA (xy_str): %s\n\r", xy_str);
+    sscanf(xy_str, "%lf", &xy->lat);
+    sscanf(xy_str + str_offset, "%c", &xy->ns);
+    sscanf(xy_str + (2 * str_offset), "%lf", &xy->lon);
+    sscanf(xy_str + (3 * str_offset), "%c", &xy->ew);
+
+    return;
 }
-
-/**
-* @}
-*/
-   
-/**
-* @}
-*/
-
-/**
-* @}
-*/
 
 /**
  * @}
  */
 
 /**
-* @}
-*/
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

@@ -1,5 +1,5 @@
 /** ================================================================
- * @file    application/src/drivers/mcp23008/expander.c
+ * @file    application/src/drivers/mcp23008/expander.cpp
  *
  * @brief   expander.c implement some low level functions for the
  *          control of the GPIO expander

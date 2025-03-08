@@ -1,5 +1,5 @@
 /** ================================================================
- * @file    application/src/main.c
+ * @file    application/src/main.cpp
  *
  * @brief   This file is the entry point for the application core.
  *          It handle the initialization of all the tasks, and then

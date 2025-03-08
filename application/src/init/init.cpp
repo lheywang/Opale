@@ -1,5 +1,5 @@
 /** ================================================================
- * @file    application/src/init/init.c
+ * @file    application/src/init/init.cpp
  *
  * @brief   Init.c define the function that check if the peripherals
  *          are ready to be used, or not.
@@ -48,7 +48,7 @@ int CheckAGPIO(const struct gpio_dt_spec *Target)
 {
     for (uint8_t k = 0; k < INIT_MAX_TRY; k++)
     {
-        if (!gpio_is_ready_dt(&Target->port))
+        if (!gpio_is_ready_dt(Target))
         {
             if (k < 2)
             {

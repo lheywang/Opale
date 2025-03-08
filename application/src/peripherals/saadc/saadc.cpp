@@ -1,5 +1,5 @@
 /** ================================================================
- * @file    application/src/peripherals/saadc/saadc.c
+ * @file    application/src/peripherals/saadc/saadc.cpp
  *
  * @brief   saadc.c implement some low level functions for the
  *          control of the SAADC (Successive approximation
@@ -178,6 +178,7 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
 
     // The SAADC need a new buffer
     case NRFX_SAADC_EVT_BUF_REQ:
+    {
 
         /* STEP 5.2 - Set up the next available buffer. Alternate between buffer 0 and 1 */
         err = nrfx_saadc_buffer_set(saadc_buffer[(saadc_buffer_index++) % 2], SAADC_BUFFER_SIZE);
@@ -188,9 +189,9 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
             return;
         }
         break;
-
+    }
     case NRFX_SAADC_EVT_DONE:
-
+    {
         /* STEP 5.3 - Buffer has been filled. Do something with the data and proceed */
         int64_t average = 0;
         int16_t max = INT16_MIN;
@@ -224,10 +225,12 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
         for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
             LOG_HEXDUMP_INF(channels_data[k], SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT, "Channel data");
         break;
-
+    }
     // Unknown event...
     default:
+    {
         LOG_WRN("Unhandled SAADC evt %d", p_event->type);
         break;
+    }
     }
 }
