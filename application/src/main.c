@@ -47,58 +47,6 @@
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
- * INCLUDING VARIABLES
- * -----------------------------------------------------------------
- */
-
-// Servo PWM
-extern const struct pwm_dt_spec pwm0_servo0;
-extern const struct pwm_dt_spec pwm0_servo1;
-extern const struct pwm_dt_spec pwm0_servo2;
-
-// Ouputs
-extern const struct gpio_dt_spec peripheral_reset;
-extern const struct gpio_dt_spec rocket_latch;
-extern const struct gpio_dt_spec engines[4];
-// Inputs
-extern const struct gpio_dt_spec imu_boot;
-extern const struct gpio_dt_spec imu_status;
-extern const struct gpio_dt_spec rocket_mode;
-// Interruptibles inputs
-extern const struct gpio_dt_spec imu_int;
-extern const struct gpio_dt_spec gps_int;
-extern const struct gpio_dt_spec accel1_int;
-extern const struct gpio_dt_spec accel2_int;
-extern const struct gpio_dt_spec inputs[3];
-
-// UARTS
-extern const struct device *uart_imu;
-extern const struct device *uart_gps;
-
-// Servo engines (wings) commands
-extern const struct pwm_dt_spec pwm_wings[PWM_SERVO_LEN];
-
-extern const struct pwm_dt_spec pwm_rgb[PWM_RGB_LEN];
-
-extern const struct pwm_dt_spec pwm_buzzer;
-extern const struct pwm_dt_spec pwm_parachute;
-
-// SPI devices
-extern const struct spi_dt_spec spi_eeproms;
-
-// I2C devices
-extern const struct i2c_dt_spec i2c_barometer;
-extern const struct i2c_dt_spec i2c_expander;
-extern const struct i2c_dt_spec i2c_accels[ACCEL_NB];
-
-// Timers
-extern nrfx_timer_t saadc_timer;
-
-// ADC outputs
-extern uint16_t saadc_buffer[2][SAADC_BUFFER_SIZE];
-extern uint32_t saadc_buffer_index;
-
-/* -----------------------------------------------------------------
  * MAIN LOOP
  * -----------------------------------------------------------------
  */
