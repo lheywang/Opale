@@ -34,7 +34,8 @@
  *         - 1 i2c init failed
  * @note   none
  */
-uint8_t mcp23008_interface_i2c_init(void) {
+uint8_t mcp23008_interface_i2c_init(void)
+{
     /*call your i2c initialize function here*/
     /*user code begin */
 
@@ -48,7 +49,8 @@ uint8_t mcp23008_interface_i2c_init(void) {
  *          - 0 success
  *          - 1 i2c deinit fail
  */
-uint8_t mcp23008_interface_i2c_deinit(void) {
+uint8_t mcp23008_interface_i2c_deinit(void)
+{
     /*call your i2c de-initialize function here*/
     /*user code begin */
 
@@ -67,7 +69,8 @@ uint8_t mcp23008_interface_i2c_deinit(void) {
  *             - 1 read failed
  * @note       none
  */
-uint8_t mcp23008_interface_i2c_read(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Length) {
+uint8_t mcp23008_interface_i2c_read(uint8_t u8Addr, uint8_t *pBuf, uint16_t u8Length)
+{
     /*call your i2c read function here*/
     /*user code begin */
 
@@ -86,7 +89,8 @@ uint8_t mcp23008_interface_i2c_read(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Len
  *            - 1 write failed
  * @note      none
  */
-uint8_t mcp23008_interface_i2c_write(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Length) {
+uint8_t mcp23008_interface_i2c_write(uint8_t u8Addr, uint8_t *pBuf, uint16_t u8Length)
+{
     /*call your i2c write function here*/
     /*user code begin */
 
@@ -99,7 +103,8 @@ uint8_t mcp23008_interface_i2c_write(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Le
  * @param[in] U32Ms
  * @note      none
  */
-void mcp23008_interface_delay_ms(uint32_t U32Ms){
+void mcp23008_interface_delay_ms(uint32_t U32Ms)
+{
     /*call your delay function here*/
     /*user code begin */
 
@@ -111,7 +116,8 @@ void mcp23008_interface_delay_ms(uint32_t U32Ms){
  * @param[in] fmt is the format data
  * @note      none
  */
-void mcp23008_interface_debug_print(const char *const fmt, ...) {
+void mcp23008_interface_debug_print(char *const fmt, ...)
+{
     /*call your call print function here*/
     /*user code begin */
 #ifdef MCP23008_DEBUG_MODE
@@ -119,14 +125,14 @@ void mcp23008_interface_debug_print(const char *const fmt, ...) {
     volatile uint8_t len;
     va_list args;
 
-    memset((char *) str, 0, sizeof (char)*256);
+    memset((char *)str, 0, sizeof(char) * 256);
     va_start(args, fmt);
-    vsnprintf((char *) str, 256, (char const *) fmt, args);
+    vsnprintf((char *)str, 256, (char const *)fmt, args);
     va_end(args);
 
-    len = strlen((char *) str);
-//    EUSART1_Write_Text((const char *) str, len);
-    (void)printf((uint8_t *)str, len);
+    len = strlen((char *)str);
+    //    EUSART1_Write_Text((const char *) str, len);
+    (void)printf((char *)str, len);
 
     /*user code end*/
 #endif
@@ -137,66 +143,67 @@ void mcp23008_interface_debug_print(const char *const fmt, ...) {
  * @param[in] type is the interrupt type
  * @note      none
  */
-void mcp23008_interface_receive_callback(uint8_t type) {
+void mcp23008_interface_receive_callback(uint8_t type)
+{
     /*call your interrupt callback function here*/
     /*user code begin */
-    switch (type) {
-        case MCP23008_GPIO_PIN_0:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP0 interrupt\n");
-            break;
-        }
+    switch (type)
+    {
+    case MCP23008_GPIO_PIN_0:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP0 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_1:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP1 interrupt\n");
-            break;
-        }
+    case MCP23008_GPIO_PIN_1:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP1 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_2:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP2 interrupt\n");
-            break;
-        }
+    case MCP23008_GPIO_PIN_2:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP2 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_3:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP3 interrupt\n");
-            break;
-        }
+    case MCP23008_GPIO_PIN_3:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP3 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_4:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP4 interrupt\n");
-            break;
-        }
+    case MCP23008_GPIO_PIN_4:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP4 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_5:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP5 interrupt\n");
-            break;
-        }
+    case MCP23008_GPIO_PIN_5:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP5 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_6:
-        {
+    case MCP23008_GPIO_PIN_6:
+    {
 
-//            mcp23008_interface_debug_print("mcp23008: GP6 interrupt\n");
-            break;
-        }
+        //            mcp23008_interface_debug_print("mcp23008: GP6 interrupt\n");
+        break;
+    }
 
-        case MCP23008_GPIO_PIN_7:
-        {
-//            mcp23008_interface_debug_print("mcp23008: GP7 interrupt\n");
-            break;
-        }
+    case MCP23008_GPIO_PIN_7:
+    {
+        //            mcp23008_interface_debug_print("mcp23008: GP7 interrupt\n");
+        break;
+    }
 
-        default:
-            mcp23008_interface_debug_print("mcp23008:false interrupt t\n");
-            break;
+    default:
+        mcp23008_interface_debug_print("mcp23008:false interrupt t\n");
+        break;
     }
 
     /*user code end*/
-
 }
 
 /*end*/

@@ -5,6 +5,8 @@ Library for barometric pressure sensor MS5611-01BA on I2C with arduino
 by Petr Gronat@2014
 */
 
+#include <cstdint>
+
 // Include guard token - prevents to include header file twice
 #ifndef MS5611_h
 #define MS5611_h // create token

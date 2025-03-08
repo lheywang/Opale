@@ -1,7 +1,7 @@
 /** ================================================================
- * @file    application/src/devices/servo.c
+ * @file    application/src/devices/servo.cpp
  *
- * @brief   Servo.c implement some low level interactions with the
+ * @brief   Servo.cpp implement some low level interactions with the
  *          servo engines.
  *
  * @date    19-02-2025

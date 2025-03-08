@@ -28,6 +28,8 @@ TODO:
 */
 
 #include "MS5611.h"
+#include <cstdint>
+
 MS5611::MS5611()
 {
     _T = 0;
@@ -63,9 +65,9 @@ int32_t MS5611::getPressure()
 uint32_t MS5611::getRawPressure()
 {
     sendCommand(CMD_CONV_D1_BASE + OSR * CONV_REG_SIZE); // read sensor, prepare a data
-    delay(1 + 2 * OSR);                                  // wait at least 8.33us for full oversampling
-    sendCommand(CMD_ADC_READ);                           // get ready for reading the data
-    return readnBytes(NBYTES_CONV);                      // reading the data
+    // TODO delay(1 + 2 * OSR);                                  // wait at least 8.33us for full oversampling
+    sendCommand(CMD_ADC_READ);      // get ready for reading the data
+    return readnBytes(NBYTES_CONV); // reading the data
 }
 
 int32_t MS5611::getTemperature()
@@ -89,9 +91,9 @@ int32_t MS5611::getTemperature()
 uint32_t MS5611::getRawTemperature()
 {
     sendCommand(CMD_CONV_D2_BASE + OSR * CONV_REG_SIZE); // read sensor, prepare a data
-    delay(1 + 2 * OSR);                                  // wait at least 8.33us
-    sendCommand(CMD_ADC_READ);                           // get ready for reading the data
-    return readnBytes(NBYTES_CONV);                      // reading the data
+    // TODO delay(1 + 2 * OSR);                                  // wait at least 8.33us
+    sendCommand(CMD_ADC_READ);      // get ready for reading the data
+    return readnBytes(NBYTES_CONV); // reading the data
 }
 
 void MS5611::readCalibration()
@@ -136,7 +138,7 @@ uint32_t MS5611::readnBytes(uint8_t nBytes)
         // Wire.endTransmission();
         return data;
     } // too many bytes or
-    return NULL; // no byte required
+    return 0; // no byte required
 }
 
 void MS5611::reset()

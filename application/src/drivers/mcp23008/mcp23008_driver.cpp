@@ -30,16 +30,16 @@
 /**
  * @brief chip information definition
  */
-#define CHIP_NAME                "MCP23008"             /**< chip name for i2c versioin */
-#define INTERFACE                "I2C"                  /**< interface protocol */
-#define MANUFACTURER_NAME         "Microchip Technology" /**< manufacturer name */
-#define SUPPLY_VOLTAGE_MIN        0.3f                   /**< chip min supply voltage */
-#define SUPPLY_VOLTAGE_MAX        5.5f                   /**< chip max supply voltage */
-#define MAX_CURRENT               150.0f                 /**< chip max current (mA)*/
-#define MIN_CURRENT               120.0f                 /**< chip min current (mA)*/
-#define TEMPERATURE_MIN           -40.0f                 /**< chip min operating temperature (�C) */
-#define TEMPERATURE_MAX           125.0f                 /**< chip max operating temperature (�C) */
-#define DRIVER_VERSION            1000                   /**< driver version */
+#define CHIP_NAME "MCP23008"                     /**< chip name for i2c versioin */
+#define INTERFACE "I2C"                          /**< interface protocol */
+#define MANUFACTURER_NAME "Microchip Technology" /**< manufacturer name */
+#define SUPPLY_VOLTAGE_MIN 0.3f                  /**< chip min supply voltage */
+#define SUPPLY_VOLTAGE_MAX 5.5f                  /**< chip max supply voltage */
+#define MAX_CURRENT 150.0f                       /**< chip max current (mA)*/
+#define MIN_CURRENT 120.0f                       /**< chip min current (mA)*/
+#define TEMPERATURE_MIN -40.0f                   /**< chip min operating temperature (�C) */
+#define TEMPERATURE_MAX 125.0f                   /**< chip max operating temperature (�C) */
+#define DRIVER_VERSION 1000                      /**< driver version */
 
 /**
  * @brief i2c or spi write one byte
@@ -52,17 +52,20 @@
  * @note none
  */
 
-uint8_t a_mcp23008_i2c_write(mcp23008_handle_t *const pHandle, uint8_t u8Reg, uint8_t *pBuf, uint8_t u8Length) {
+uint8_t a_mcp23008_i2c_write(mcp23008_handle_t *const pHandle, uint8_t u8Reg, uint8_t *pBuf, uint8_t u8Length)
+{
 
     uint8_t temp_buffer[u8Length + 1];
-	temp_buffer[0] = u8Reg;
-	for(int index = 1; index < u8Length + 1; index++){
-		temp_buffer[index] = pBuf[index - 1];
-	}
+    temp_buffer[0] = u8Reg;
+    for (int index = 1; index < u8Length + 1; index++)
+    {
+        temp_buffer[index] = pBuf[index - 1];
+    }
 
-    if (pHandle->i2c_write(pHandle->i2c_address, (uint8_t *)temp_buffer, (u8Length + 1)) != 0) /**< write data */ {
-            return 1; /**< write fail */
-        }
+    if (pHandle->i2c_write(pHandle->i2c_address, (uint8_t *)temp_buffer, (u8Length + 1)) != 0) /**< write data */
+    {
+        return 1; /**< write fail */
+    }
     return 0; /**< success */
 }
 
@@ -76,25 +79,28 @@ uint8_t a_mcp23008_i2c_write(mcp23008_handle_t *const pHandle, uint8_t u8Reg, ui
  *          - 1 failed to read
  * @note none
  */
-uint8_t a_mcp23008_i2c_read(mcp23008_handle_t *const pHandle, uint8_t u8Reg, uint8_t *pBuf, uint8_t u8Length) {
+uint8_t a_mcp23008_i2c_read(mcp23008_handle_t *const pHandle, uint8_t u8Reg, uint8_t *pBuf, uint8_t u8Length)
+{
 
-    if (pHandle->i2c_write(pHandle->i2c_address, (uint8_t *)&u8Reg, 1) != 0) /**< write reg */ {
-            return 1; /**< write fail */
-        }
+    if (pHandle->i2c_write(pHandle->i2c_address, (uint8_t *)&u8Reg, 1) != 0) /**< write reg */
+    {
+        return 1; /**< write fail */
+    }
 
-    if (pHandle->i2c_read(pHandle->i2c_address, pBuf, u8Length) != 0) /**< read data */ {
-            return 1; /**< read fail */
-        }
+    if (pHandle->i2c_read(pHandle->i2c_address, pBuf, u8Length) != 0) /**< read data */
+    {
+        return 1; /**< read fail */
+    }
     return 0;
 }
 
 /**
-* @brief This function prints the error message
-* @param[in] *pHandle points to mcp23008 handle structure
-* @param[in] *pBuffer point to the string to be printed
-* @return none
-* @note   none
-*/
+ * @brief This function prints the error message
+ * @param[in] *pHandle points to mcp23008 handle structure
+ * @param[in] *pBuffer point to the string to be printed
+ * @return none
+ * @note   none
+ */
 void a_mcp23008_print_error_msg(mcp23008_handle_t *const pHandle, char *const pBuffer)
 {
 #ifdef MCP23008_DEBUG_MODE
@@ -112,40 +118,48 @@ void a_mcp23008_print_error_msg(mcp23008_handle_t *const pHandle, char *const pB
  *            - 3 linked functions is NULL
  * @note      none
  */
-uint8_t mcp23008_init(mcp23008_handle_t *const pHandle) {
+uint8_t mcp23008_init(mcp23008_handle_t *const pHandle)
+{
 
     if (pHandle == NULL)
         return 2;
     if (pHandle->debug_print == NULL)
         return 3;
 
-    if (pHandle->receive_callback == NULL) {
+    if (pHandle->receive_callback == NULL)
+    {
         pHandle->debug_print("mcp23008: receive_callback\n");
         return 3;
     }
-    if (pHandle->delay_ms == NULL) {
+    if (pHandle->delay_ms == NULL)
+    {
         pHandle->debug_print("mcp23008: delay_ms\n");
     }
 
-    if (pHandle->i2c_init == NULL) {
+    if (pHandle->i2c_init == NULL)
+    {
         pHandle->debug_print("mcp23008: i2c initialize is null\n");
         return 3;
     }
 
-    if (pHandle->i2c_deinit == NULL) {
+    if (pHandle->i2c_deinit == NULL)
+    {
         pHandle->debug_print("mcp23008: i2c_deint is null\n");
         return 3;
     }
 
-    if (pHandle->i2c_read == NULL) {
+    if (pHandle->i2c_read == NULL)
+    {
         pHandle->debug_print("mcp23008: i2c_read is null\n");
         return 3;
     }
-    if (pHandle->i2c_write == NULL) {
+    if (pHandle->i2c_write == NULL)
+    {
         pHandle->debug_print("mcp23008: i2c_write is null\n");
         return 3;
     }
-    if (pHandle->i2c_init()) {
+    if (pHandle->i2c_init())
+    {
         pHandle->debug_print("mcp23008: i2c initialize failed\n");
         return 1;
     }
@@ -165,19 +179,21 @@ uint8_t mcp23008_init(mcp23008_handle_t *const pHandle) {
  *            - 3 handle is not initialized
  * @note      none
  */
-uint8_t mcp23008_deinit(mcp23008_handle_t *const pHandle) {
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+uint8_t mcp23008_deinit(mcp23008_handle_t *const pHandle)
+{
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    if (pHandle->i2c_deinit() != 0) /**< de-initialize i2c */ {
-            a_mcp23008_print_error_msg(pHandle,"i2c deinit failed");
-            return 1;
-        }
+    if (pHandle->i2c_deinit() != 0) /**< de-initialize i2c */
+    {
+        a_mcp23008_print_error_msg(pHandle, "i2c deinit failed");
+        return 1;
+    }
 
     pHandle->inited = 0; /**< close driver */
-    return 0; /**< success return 0 */
+    return 0;            /**< success return 0 */
 }
 
 /**
@@ -190,30 +206,33 @@ uint8_t mcp23008_deinit(mcp23008_handle_t *const pHandle) {
  *            - 3 handle is not initialized
  * @note      none
  */
-uint8_t mcp23008_irq_handler(mcp23008_handle_t *const pHandle) {
+uint8_t mcp23008_irq_handler(mcp23008_handle_t *const pHandle)
+{
 
     uint8_t err;
     uint8_t status;
     uint8_t index;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_FLAG_REG, (uint8_t*) &status,1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_FLAG_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "failed to execute irq routine");
         return 1;
     }
-    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) {
-        if (status & (0x01 << index)) {
+    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++)
+    {
+        if (status & (0x01 << index))
+        {
             pHandle->receive_callback(index);
         }
     }
 
     return 0;
-
 }
 
 /**
@@ -227,10 +246,10 @@ uint8_t mcp23008_irq_handler(mcp23008_handle_t *const pHandle) {
  */
 uint8_t mcp23008_set_addr_pin(mcp23008_handle_t *const pHandle, mcp23008_address_pin_t address_pin)
 {
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
     pHandle->i2c_address = (MCP23008_ADDRESS_DEFAULT | address_pin);
 
@@ -246,15 +265,15 @@ uint8_t mcp23008_set_addr_pin(mcp23008_handle_t *const pHandle, mcp23008_address
  *            - 2 handle is NULL
  * @note      none
  */
-uint8_t mcp23008_get_addr_pin(mcp23008_handle_t *const pHandle, mcp23008_address_pin_t *addr_pin) {
+uint8_t mcp23008_get_addr_pin(mcp23008_handle_t *const pHandle, mcp23008_address_pin_t *addr_pin)
+{
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-
-    *addr_pin = (mcp23008_address_pin_t) ((pHandle->i2c_address |MCP23008_ADDRESS_DEFAULT));
+    *addr_pin = (mcp23008_address_pin_t)((pHandle->i2c_address | MCP23008_ADDRESS_DEFAULT));
 
     return 0;
 }
@@ -269,26 +288,29 @@ uint8_t mcp23008_get_addr_pin(mcp23008_handle_t *const pHandle, mcp23008_address
  *          - 1 failed to set pin mode
  * @note   none
  */
-uint8_t mcp23008_set_pin_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_mode_t mode) {
+uint8_t mcp23008_set_pin_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_mode_t mode)
+{
 
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_DIRECTION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_DIRECTION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set pin mode");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (mode << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_DIRECTION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-       a_mcp23008_print_error_msg(pHandle, "set pin mode");
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_DIRECTION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "set pin mode");
         return 1;
     }
     return 0;
@@ -304,21 +326,23 @@ uint8_t mcp23008_set_pin_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_po
  *          - 1 failed to get pin mode
  * @note   none
  */
-uint8_t mcp23008_get_pin_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_mode_t *mode) {
+uint8_t mcp23008_get_pin_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_mode_t *mode)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_DIRECTION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read pin mode register");
+        return 3;             /**< return error */
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_DIRECTION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read pin mode register");
         return 1;
     }
 
-    *mode = (mcp23008_port_mode_t) ((status & pinMask[pin]) >> pin);
+    *mode = (mcp23008_port_mode_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -336,21 +360,22 @@ uint8_t mcp23008_set_port_mode(mcp23008_handle_t *const pHandle, mcp23008_port_m
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    if(mode == MCP23008_INPUT)
+    if (mode == MCP23008_INPUT)
         status = 0xff;
-    else if(mode == MCP23008_OUTPUT)
+    else if (mode == MCP23008_OUTPUT)
         status = 0x00;
 
-     err = a_mcp23008_i2c_write(pHandle, MCP23008_DIRECTION_REG, (uint8_t *) &status, 1);
-        if (err != 0) {
-           a_mcp23008_print_error_msg(pHandle, "set port mode");
-            return 1;
-        }
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_DIRECTION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "set port mode");
+        return 1;
+    }
 
     return 0;
 }
@@ -365,30 +390,32 @@ uint8_t mcp23008_set_port_mode(mcp23008_handle_t *const pHandle, mcp23008_port_m
  *          - 1 failed to write pin
  * @note    none
  */
-uint8_t mcp23008_pin_write(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_logic_level_t logic_level) {
+uint8_t mcp23008_pin_write(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_logic_level_t logic_level)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_OUTPUT_LATCH_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read latch register");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_OUTPUT_LATCH_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read latch register");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (logic_level << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_OUTPUT_LATCH_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_OUTPUT_LATCH_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "write pin");
         return 1;
     }
     return 0;
 }
-
 
 /**
  * @brief Write logic value to all gpio pins
@@ -404,25 +431,28 @@ uint8_t mcp23008_pin_write_all(mcp23008_handle_t *const pHandle, mcp23008_port_l
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    if(logic_level == HIGH)
+    if (logic_level == HIGH)
     {
         status = 0xff;
-    }else if(logic_level == LOW){
+    }
+    else if (logic_level == LOW)
+    {
         status = 0x00;
     }
 
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_OUTPUT_LATCH_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_OUTPUT_LATCH_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "write all pins");
         return 1;
     }
 
-   return 0;
+    return 0;
 }
 
 /**
@@ -435,21 +465,23 @@ uint8_t mcp23008_pin_write_all(mcp23008_handle_t *const pHandle, mcp23008_port_l
  *          - 1 failed read pin
  * @note    none
  */
-uint8_t mcp23008_pin_read(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_logic_level_t *logic_level) {
+uint8_t mcp23008_pin_read(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_logic_level_t *logic_level)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_GENERAL_PURPOSE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_GENERAL_PURPOSE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read latch register");
         return 1;
     }
-    *logic_level = (mcp23008_port_logic_level_t) ((status & pinMask[pin]) >> pin);
+    *logic_level = (mcp23008_port_logic_level_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -463,25 +495,28 @@ uint8_t mcp23008_pin_read(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t
  *          - 1 failed failed to set pull-up mode
  * @note    none
  */
-uint8_t mcp23008_set_pin_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t enable) {
+uint8_t mcp23008_set_pin_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t enable)
+{
 
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
     err = a_mcp23008_i2c_read(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *)&status, 1);
-    if (err != 0) {
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read pull-up register");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (enable << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set pin pull-up");
         return 1;
     }
@@ -502,25 +537,24 @@ uint8_t mcp23008_set_port_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    if(enable == MCP23008_BOOL_TRUE)
-        status  = 0xff;
-    else if(enable == MCP23008_BOOL_FALSE)
+    if (enable == MCP23008_BOOL_TRUE)
+        status = 0xff;
+    else if (enable == MCP23008_BOOL_FALSE)
         status = 0x00;
 
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set port pull-up");
         return 1;
     }
     return 0;
-
 }
-
 
 /**
  * @brief get pin pull-up mode
@@ -532,22 +566,24 @@ uint8_t mcp23008_set_port_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008
  *          - 1 failed get pull-up mode
  * @note    none
  */
-uint8_t mcp23008_get_pin_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t *enable) {
+uint8_t mcp23008_get_pin_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t *enable)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_GPIO_PULLUP_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read pull-up register");
         return 1;
     }
     //    status &= pinMask[pin];
-    *enable = (mcp23008_bool_t) ((status & pinMask[pin]) >> pin);
+    *enable = (mcp23008_bool_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -561,25 +597,28 @@ uint8_t mcp23008_get_pin_pullup_mode(mcp23008_handle_t *const pHandle, mcp23008_
  *          - 1 failed to set polarity
  * @note    none
  */
-uint8_t mcp23008_set_pin_input_polarity_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_polarity_t polarity) {
+uint8_t mcp23008_set_pin_input_polarity_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_polarity_t polarity)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INPUT_POLARITY_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INPUT_POLARITY_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read input polarity");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (polarity << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_INPUT_POLARITY_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-       a_mcp23008_print_error_msg(pHandle, "set pin input polarity");
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_INPUT_POLARITY_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "set pin input polarity");
         return 1;
     }
     return 0;
@@ -595,22 +634,24 @@ uint8_t mcp23008_set_pin_input_polarity_mode(mcp23008_handle_t *const pHandle, m
  *          - 1 failed to get polarity
  * @note    none
  */
-uint8_t mcp23008_get_pin_input_polarity_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_polarity_t *polarity) {
+uint8_t mcp23008_get_pin_input_polarity_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_port_polarity_t *polarity)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INPUT_POLARITY_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INPUT_POLARITY_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read pin polarity");
         return 1;
     }
     //    status &= pinMask[pin];
-    *polarity = (mcp23008_port_polarity_t) ((status & pinMask[pin]) >> pin);
+    *polarity = (mcp23008_port_polarity_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -624,24 +665,27 @@ uint8_t mcp23008_get_pin_input_polarity_mode(mcp23008_handle_t *const pHandle, m
  *          - 1 failed failed to set interrupt
  * @note    none
  */
-uint8_t mcp23008_set_pin_interrupt(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t enable) {
+uint8_t mcp23008_set_pin_interrupt(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t enable)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read interrupt");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (enable << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_INTERRUPT_ON_CHANGE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_INTERRUPT_ON_CHANGE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set pin interrupt");
         return 1;
     }
@@ -658,22 +702,24 @@ uint8_t mcp23008_set_pin_interrupt(mcp23008_handle_t *const pHandle, mcp23008_gp
  *          - 1 failed to get interrupt status
  * @note    none
  */
-uint8_t mcp23008_get_pin_interrupt(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t *enable) {
+uint8_t mcp23008_get_pin_interrupt(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_bool_t *enable)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-       a_mcp23008_print_error_msg(pHandle,"read pin interrupt status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read pin interrupt status");
         return 1;
     }
     //    status &= pinMask[pin];
-    *enable = (mcp23008_bool_t) ((status & pinMask[pin]) >> pin);
+    *enable = (mcp23008_bool_t)((status & pinMask[pin]) >> pin);
     return 0; /**< success */
 }
 
@@ -687,22 +733,24 @@ uint8_t mcp23008_get_pin_interrupt(mcp23008_handle_t *const pHandle, mcp23008_gp
  *          - 1 failed to get interrupt flag status
  * @note    none
  */
-uint8_t mcp23008_get_interrupt_flag(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_flag_t *flag) {
+uint8_t mcp23008_get_interrupt_flag(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_flag_t *flag)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_FLAG_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_FLAG_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read pin interrupt status");
         return 1;
     }
 
-    *flag = (mcp23008_interrupt_flag_t) ((status & pinMask[pin]) >> pin);
+    *flag = (mcp23008_interrupt_flag_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -716,18 +764,20 @@ uint8_t mcp23008_get_interrupt_flag(mcp23008_handle_t *const pHandle, mcp23008_g
  *          - 1 failed to get interrupt flag status
  * @note    none
  */
-uint8_t mcp23008_clear_interrupt_flag(mcp23008_handle_t *const pHandle/*, mcp23008_gpio_port_t pin, mcp23008_interrupt_flag_t flag*/) {
+uint8_t mcp23008_clear_interrupt_flag(mcp23008_handle_t *const pHandle /*, mcp23008_gpio_port_t pin, mcp23008_interrupt_flag_t flag*/)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_FLAG_REG, (uint8_t *) &status, 1);
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_FLAG_REG, (uint8_t *)&status, 1);
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read interrupt flag");
         return 1;
     }
@@ -751,25 +801,28 @@ uint8_t mcp23008_clear_interrupt_flag(mcp23008_handle_t *const pHandle/*, mcp230
  *          - 1 failed to set interrupt logic output logic level
  * @note    none
  */
-uint8_t mcp23008_set_intrrupt_pin_output_level(mcp23008_handle_t *const pHandle, mcp23008_interrupt_polarity_t logic_level) {
+uint8_t mcp23008_set_intrrupt_pin_output_level(mcp23008_handle_t *const pHandle, mcp23008_interrupt_polarity_t logic_level)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read expander reg");
         return 1;
     }
     status &= ~(1 << 1);
     status |= (logic_level << 1);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"interrupt pin output level");
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "interrupt pin output level");
         return 1;
     }
     return 0;
@@ -784,21 +837,23 @@ uint8_t mcp23008_set_intrrupt_pin_output_level(mcp23008_handle_t *const pHandle,
  *          - 1 failed to get interrupt logic output logic level
  * @note    none
  */
-uint8_t mcp23008_get_interrupt_pin_output_level(mcp23008_handle_t *const pHandle, mcp23008_interrupt_polarity_t *polarity) {
+uint8_t mcp23008_get_interrupt_pin_output_level(mcp23008_handle_t *const pHandle, mcp23008_interrupt_polarity_t *polarity)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read pin interrupt status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read pin interrupt status");
         return 1;
     }
-    *polarity = (mcp23008_interrupt_polarity_t) ((status & MCP23008_INTPOL_MASK) >> 1);
+    *polarity = (mcp23008_interrupt_polarity_t)((status & MCP23008_INTPOL_MASK) >> 1);
     return 0;
 }
 
@@ -812,32 +867,32 @@ uint8_t mcp23008_get_interrupt_pin_output_level(mcp23008_handle_t *const pHandle
  *          - 1 failed set pin polarity level
  * @note    none
  */
-//uint8_t mcp23008_set_pin_interrupt_caputure_level(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_captured_state_t logic_level)
+// uint8_t mcp23008_set_pin_interrupt_caputure_level(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_captured_state_t logic_level)
 //{
-//    uint8_t err;
-//    uint8_t status;
+//     uint8_t err;
+//     uint8_t status;
 //
-//    if (pHandle == NULL)     /**< check handle */
-//        return 2;           /**< return error */
-//    if(pHandle->inited != 1) /**< check initialize status */
-//        return 3;           /**< return error */
+//     if (pHandle == NULL)     /**< check handle */
+//         return 2;           /**< return error */
+//     if(pHandle->inited != 1) /**< check initialize status */
+//         return 3;           /**< return error */
 //
-//    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *)&status);
-//    if(err != 0)
-//    {
-//        pHandle->debug_print("mcp23008: failed to read interrupt capture register\n\r");
-//        return 1;
-//    }
-//    status &= ~(1 << pin);
-//    status |= (logic_level << pin);
-//    err = a_mcp23008_i2c_write(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *) &status, 1);
-//    if(err != 0)
-//    {
-//        pHandle->debug_print("mcp23008: failed set interrupt capture\n\r\n\r");
-//        return 1;
-//    }
-//    return 0;
-//}
+//     err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *)&status);
+//     if(err != 0)
+//     {
+//         pHandle->debug_print("mcp23008: failed to read interrupt capture register\n\r");
+//         return 1;
+//     }
+//     status &= ~(1 << pin);
+//     status |= (logic_level << pin);
+//     err = a_mcp23008_i2c_write(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *) &status, 1);
+//     if(err != 0)
+//     {
+//         pHandle->debug_print("mcp23008: failed set interrupt capture\n\r\n\r");
+//         return 1;
+//     }
+//     return 0;
+// }
 
 /**
  * @brief get gpio pin polarity level when interrupt occure
@@ -849,22 +904,24 @@ uint8_t mcp23008_get_interrupt_pin_output_level(mcp23008_handle_t *const pHandle
  *          - 1 failed get pin polarity level
  * @note    none
  */
-uint8_t mcp23008_get_pin_interrupt_caputure_level(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_captured_state_t *logic_level) {
+uint8_t mcp23008_get_pin_interrupt_caputure_level(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_captured_state_t *logic_level)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read interrupt capture status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_CAPTURED_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read interrupt capture status");
         return 1;
     }
     //    status &= pinMask[pin];
-    *logic_level = (mcp23008_interrupt_captured_state_t) ((status & pinMask[pin]) >> pin);
+    *logic_level = (mcp23008_interrupt_captured_state_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -877,24 +934,27 @@ uint8_t mcp23008_get_pin_interrupt_caputure_level(mcp23008_handle_t *const pHand
  *          - 1 failed set interrupt putput mode
  * @note    none
  */
-uint8_t mcp23008_set_interrupt_pin_output_mode(mcp23008_handle_t *const pHandle, mcp23008_interrupt_open_drain_mode_t mode) {
+uint8_t mcp23008_set_interrupt_pin_output_mode(mcp23008_handle_t *const pHandle, mcp23008_interrupt_open_drain_mode_t mode)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read expander reg");
         return 1;
     }
     status &= ~(1 << 2);
     status |= (mode << 2);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set interrupt pin output mode");
         return 1;
     }
@@ -910,21 +970,23 @@ uint8_t mcp23008_set_interrupt_pin_output_mode(mcp23008_handle_t *const pHandle,
  *          - 1 failed get interrupt putput mode
  * @note    none
  */
-uint8_t mcp23008_get_interrupt_pin_output_mode(mcp23008_handle_t *const pHandle, mcp23008_interrupt_open_drain_mode_t *mode) {
+uint8_t mcp23008_get_interrupt_pin_output_mode(mcp23008_handle_t *const pHandle, mcp23008_interrupt_open_drain_mode_t *mode)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read pin interrupt status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read pin interrupt status");
         return 1;
     }
-    *mode = (mcp23008_interrupt_open_drain_mode_t) ((status & MCP23008_ODR_MASK) >> 2);
+    *mode = (mcp23008_interrupt_open_drain_mode_t)((status & MCP23008_ODR_MASK) >> 2);
     return 0;
 }
 
@@ -938,25 +1000,28 @@ uint8_t mcp23008_get_interrupt_pin_output_mode(mcp23008_handle_t *const pHandle,
  *          - 1 failed set interrupt compare mode
  * @note    none
  */
-uint8_t mcp23008_set_ineterrupt_compare_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_compare_value_t mode) {
+uint8_t mcp23008_set_ineterrupt_compare_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_compare_value_t mode)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_CONTROL_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_CONTROL_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read interrupt on change control reg");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (mode << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_INTERRUPT_ON_CHANGE_CONTROL_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"set interrupt compare mode");
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_INTERRUPT_ON_CHANGE_CONTROL_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "set interrupt compare mode");
         return 1;
     }
     return 0;
@@ -972,22 +1037,24 @@ uint8_t mcp23008_set_ineterrupt_compare_mode(mcp23008_handle_t *const pHandle, m
  *          - 1 failed get interrupt compare mode
  * @note    none
  */
-uint8_t mcp23008_get_ineterrupt_compare_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_compare_value_t *mode) {
+uint8_t mcp23008_get_ineterrupt_compare_mode(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_compare_value_t *mode)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_CONTROL_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read interrupt capture status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_INTERRUPT_ON_CHANGE_CONTROL_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read interrupt capture status");
         return 1;
     }
     status &= pinMask[pin];
-    *mode = (mcp23008_interrupt_compare_value_t) ((status & pinMask[pin]) >> pin);
+    *mode = (mcp23008_interrupt_compare_value_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -1001,29 +1068,31 @@ uint8_t mcp23008_get_ineterrupt_compare_mode(mcp23008_handle_t *const pHandle, m
  *          - 1 failed to set interrupt default value
  * @note    none
  */
-uint8_t mcp23008_set_default_compare_value(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_default_value_t value) {
+uint8_t mcp23008_set_default_compare_value(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_default_value_t value)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_DEFAULT_VALUE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_DEFAULT_VALUE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read default compare value reg");
         return 1;
     }
     status &= ~(1 << pin);
     status |= (value << pin);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_DEFAULT_VALUE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_DEFAULT_VALUE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set pin default compare value");
         return 1;
     }
     return 0;
-
 }
 
 /**
@@ -1036,22 +1105,24 @@ uint8_t mcp23008_set_default_compare_value(mcp23008_handle_t *const pHandle, mcp
  *          - 1 failed to get interrupt default value
  * @note    none
  */
-uint8_t mcp23008_get_default_compare_value(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_default_value_t *value) {
+uint8_t mcp23008_get_default_compare_value(mcp23008_handle_t *const pHandle, mcp23008_gpio_port_t pin, mcp23008_interrupt_default_value_t *value)
+{
     uint8_t err;
     uint8_t status;
 
     if (pHandle == NULL)      /**< check handle */
-        return 2;            /**< return error */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3;            /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_DEFAULT_VALUE_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_DEFAULT_VALUE_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read pin default compare value status");
         return 1;
     }
     status &= pinMask[pin];
-    *value = (mcp23008_interrupt_default_value_t) ((status & pinMask[pin]) >> pin);
+    *value = (mcp23008_interrupt_default_value_t)((status & pinMask[pin]) >> pin);
     return 0;
 }
 
@@ -1064,26 +1135,32 @@ uint8_t mcp23008_get_default_compare_value(mcp23008_handle_t *const pHandle, mcp
  *          - 1 failed set slew rate
  * @note    none
  */
-uint8_t mcp23008_set_slew_rate(mcp23008_handle_t *const pHandle, mcp23008_bool_t enable) {
+uint8_t mcp23008_set_slew_rate(mcp23008_handle_t *const pHandle, mcp23008_bool_t enable)
+{
     uint8_t err;
     uint8_t status;
 
-    enable = !enable;
+    if (enable == MCP23008_BOOL_FALSE)
+        enable = MCP23008_BOOL_TRUE;
+    if (enable == MCP23008_BOOL_TRUE)
+        enable = MCP23008_BOOL_FALSE;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read expander reg");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read expander reg");
         return 1;
     }
     status &= ~(1 << 4);
     status |= (enable << 4);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set slew rate");
         return 1;
     }
@@ -1099,23 +1176,27 @@ uint8_t mcp23008_set_slew_rate(mcp23008_handle_t *const pHandle, mcp23008_bool_t
  *          - 1 failed get slew rate
  * @note    none
  */
-uint8_t mcp23008_get_slew_rate(mcp23008_handle_t *const pHandle, mcp23008_bool_t *enable) {
+uint8_t mcp23008_get_slew_rate(mcp23008_handle_t *const pHandle, mcp23008_bool_t *enable)
+{
     uint8_t err;
     uint8_t status;
 
-
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-       a_mcp23008_print_error_msg(pHandle, "read slew rate status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read slew rate status");
         return 1;
     }
-    *enable = (mcp23008_bool_t) ((status & MCP23008_DISSLW_MASK) >> 4);
-    *enable = ! *enable;
+    *enable = (mcp23008_bool_t)((status & MCP23008_DISSLW_MASK) >> 4);
+    if (*enable == MCP23008_BOOL_FALSE)
+        *enable = MCP23008_BOOL_TRUE;
+    if (*enable == MCP23008_BOOL_TRUE)
+        *enable = MCP23008_BOOL_FALSE;
     return 0;
 }
 
@@ -1128,26 +1209,32 @@ uint8_t mcp23008_get_slew_rate(mcp23008_handle_t *const pHandle, mcp23008_bool_t
  *          - 1 failed to set sequential operation mode
  * @note    none
  */
-uint8_t mcp23008_set_sequencial_mode(mcp23008_handle_t *const pHandle, mcp23008_bool_t enable) {
+uint8_t mcp23008_set_sequencial_mode(mcp23008_handle_t *const pHandle, mcp23008_bool_t enable)
+{
     uint8_t err;
     uint8_t status;
 
-    enable = !enable;
+    if (enable == MCP23008_BOOL_FALSE)
+        enable = MCP23008_BOOL_TRUE;
+    if (enable == MCP23008_BOOL_TRUE)
+        enable = MCP23008_BOOL_FALSE;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "read expander reg");
         return 1;
     }
     status &= ~(1 << 5);
     status |= (enable << 5);
-    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
+    err = a_mcp23008_i2c_write(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
         a_mcp23008_print_error_msg(pHandle, "set sequential operation mode");
         return 1;
     }
@@ -1163,22 +1250,27 @@ uint8_t mcp23008_set_sequencial_mode(mcp23008_handle_t *const pHandle, mcp23008_
  *          - 1 failed get sequential operation mode
  * @note    none
  */
-uint8_t mcp23008_get_sequencial_mode(mcp23008_handle_t *const pHandle, mcp23008_bool_t *enable) {
+uint8_t mcp23008_get_sequencial_mode(mcp23008_handle_t *const pHandle, mcp23008_bool_t *enable)
+{
     uint8_t err;
     uint8_t status;
 
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *) &status, 1);
-    if (err != 0) {
-        a_mcp23008_print_error_msg(pHandle,"read sequencial operation mode status");
+    err = a_mcp23008_i2c_read(pHandle, MCP23008_EXPANDER_CONFIGURATION_REG, (uint8_t *)&status, 1);
+    if (err != 0)
+    {
+        a_mcp23008_print_error_msg(pHandle, "read sequencial operation mode status");
         return 1;
     }
-    *enable = (mcp23008_bool_t) ((status & MCP23008_SEQOP_MASK) >> 5);
-    *enable = ! *enable;
+    *enable = (mcp23008_bool_t)((status & MCP23008_SEQOP_MASK) >> 5);
+    if (*enable == MCP23008_BOOL_FALSE)
+        *enable = MCP23008_BOOL_TRUE;
+    if (*enable == MCP23008_BOOL_TRUE)
+        *enable = MCP23008_BOOL_FALSE;
     return 0;
 }
 
@@ -1196,17 +1288,18 @@ uint8_t mcp23008_get_sequencial_mode(mcp23008_handle_t *const pHandle, mcp23008_
  * @note      none
  */
 
-uint8_t mcp23008_set_reg(mcp23008_handle_t *const pHandle, uint8_t reg, uint8_t *buf, uint16_t length) {
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+uint8_t mcp23008_set_reg(mcp23008_handle_t *const pHandle, uint8_t reg, uint8_t *buf, uint16_t length)
+{
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    if (a_mcp23008_i2c_write(pHandle, reg, buf, length) != 0) {
+    if (a_mcp23008_i2c_write(pHandle, reg, buf, length) != 0)
+    {
         return 1;
     }
     return 0;
-
 }
 
 /**
@@ -1222,13 +1315,15 @@ uint8_t mcp23008_set_reg(mcp23008_handle_t *const pHandle, uint8_t reg, uint8_t 
  *             - 3 handle is not initialized
  * @note       none
  */
-uint8_t mcp23008_get_reg(mcp23008_handle_t *const pHandle, uint8_t reg, uint8_t *buf, uint16_t length) {
-    if (pHandle == NULL) /**< check handle */
-        return 2; /**< return error */
+uint8_t mcp23008_get_reg(mcp23008_handle_t *const pHandle, uint8_t reg, uint8_t *buf, uint16_t length)
+{
+    if (pHandle == NULL)      /**< check handle */
+        return 2;             /**< return error */
     if (pHandle->inited != 1) /**< check initialize status */
-        return 3; /**< return error */
+        return 3;             /**< return error */
 
-    if (a_mcp23008_i2c_read(pHandle, reg, buf, length) != 0) {
+    if (a_mcp23008_i2c_read(pHandle, reg, buf, length) != 0)
+    {
         return 1;
     }
     return 0;
@@ -1242,17 +1337,18 @@ uint8_t mcp23008_get_reg(mcp23008_handle_t *const pHandle, uint8_t reg, uint8_t 
  *             - 2 handle is NULL
  * @note       none
  */
-uint8_t mcp23008_info(mcp23008_handle_t *const pHandle) {
+uint8_t mcp23008_info(mcp23008_handle_t *const pHandle)
+{
 
-    strncpy(pHandle->info.chip_name, CHIP_NAME, 10); /**< copy chip name */
-    strncpy(pHandle->info.interface, INTERFACE, 5); /**< copy interface name */
+    strncpy(pHandle->info.chip_name, CHIP_NAME, 10);                 /**< copy chip name */
+    strncpy(pHandle->info.interface, INTERFACE, 5);                  /**< copy interface name */
     strncpy(pHandle->info.manufacturer_name, MANUFACTURER_NAME, 25); /**< copy manufacturer name */
-    pHandle->info.supply_voltage_max_v = SUPPLY_VOLTAGE_MAX; /**< set minimal supply voltage */
-    pHandle->info.supply_voltage_min_v = SUPPLY_VOLTAGE_MIN; /**< set maximum supply voltage */
-    pHandle->info.max_current_ma = MAX_CURRENT; /**< set maximum current */
-    pHandle->info.temperature_max = TEMPERATURE_MAX; /**< set minimal temperature */
-    pHandle->info.temperature_min = TEMPERATURE_MIN; /**< set maximum temperature */
-    pHandle->info.driver_version = DRIVER_VERSION; /**< set driver version */
+    pHandle->info.supply_voltage_max_v = SUPPLY_VOLTAGE_MAX;         /**< set minimal supply voltage */
+    pHandle->info.supply_voltage_min_v = SUPPLY_VOLTAGE_MIN;         /**< set maximum supply voltage */
+    pHandle->info.max_current_ma = MAX_CURRENT;                      /**< set maximum current */
+    pHandle->info.temperature_max = TEMPERATURE_MAX;                 /**< set minimal temperature */
+    pHandle->info.temperature_min = TEMPERATURE_MIN;                 /**< set maximum temperature */
+    pHandle->info.driver_version = DRIVER_VERSION;                   /**< set driver version */
 
     return 0; /**< success */
 }

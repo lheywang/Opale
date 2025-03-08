@@ -27,6 +27,7 @@ target_sources(app PRIVATE application/src/peripherals/saadc/saadc.cpp)
 target_sources(app PRIVATE application/src/devices/servo/servo.cpp)
 target_sources(app PRIVATE application/src/devices/rgb/rgb.cpp)
 target_sources(app PRIVATE application/src/devices/rocket/rocket.cpp)
+target_sources(app PRIVATE application/src/devices/eeprom/eeprom.cpp)
 
 # ============
 # DRIVERS
@@ -46,7 +47,3 @@ target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver.cpp)
 ## MS5611
 target_sources(app PRIVATE application/src/drivers/MS5611/MS5611.cpp)
 
-
-# Random, for future...
-target_sources(app PRIVATE application/src/devices/eeprom.cpp)
-target_sources(app PRIVATE application/src/devices/gps.cpp)

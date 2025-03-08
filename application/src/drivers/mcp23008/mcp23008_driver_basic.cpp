@@ -36,7 +36,8 @@
  *          - 1 initialize failed
  * @note    none
  */
-uint8_t mcp23008_basic_initialize(mcp23008_address_pin_t addr_pin) {
+uint8_t mcp23008_basic_initialize(mcp23008_address_pin_t addr_pin)
+{
 
     volatile uint8_t err;
     volatile uint8_t index;
@@ -53,44 +54,52 @@ uint8_t mcp23008_basic_initialize(mcp23008_address_pin_t addr_pin) {
 
     /*mcp23008 initialize*/
     err = mcp23008_init(&mcp23008_handle);
-    if (err) {
+    if (err)
+    {
         return err;
     }
 
     /*set address pin*/
     err = mcp23008_set_addr_pin(&mcp23008_handle, addr_pin);
-    if (err) {
+    if (err)
+    {
         return err;
     }
 
     /*set interrupt pin logic level*/
     err = mcp23008_set_intrrupt_pin_output_level(&mcp23008_handle, MCP23008_interrupt_ACTIVE_LOW);
-    if (err) {
+    if (err)
+    {
         return err;
     }
 
     /*set interrupt pin mode*/
     err = mcp23008_set_interrupt_pin_output_mode(&mcp23008_handle, MCP23008_interrupt_OPEN_DRAIN_OUTPUT);
-    if (err) {
+    if (err)
+    {
         return err;
     }
 
     /*disable i2c slewrate by default*/
     err = mcp23008_set_slew_rate(&mcp23008_handle, MCP23008_BOOL_FALSE);
-    if (err) {
+    if (err)
+    {
         return err;
     }
 
     /* disable sequential mode*/
     err = mcp23008_set_sequencial_mode(&mcp23008_handle, MCP23008_BOOL_TRUE);
-    if (err) {
+    if (err)
+    {
         return err;
     }
 
     /*set interrupt compare mode*/
-    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) {
-        err = mcp23008_set_ineterrupt_compare_mode(&mcp23008_handle, index, MCP23008_interrupt_COMP_TO_DEFAULT_VALUE);
-        if (err) {
+    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++)
+    {
+        err = mcp23008_set_ineterrupt_compare_mode(&mcp23008_handle, (mcp23008_gpio_port_t)index, MCP23008_interrupt_COMP_TO_DEFAULT_VALUE);
+        if (err)
+        {
             return err;
         }
     }
@@ -107,32 +116,40 @@ uint8_t mcp23008_basic_initialize(mcp23008_address_pin_t addr_pin) {
     }*/
 
     /*set pin polarity mode*/
-    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) {
-        err = mcp23008_set_pin_input_polarity_mode(&mcp23008_handle, index, MCP23008_POLARITY_SAME_LOGIC_STATE);
-        if (err) {
+    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++)
+    {
+        err = mcp23008_set_pin_input_polarity_mode(&mcp23008_handle, (mcp23008_gpio_port_t)index, MCP23008_POLARITY_SAME_LOGIC_STATE);
+        if (err)
+        {
             return err;
         }
     }
 
     /*disable all pull-up*/
-    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) {
-        err = (mcp23008_set_pin_pullup_mode(&mcp23008_handle, index, MCP23008_BOOL_FALSE) != 0);
-        if (err) {
+    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++)
+    {
+        err = (mcp23008_set_pin_pullup_mode(&mcp23008_handle, (mcp23008_gpio_port_t)index, MCP23008_BOOL_FALSE) != 0);
+        if (err)
+        {
             return err;
         }
     }
     /*disable all interrupt*/
-    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) {
-        err = (mcp23008_set_pin_interrupt(&mcp23008_handle, index, MCP23008_BOOL_FALSE) != 0);
-        if (err) {
+    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++)
+    {
+        err = (mcp23008_set_pin_interrupt(&mcp23008_handle, (mcp23008_gpio_port_t)index, MCP23008_BOOL_FALSE) != 0);
+        if (err)
+        {
             return err;
         }
     }
 
     /*clear all interrupt*/
-    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) {
-        err = (mcp23008_clear_interrupt_flag(&mcp23008_handle/*, index, MCP23008_BOOL_FALSE*/) != 0);
-        if (err) {
+    for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++)
+    {
+        err = (mcp23008_clear_interrupt_flag(&mcp23008_handle /*, index, MCP23008_BOOL_FALSE*/) != 0);
+        if (err)
+        {
             return err;
         }
     }
@@ -150,10 +167,11 @@ uint8_t mcp23008_basic_initialize(mcp23008_address_pin_t addr_pin) {
  *          - 0 success
  *          - 1 fail to run handler
  */
-uint8_t mcp23008_basic_irq_handler(void) {
+uint8_t mcp23008_basic_irq_handler(void)
+{
 
-   err = mcp23008_irq_handler(&mcp23008_handle);
-   return err; /**< return error code */
+    err = mcp23008_irq_handler(&mcp23008_handle);
+    return err; /**< return error code */
 }
 
 /**
@@ -164,9 +182,10 @@ uint8_t mcp23008_basic_irq_handler(void) {
  *          - 1 failed to run
  * @note none
  */
-uint8_t mcp23008_basic_gpio_irq_callBack(mcp23008_irq_callback_t cb) {
-   err = cb();
-   return err; /**< return error code */
+uint8_t mcp23008_basic_gpio_irq_callBack(mcp23008_irq_callback_t cb)
+{
+    err = cb();
+    return err; /**< return error code */
 }
 
 /**
@@ -178,23 +197,30 @@ uint8_t mcp23008_basic_gpio_irq_callBack(mcp23008_irq_callback_t cb) {
  *          - 1 failed
  * @note    none
  */
-uint8_t mcp23008_basic_gpio_set_direction(mcp23008_gpio_port_t GPIOx, mcp23008_port_mode_t direction) {
+uint8_t mcp23008_basic_gpio_set_direction(mcp23008_gpio_port_t GPIOx, mcp23008_port_mode_t direction)
+{
     uint8_t index;
 
-    if (direction == MCP23008_INPUT_PULLUP) {
-        if (mcp23008_set_pin_pullup_mode(&mcp23008_handle, GPIOx, MCP23008_BOOL_TRUE) != 0) {
+    if (direction == MCP23008_INPUT_PULLUP)
+    {
+        if (mcp23008_set_pin_pullup_mode(&mcp23008_handle, GPIOx, MCP23008_BOOL_TRUE) != 0)
+        {
             return 1; /**< failed to execute routine */
         }
 
-        if (mcp23008_set_pin_mode(&mcp23008_handle, GPIOx, MCP23008_INPUT) != 0) {
+        if (mcp23008_set_pin_mode(&mcp23008_handle, GPIOx, MCP23008_INPUT) != 0)
+        {
             return 1; /**< failed to execute routine */
         }
-    } else {
-        if (mcp23008_set_pin_mode(&mcp23008_handle, GPIOx, direction) != 0) {
+    }
+    else
+    {
+        if (mcp23008_set_pin_mode(&mcp23008_handle, GPIOx, direction) != 0)
+        {
             return 1; /**< failed to execute routine */
         }
         for (index = 0; index < MCP23008_MAX_NUM_GPIO_PIN; index++) /**< clear port after setting the direction */
-            mcp23008_basic_gpio_write(index, MCP23008_GPIO_LOW);
+            mcp23008_basic_gpio_write((mcp23008_gpio_port_t)index, MCP23008_GPIO_LOW);
     }
 
     mcp23008_interface_delay_ms(50);
@@ -212,9 +238,10 @@ uint8_t mcp23008_basic_gpio_set_direction(mcp23008_gpio_port_t GPIOx, mcp23008_p
 uint8_t mcp23008_basic_port_set_direction(mcp23008_port_mode_t direction)
 {
 
-    if (direction == MCP23008_INPUT_PULLUP) {
+    if (direction == MCP23008_INPUT_PULLUP)
+    {
         err = mcp23008_set_port_pullup_mode(&mcp23008_handle, MCP23008_BOOL_TRUE);
-        if(err != 0)
+        if (err != 0)
         {
             return err; /**< failed to execute routine */
         }
@@ -224,9 +251,11 @@ uint8_t mcp23008_basic_port_set_direction(mcp23008_port_mode_t direction)
         {
             return err; /**< failed to execute routine */
         }
-    } else {
+    }
+    else
+    {
         err = mcp23008_set_port_mode(&mcp23008_handle, direction);
-        if(err != 0)
+        if (err != 0)
         {
             return err; /**< failed to execute routine */
         }
@@ -243,13 +272,14 @@ uint8_t mcp23008_basic_port_set_direction(mcp23008_port_mode_t direction)
  *          - 1 failed
  * @note    none
  */
-uint8_t mcp23008_basic_gpio_write(mcp23008_gpio_port_t GPIOx, mcp23008_port_logic_level_t level) {
+uint8_t mcp23008_basic_gpio_write(mcp23008_gpio_port_t GPIOx, mcp23008_port_logic_level_t level)
+{
 
     err = mcp23008_pin_write(&mcp23008_handle, GPIOx, level);
     return err; /**< return error code */
 }
 
- /**
+/**
  * @brief basic example to write logic value to all gpio pins
  * @param[in] logic_level is the logic level to assign to the pin
  * @return status code
@@ -269,13 +299,14 @@ uint8_t mcp23008_basic_pin_write_all(mcp23008_port_logic_level_t logic_level)
  * @return GPIO read status (pin level)
  * @note    none
  */
-uint8_t mcp23008_basic_gpio_read(mcp23008_gpio_port_t GPIOx) {
+uint8_t mcp23008_basic_gpio_read(mcp23008_gpio_port_t GPIOx)
+{
 
     volatile uint8_t status;
-    err = mcp23008_pin_read(&mcp23008_handle, GPIOx, (int *) &status);
-    if(err != 0)
+    err = mcp23008_pin_read(&mcp23008_handle, GPIOx, (mcp23008_port_logic_level_t *)&status);
+    if (err != 0)
     {
-       return err;
+        return err;
     }
     return status; /**< success */
 }
@@ -288,13 +319,19 @@ uint8_t mcp23008_basic_gpio_read(mcp23008_gpio_port_t GPIOx) {
  *          - 1 failed to toggle
  * @note    none
  */
-uint8_t mcp23008_basic_gpio_toggle(mcp23008_gpio_port_t GPIOx) {
+uint8_t mcp23008_basic_gpio_toggle(mcp23008_gpio_port_t GPIOx)
+{
+    mcp23008_port_logic_level_t status = (mcp23008_port_logic_level_t)mcp23008_basic_gpio_read(GPIOx);
+    if (status == MCP23008_GPIO_LOW)
+        status = MCP23008_GPIO_HIGH;
+    if (status == MCP23008_GPIO_HIGH)
+        status = MCP23008_GPIO_LOW;
 
-   err = mcp23008_basic_gpio_write(GPIOx, !mcp23008_basic_gpio_read(GPIOx));
-   return err; /**< return error code */
+    err = mcp23008_basic_gpio_write(GPIOx, status);
+    return err; /**< return error code */
 }
 
-/**
+/*
  * @brief basic example to enable interrupt
  * @param[in] GPIOx is the gpio port to enable interrupt
  * @param[in] edge_select is the Interrupt Edge Select bit (rising, or falling)
@@ -303,10 +340,11 @@ uint8_t mcp23008_basic_gpio_toggle(mcp23008_gpio_port_t GPIOx) {
  *          - 1 failed
  * @note    none
  */
-uint8_t mcp23008_basic_interrupt_enable(mcp23008_gpio_port_t GPIOx, mcp23008_interrupt_default_value_t edge_select) {
+uint8_t mcp23008_basic_interrupt_enable(mcp23008_gpio_port_t GPIOx, mcp23008_interrupt_default_value_t edge_select)
+{
 
     err = mcp23008_set_pin_interrupt(&mcp23008_handle, GPIOx, MCP23008_BOOL_TRUE);
-    if(err)
+    if (err)
     {
         return err; /**< failed to execute routine */
     }
@@ -322,11 +360,11 @@ uint8_t mcp23008_basic_interrupt_enable(mcp23008_gpio_port_t GPIOx, mcp23008_int
  *          - 1 failed
  * @note    none
  */
-uint8_t mcp23008_basic_interrupt_disable(mcp23008_gpio_port_t GPIOx) {
+uint8_t mcp23008_basic_interrupt_disable(mcp23008_gpio_port_t GPIOx)
+{
 
-   err = mcp23008_set_pin_interrupt(&mcp23008_handle, GPIOx, MCP23008_BOOL_FALSE);
-   return err; /**< return error code */
-
+    err = mcp23008_set_pin_interrupt(&mcp23008_handle, GPIOx, MCP23008_BOOL_FALSE);
+    return err; /**< return error code */
 }
 
 /**
@@ -337,9 +375,10 @@ uint8_t mcp23008_basic_interrupt_disable(mcp23008_gpio_port_t GPIOx) {
  *          - 1 failed
  * @note    none
  */
-uint8_t mcp23008_basic_clr_interrupt_flag(void) {
-   err = mcp23008_clear_interrupt_flag(&mcp23008_handle/*, GPIOx, MCP23008_interrupt_CLEAR*/);
-   return err; /**< return error code */
+uint8_t mcp23008_basic_clr_interrupt_flag(void)
+{
+    err = mcp23008_clear_interrupt_flag(&mcp23008_handle /*, GPIOx, MCP23008_interrupt_CLEAR*/);
+    return err; /**< return error code */
 }
 
 /**
@@ -349,9 +388,10 @@ uint8_t mcp23008_basic_clr_interrupt_flag(void) {
  * @return interrupt status flag
  * @note    none
  */
-uint8_t mcp23008_basic_get_interrupt_flag(mcp23008_gpio_port_t GPIOx, uint8_t *flag_status) {
+uint8_t mcp23008_basic_get_interrupt_flag(mcp23008_gpio_port_t GPIOx, uint8_t *flag_status)
+{
 
-    err = mcp23008_get_interrupt_flag(&mcp23008_handle, GPIOx, (uint8_t *) flag_status);
+    err = mcp23008_get_interrupt_flag(&mcp23008_handle, GPIOx, (mcp23008_interrupt_flag_t *)flag_status);
     return err; /**< return error code */
 }
 
@@ -365,16 +405,16 @@ uint8_t mcp23008_basic_get_interrupt_flag(mcp23008_gpio_port_t GPIOx, uint8_t *f
  */
 uint8_t mcp23008_basic_get_addr_pin(mcp23008_address_pin_t *addr_pin)
 {
-	uint8_t status;
+    uint8_t status;
 
-	err = mcp23008_get_addr_pin(&mcp23008_handle,(uint8_t *)&status);
-	if(err != 0)
+    err = mcp23008_get_addr_pin(&mcp23008_handle, (mcp23008_address_pin_t *)&status);
+    if (err != 0)
     {
         return err;
     }
-	*addr_pin = status;
+    *addr_pin = (mcp23008_address_pin_t)status;
 
-	return err;
+    return err;
 }
 
 /**
@@ -386,7 +426,8 @@ uint8_t mcp23008_basic_get_addr_pin(mcp23008_address_pin_t *addr_pin)
  *          - 0 success
  *          - 1 failed to read register
  */
-uint8_t mcp23008_basic_read_register(uint8_t reg, uint8_t *buf, uint16_t len) {
+uint8_t mcp23008_basic_read_register(uint8_t reg, uint8_t *buf, uint16_t len)
+{
     err = mcp23008_get_reg(&mcp23008_handle, reg, buf, len);
     return err; /**< return error code */
 }
@@ -400,8 +441,9 @@ uint8_t mcp23008_basic_read_register(uint8_t reg, uint8_t *buf, uint16_t len) {
  *          - 0 success
  *          - 1 failed to write register
  */
-uint8_t mcp23008_basic_write_register(uint8_t reg, uint8_t *buf, uint16_t len) {
-   err = mcp23008_set_reg(&mcp23008_handle, reg, buf, len);
-   return err; /**< return error code */
+uint8_t mcp23008_basic_write_register(uint8_t reg, uint8_t *buf, uint16_t len)
+{
+    err = mcp23008_set_reg(&mcp23008_handle, reg, buf, len);
+    return err; /**< return error code */
 }
 /*end*/

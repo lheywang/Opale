@@ -1,7 +1,7 @@
 /** ================================================================
- * @file    application/src/devices/rgb.c
+ * @file    application/src/devices/rgb.cpp
  *
- * @brief   rgb.c implement some low level OS call to configure the
+ * @brief   rgb.cpp implement some low level OS call to configure the
  *          color of an RGB led.
  *
  * @date    20-02-2025

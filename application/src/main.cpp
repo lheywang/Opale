@@ -35,7 +35,7 @@
 
 #include "devices/servo/servo.h"
 #include "devices/rgb/rgb.h"
-#include "devices/eeprom.h"
+#include "devices/eeprom/eeprom.h"
 
 #include "peripherals/gpio/gpio.h"
 #include "peripherals/saadc/saadc.h"

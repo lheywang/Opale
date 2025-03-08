@@ -1,7 +1,7 @@
 /** ================================================================
- * @file    application/src/devices/rocket.c
+ * @file    application/src/devices/rocket.cpp
  *
- * @brief   rocket.c implement low level rocket functions, mainly
+ * @brief   rocket.cpp implement low level rocket functions, mainly
  *          for the launch authorization.
  *
  * @date    23-02-2025

@@ -59,7 +59,7 @@ uint8_t mcp23008_interface_i2c_deinit(void);
  *             - 1 read failed
  * @note       none
  */
-uint8_t mcp23008_interface_i2c_read(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Length);
+uint8_t mcp23008_interface_i2c_read(uint8_t u8Addr, uint8_t *pBuf, uint16_t u8Length);
 
 /**
  * @brief     interface i2c bus write
@@ -71,7 +71,7 @@ uint8_t mcp23008_interface_i2c_read(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Len
  *            - 1 write failed
  * @note      none
  */
-uint8_t mcp23008_interface_i2c_write(uint8_t u8Addr, uint8_t *pBuf, uint8_t u8Length);
+uint8_t mcp23008_interface_i2c_write(uint8_t u8Addr, uint8_t *pBuf, uint16_t u8Length);
 
 /**
  * @brief     interface delay ms
@@ -85,7 +85,7 @@ void mcp23008_interface_delay_ms(uint32_t U32Ms);
  * @param[in] fmt is the format data
  * @note      none
  */
-void mcp23008_interface_debug_print(const char *const fmt, ...);
+void mcp23008_interface_debug_print(char *const fmt, ...);
 
 /**
  * @brief     interface receive callback
@@ -93,6 +93,5 @@ void mcp23008_interface_debug_print(const char *const fmt, ...);
  * @note      none
  */
 void mcp23008_interface_receive_callback(uint8_t type);
-
 
 #endif // MCP23008_DRIVER_INTERFACE_H_INCLUDED

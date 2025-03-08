@@ -1,7 +1,7 @@
 /** ================================================================
- * @file    application/src/devices/eeprom.c
+ * @file    application/src/devices/eeprom.cpp
  *
- * @brief   eeprom.c implement low level eeprom handling procedures.
+ * @brief   eeprom.cpp implement low level eeprom handling procedures.
  *
  * @date    23-02-2025
  *
