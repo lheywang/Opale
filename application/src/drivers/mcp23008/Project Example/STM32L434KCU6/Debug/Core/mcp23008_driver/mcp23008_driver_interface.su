@@ -1,7 +1,0 @@
-../Core/mcp23008_driver/mcp23008_driver_interface.c:38:9:mcp23008_interface_i2c_init	0	static
-../Core/mcp23008_driver/mcp23008_driver_interface.c:52:9:mcp23008_interface_i2c_deinit	0	static
-../Core/mcp23008_driver/mcp23008_driver_interface.c:71:9:mcp23008_interface_i2c_read	8	static
-../Core/mcp23008_driver/mcp23008_driver_interface.c:92:9:mcp23008_interface_i2c_write	8	static
-../Core/mcp23008_driver/mcp23008_driver_interface.c:107:6:mcp23008_interface_delay_ms	0	static
-../Core/mcp23008_driver/mcp23008_driver_interface.c:119:6:mcp23008_interface_debug_print	280	static
-../Core/mcp23008_driver/mcp23008_driver_interface.c:145:6:mcp23008_interface_receive_callback	0	static
