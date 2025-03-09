@@ -57,7 +57,7 @@ int main(void)
      * PERIPHERALS INITS
      * -----------------------------------------------------------------
      */
-    INIT_CheckUSB();
+    // INIT_CheckUSB();
 
     // Fetch peripherals
     gpio_dt_spec *peripheral_reset = INIT_GetAGPIO(GPIOS::PERIPHERAL_RESET);

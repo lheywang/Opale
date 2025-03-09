@@ -41,9 +41,9 @@ target_sources(app PRIVATE application/src/drivers/bno055/imu.cpp)
 target_sources(app PRIVATE application/src/drivers/iis2dlpc/iis2dlpc_reg.cpp)
 target_sources(app PRIVATE application/src/drivers/iis2dlpc/accelerometer.cpp)
 ## MCP23008
-target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver_basic.cpp)
-target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver_interface.cpp)
-target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver.cpp)
+# target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver_basic.cpp)
+# target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver_interface.cpp)
+# target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008_driver.cpp)
 ## MS5611
 target_sources(app PRIVATE application/src/drivers/MS5611/MS5611.cpp)
 
