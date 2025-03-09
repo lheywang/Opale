@@ -40,30 +40,6 @@
 LOG_MODULE_REGISTER(Initializer, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
- * DEFINING NODE ALIASES
- * -----------------------------------------------------------------
- */
-
-#define PWM_SERVO_LEN DT_PROP_LEN(DT_PATH(wings, wings1), pwms)
-
-// Serial related peripherals
-#define UART_IMU DT_NODELABEL(uart1)
-#define UART_GPS DT_NODELABEL(uart2)
-
-// SPI related peripherals
-#define // Configure SPI
-#define EEPROM_0
-
-// Count the number of cs used, and thus, the number of devices.
-#define EEPROM_NB DT_PROP_LEN(DT_PATH(soc, peripheral_40000000, spi_a000), cs_gpios)
-
-// I2C related peripherals
-#define BAROMETER_0 DT_NODELABEL(barometer0)
-#define ACCELEROMETER_0 DT_NODELABEL(accelerometer0)
-#define ACCELEROMETER_1 DT_NODELABEL(accelerometer1)
-#define EXPANDER_0 DT_NODELABEL(expander0)
-
-/* -----------------------------------------------------------------
  * PRIVATES FUNCTIONS (For a single peripheral instance)
  * -----------------------------------------------------------------
  */
@@ -245,7 +221,7 @@ static bool _IsAccelerometersInitialized = false;
 static bool _IsEepromInitialzed = false;
 
 // UARTS
-static bool _IsGPSInitialied = false;
+static bool _IsGPSInitialized = false;
 static bool _IsIMUInitialized = false;
 
 /* -----------------------------------------------------------------
@@ -277,10 +253,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(p_rst);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("Peripheral reset were fetched but failed kernel checks...");
-                k_free(p_rst);
+                LOG_ERR("Peripheral reset were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)p_rst);
                 return nullptr;
             }
             _IsPeripheralResetInitialized = true;
@@ -311,10 +287,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(mode);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("Rocket Mode were fetched but failed kernel checks...");
-                k_free(mode);
+                LOG_ERR("Rocket Mode were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)mode);
                 return nullptr;
             }
             _IsModeInitialized = true;
@@ -345,10 +321,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(p_latch);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("Rocket Latch were fetched but failed kernel checks...");
-                k_free(p_latch);
+                LOG_ERR("Rocket Latch were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)p_latch);
                 return nullptr;
             }
             _IsLatchInitialized = true;
@@ -387,12 +363,14 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             // Check that the device is working
             int err = 0;
             for (uint8_t k = 0; k < PWM_SERVO_LEN; k++)
-                err -= CheckAGPIO(&engine[k]);
-
-            if (!err)
             {
-                LOG_ERR("Engines were fetched but failed kernel checks...");
-                k_free(engine);
+                err -= CheckAGPIO(&engine[k]);
+            }
+
+            if (err != 0)
+            {
+                LOG_ERR("Engines were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)engine);
                 return nullptr;
             }
             // Here, we return the tab directly, since it's already a pointer !
@@ -424,10 +402,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(btstat);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("IMU Boot was fetched but failed kernel checks...");
-                k_free(btstat);
+                LOG_ERR("IMU Boot was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)btstat);
                 return nullptr;
             }
             _IsImuBootStatusInitialized = true;
@@ -458,10 +436,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(actstat);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("IMU status was fetched but failed kernel checks...");
-                k_free(actstat);
+                LOG_ERR("IMU status was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)actstat);
                 return nullptr;
             }
             _IsImuActStatusInitialized = true;
@@ -492,10 +470,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(imunit);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("IMU INT was fetched but failed kernel checks...");
-                k_free(imunit);
+                LOG_ERR("IMU INT was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)imunit);
                 return nullptr;
             }
             _IsImuIntInitialized = true;
@@ -526,10 +504,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 
             // Check that the device is working
             int err = CheckAGPIO(gpsint);
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("GPS INT was fetched but failed kernel checks...");
-                k_free(gpsint);
+                LOG_ERR("GPS INT was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)gpsint);
                 return nullptr;
             }
             _IsGpsIntInitialized = true;
@@ -566,12 +544,14 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             // Check that the device is working
             int err = 0;
             for (uint8_t k = 0; k < ACCEL_NB; k++)
-                err -= CheckAGPIO(&accel[k]);
-
-            if (!err)
             {
-                LOG_ERR("Accelerometer INTs was fetched but failed kernel checks...");
-                k_free(accel);
+                err -= CheckAGPIO(&accel[k]);
+            }
+
+            if (err != 0)
+            {
+                LOG_ERR("Accelerometer INTs was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)accel);
                 return nullptr;
             }
             // Tab is returned directly !
@@ -610,12 +590,14 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             // Check that the device is working
             int err = 0;
             for (uint8_t k = 0; k < INPUTS_NB; k++)
-                err -= CheckAGPIO(&inp[k]);
-
-            if (!err)
             {
-                LOG_ERR("Peripheral reset was fetched but failed kernel checks...");
-                k_free(inp);
+                err -= CheckAGPIO(&inp[k]);
+            }
+
+            if (err != 0)
+            {
+                LOG_ERR("Peripheral reset was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)inp);
                 return nullptr;
             }
             // Return the list directly
@@ -642,33 +624,63 @@ void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO)
     switch (Pin)
     {
     case GPIOS::PERIPHERAL_RESET:
+        /*
+         * Add here your de-init code !
+         */
         _IsPeripheralResetInitialized = false;
         break;
     case GPIOS::MODE:
+        /*
+         * Add here your de-init code !
+         */
         _IsModeInitialized = false;
         break;
     case GPIOS::LATCH:
+        /*
+         * Add here your de-init code !
+         */
         _IsLatchInitialized = false;
         break;
     case GPIOS::ENGINES:
+        /*
+         * Add here your de-init code !
+         */
         _IsEnginesInitialized = false;
         break;
     case GPIOS::IMU_BOOTSTATUS:
+        /*
+         * Add here your de-init code !
+         */
         _IsImuBootStatusInitialized = false;
         break;
     case GPIOS::IMU_ACTSTATUS:
+        /*
+         * Add here your de-init code !
+         */
         _IsImuActStatusInitialized = false;
         break;
     case GPIOS::IMU_INT:
+        /*
+         * Add here your de-init code !
+         */
         _IsImuIntInitialized = false;
         break;
     case GPIOS::GPS_INT:
+        /*
+         * Add here your de-init code !
+         */
         _IsGpsIntInitialized = false;
         break;
     case GPIOS::INPUTS:
+        /*
+         * Add here your de-init code !
+         */
         _IsInputsInitialized = false;
         break;
     case GPIOS::ACCEL_INT:
+        /*
+         * Add here your de-init code !
+         */
         _IsAccelIntInitialized = false;
         break;
     }
@@ -707,12 +719,14 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             // Check that the device is working
             int err = 0;
             for (uint8_t k = 0; k < PWM_SERVO_LEN; k++)
-                err -= CheckAPWM(&pwm[k]);
-
-            if (!err)
             {
-                LOG_ERR("Servo (PWM) peripheral was fetched but failed kernel checks...");
-                k_free(pwm);
+                err -= CheckAPWM(&pwm[k]);
+            }
+
+            if (err != 0)
+            {
+                LOG_ERR("Servo (PWM) peripheral was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)pwm);
                 return nullptr;
             }
             // Return the list directly
@@ -749,12 +763,14 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             // Check that the device is working
             int err = 0;
             for (uint8_t k = 0; k < PWM_SERVO_LEN; k++)
-                err -= CheckAPWM(&rgb[k]);
-
-            if (!err)
             {
-                LOG_ERR("RGB (PWM) peripheral was fetched but failed kernel checks...");
-                k_free(rgb);
+                err -= CheckAPWM(&rgb[k]);
+            }
+
+            if (err != 0)
+            {
+                LOG_ERR("RGB (PWM) peripheral was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)rgb);
                 return nullptr;
             }
             // Return the list directly
@@ -786,10 +802,10 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             // Check that the device is working
             int err = CheckAPWM(para);
 
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("Parachute (PWM) peripheral was fetched but failed kernel checks...");
-                k_free(para);
+                LOG_ERR("Parachute (PWM) peripheral was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)para);
                 return nullptr;
             }
             // Return the list directly
@@ -821,10 +837,10 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             // Check that the device is working
             int err = CheckAPWM(buzz);
 
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("Buzzer (PWM) peripheral was fetched but failed kernel checks...");
-                k_free(buzz);
+                LOG_ERR("Buzzer (PWM) peripheral was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)buzz);
                 return nullptr;
             }
             // Return the list directly
@@ -855,15 +871,27 @@ void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM)
     switch (Dev)
     {
     case PWMS::SERVOS:
+        /*
+         * Add here your de-init code !
+         */
         _IsServoInitialized = false;
         break;
     case PWMS::RGB:
+        /*
+         * Add here your de-init code !
+         */
         _IsRGBInitialized = false;
         break;
     case PWMS::BUZZER:
+        /*
+         * Add here your de-init code !
+         */
         _IsBuzzerInitialized = false;
         break;
     case PWMS::PARACHUTE:
+        /*
+         * Add here your de-init code !
+         */
         _IsParachuteInitialized = false;
         break;
     }
@@ -897,10 +925,10 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
             // Check that the device is working
             int err = CheckAnSPI(eep);
 
-            if (!err)
+            if (err != 0)
             {
-                LOG_ERR("EEPROM (SPI) peripheral was fetched but failed kernel checks...");
-                k_free(eep);
+                LOG_ERR("EEPROM (SPI) peripheral was fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)eep);
                 return nullptr;
             }
             // Return the list directly
@@ -914,6 +942,9 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
         }
         break;
     }
+
+    // Shall never get here !
+    return nullptr;
 }
 
 void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI)
@@ -922,6 +953,9 @@ void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI)
     switch (Dev)
     {
     case SPIS::EEPROM:
+        /*
+         * Add here your de-init code !
+         */
         _IsEepromInitialzed = false;
         break;
     }
@@ -933,15 +967,256 @@ void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI)
 
 i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
 {
+    switch (Dev)
+    {
+    case I2CS::ACCELEROMETERS:
+
+        // First, check that the device was effectively free
+        if (!_IsAccelerometersInitialized)
+        {
+            // Allocate memory, and check
+            i2c_dt_spec *accel = (i2c_dt_spec *)k_malloc(ACCEL_NB * sizeof(i2c_dt_spec));
+            if (accel == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for the I2C accelerometers structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            accel[0] = I2C_DT_SPEC_GET(DT_NODELABEL(accelerometer0));
+            accel[1] = I2C_DT_SPEC_GET(DT_NODELABEL(accelerometer1));
+
+            // Check that the device is working
+            int err = 0;
+            for (uint8_t k = 0; k < ACCEL_NB; k++)
+            {
+                err -= CheckAnI2C(&accel[k]);
+            }
+
+            if (err != 0)
+            {
+                LOG_ERR("I2C accelerometers were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)accel);
+                return nullptr;
+            }
+            _IsAccelerometersInitialized = true;
+            return accel;
+        }
+        else
+        {
+            LOG_ERR("I2C accelerometers was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+
+    case I2CS::BAROMETER:
+
+        // First, check that the device was effectively free
+        if (!_IsBarometerInitialized)
+        {
+            // Allocate memory, and check
+            i2c_dt_spec *barom = (i2c_dt_spec *)k_malloc(sizeof(i2c_dt_spec));
+            if (barom == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for barometer I2C structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            *barom = I2C_DT_SPEC_GET(DT_NODELABEL(barometer0));
+
+            // Check that the device is working
+            int err = CheckAnI2C(barom);
+            if (err != 0)
+            {
+                LOG_ERR("Barometer (I2C) were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)barom);
+                return nullptr;
+            }
+            _IsBarometerInitialized = true;
+            return barom;
+        }
+        else
+        {
+            LOG_ERR("Barometer (I2C) was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+
+    case I2CS::EXPANDER:
+
+        // First, check that the device was effectively free
+        if (!_IsExpanderInitialized)
+        {
+            // Allocate memory, and check
+            i2c_dt_spec *expa = (i2c_dt_spec *)k_malloc(sizeof(i2c_dt_spec));
+            if (expa == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for barometer I2C structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            *expa = I2C_DT_SPEC_GET(DT_NODELABEL(expander0));
+
+            // Check that the device is working
+            int err = CheckAnI2C(expa);
+            if (err != 0)
+            {
+                LOG_ERR("Barometer (I2C) were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)expa);
+                return nullptr;
+            }
+            _IsExpanderInitialized = true;
+            return expa;
+        }
+        else
+        {
+            LOG_ERR("Barometer (I2C) was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+    }
+
+    // Shall not get here, but anyway...
+    return nullptr;
 }
-void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *GPIO)
+void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C)
 {
+    // Update status of the I2C device
+    switch (Dev)
+    {
+    case I2CS::ACCELEROMETERS:
+        /*
+         * Add here your de-init code !
+         */
+        _IsAccelerometersInitialized = false;
+        break;
+
+    case I2CS::BAROMETER:
+        /*
+         * Add here your de-init code !
+         */
+        _IsBarometerInitialized = false;
+        break;
+
+    case I2CS::EXPANDER:
+        /*
+         * Add here your de-init code !
+         */
+        _IsExpanderInitialized = false;
+        break;
+    }
+
+    // Freed memory
+    k_free(I2C);
+    return;
 }
 
-device *INIT_GetAnUART(UARTS Dev)
+const device *INIT_GetAnUART(UARTS Dev)
 {
+    switch (Dev)
+    {
+    case UARTS::GPS:
+
+        // First, check that the device was effectively free
+        if (!_IsGPSInitialized)
+        {
+            // Allocate memory, and check
+            const device *p_gps = (device *)k_malloc(sizeof(device));
+            if (p_gps == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for GPS UART structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            p_gps = DEVICE_DT_GET(DT_NODELABEL(uart2));
+
+            // Check that the device is working
+            int err = CheckAnUART(p_gps);
+            if (err != 0)
+            {
+                LOG_ERR("GPS UART were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)p_gps);
+                return nullptr;
+            }
+            _IsGPSInitialized = true;
+            return p_gps;
+        }
+        else
+        {
+            LOG_ERR("GPS UART was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+
+    case UARTS::IMU:
+
+        // First, check that the device was effectively free
+        if (!_IsIMUInitialized)
+        {
+            // Allocate memory, and check
+            const device *p_imu = (device *)k_malloc(sizeof(device));
+            if (p_imu == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for IMU UART structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            p_imu = DEVICE_DT_GET(DT_NODELABEL(uart2));
+
+            // Check that the device is working
+            int err = CheckAnUART(p_imu);
+            if (err != 0)
+            {
+                LOG_ERR("IMU UART were fetched but failed kernel checks... Freeing memory and aborting !");
+                k_free((void *)p_imu);
+                return nullptr;
+            }
+            _IsIMUInitialized = true;
+            return p_imu;
+        }
+        else
+        {
+            LOG_ERR("IMU UART was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+    }
+
+    // Shall not get here, but anyway...
+    return nullptr;
 }
 
 void INIT_FreeAnUART(UARTS Dev, device *UART)
 {
+    switch (Dev)
+    {
+    case UARTS::GPS:
+        /*
+         * Add here your de-init code !
+         */
+        _IsGpsIntInitialized = false;
+        break;
+
+    case UARTS::IMU:
+        /*
+         * Add here your de-init code !
+         */
+        _IsIMUInitialized = false;
+        break;
+    }
+
+    // Free memory and exit
+    k_free(UART);
+    return;
+}
+
+int INIT_CheckUSB()
+{
+    if (usb_enable(NULL))
+        return -1;
+    return 0;
 }

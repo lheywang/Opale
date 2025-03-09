@@ -35,7 +35,7 @@
  */
 
 // Period
-#define PWM_RGB_PERIOD DT_PROP(RGB_1, period)
+#define PWM_RGB_PERIOD DT_PROP(DT_PATH(rgb, rgb1), period)
 
 /* -----------------------------------------------------------------
  * Defining command structure

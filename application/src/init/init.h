@@ -43,14 +43,21 @@
  * -----------------------------------------------------------------
  */
 
-#define ACCEL_NB 2
-#define INPUTS_NB 3
-
-// Module settings
-#define INIT_MAX_TRY 3 // Number of try before declaring peripheral out.
+// Number of try before declaring peripheral out.
+#define INIT_MAX_TRY 3
 
 // Timers
 #define SAADC_TIMER_NUMBER 2 // Timer2 will be used for the SAADC sampling triggering.
+
+/* -----------------------------------------------------------------
+ * DEVICETREE PARAMETERS FETCHING
+ * -----------------------------------------------------------------
+ */
+#define PWM_SERVO_LEN DT_PROP_LEN(DT_PATH(wings, wings1), pwms)
+#define PWM_RGB_LEN DT_PROP_LEN(DT_PATH(rgb, rgb1), pwms)
+#define EEPROM_NB DT_PROP_LEN(DT_PATH(soc, peripheral_40000000, spi_a000), cs_gpios)
+#define ACCEL_NB 2
+#define INPUTS_NB 3
 
 /* -----------------------------------------------------------------
  * ENUMS
@@ -101,19 +108,6 @@ typedef enum
  * FETCHING C STRUCTS THAT DESCRIBE EACH PERIPHERALS
  * -----------------------------------------------------------------
  */
-
-// UARTS
-static const struct device *uart_imu = DEVICE_DT_GET(UART_IMU);
-static const struct device *uart_gps = DEVICE_DT_GET(UART_GPS);
-
-// SPI devices
-static const struct spi_dt_spec spi_eeproms =
-
-    // I2C devices
-    static const struct i2c_dt_spec i2c_barometer = I2C_DT_SPEC_GET(BAROMETER_0);
-static const struct i2c_dt_spec i2c_expander = I2C_DT_SPEC_GET(EXPANDER_0);
-static const struct i2c_dt_spec i2c_accels[ACCEL_NB] = {I2C_DT_SPEC_GET(ACCELEROMETER_0),
-                                                        I2C_DT_SPEC_GET(ACCELEROMETER_1)};
 
 // Timers
 static nrfx_timer_t saadc_timer = NRFX_TIMER_INSTANCE(SAADC_TIMER_NUMBER);
@@ -177,7 +171,7 @@ void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM);
  *
  * @param   Pin     A member of the GPIO enum, to design the wanted GPIO.
  *
- * @return  gpio_dt_spec    Pointer to a struct that design THIS gpio !
+ * @return  spi_dt_spec     Pointer to a struct that design THIS gpio !
  */
 spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
 
@@ -200,7 +194,7 @@ void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI);
  *
  * @param   Pin     A member of the GPIO enum, to design the wanted GPIO.
  *
- * @return  gpio_dt_spec    Pointer to a struct that design THIS gpio !
+ * @return  i2c_dt_spec     Pointer to a struct that design THIS gpio !
  */
 i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
 
@@ -211,7 +205,7 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
  *          another memory struct while maintaining the I2C device soft-locked !
  *
  * @param   Dev     A pointer to a i2c_dt_spec struct to be freed
- * @param   I2C    A meber of the I2CS enum, to free it's associated soft-lock
+ * @param   I2C     A member of the I2CS enum, to free it's associated soft-lock
  */
 void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
 
@@ -223,9 +217,9 @@ void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
  *
  * @param   Pin     A member of the GPIO enum, to design the wanted GPIO.
  *
- * @return  gpio_dt_spec    Pointer to a struct that design THIS gpio !
+ * @return  device  Pointer to a struct that design THIS gpio !
  */
-device *INIT_GetAnUART(UARTS Dev);
+const device *INIT_GetAnUART(UARTS Dev);
 
 /**
  * @brief   This function de-allocate a UART, making it available for a further usage !
@@ -234,8 +228,17 @@ device *INIT_GetAnUART(UARTS Dev);
  *          another memory struct while maintaining the GPIO soft-locked !
  *
  * @param   Dev     A pointer to a device struct to be freed
- * @param   UART    A meber of the UART enum, to free it's associated soft-lock
+ * @param   UART    A member of the UART enum, to free it's associated soft-lock
  */
 void INIT_FreeAnUART(UARTS Dev, device *UART);
+/**
+ * @brief   This function check the USB peripheral and initialize it.
+ *          The USB port is then initialized as a virtual com port, and
+ *          is used as a logger output.
+ *
+ * @return  0   Suceed
+ * @return -1   Fail
+ */
+int INIT_CheckUSB();
 
 #endif /* DEF_INIT*/

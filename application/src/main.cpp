@@ -57,20 +57,14 @@ int main(void)
      * PERIPHERALS INITS
      * -----------------------------------------------------------------
      */
-    int err = 0;
-
-    if (err != 0)
-    {
-        LOG_ERR("Some peripherals aren't fine. Aborting...");
-        return 0;
-    }
+    INIT_CheckUSB();
 
     // Fetch peripherals
     gpio_dt_spec *peripheral_reset = INIT_GetAGPIO(GPIOS::PERIPHERAL_RESET);
     pwm_dt_spec *pwm_wings = INIT_GetAPWM(PWMS::SERVOS);
     pwm_dt_spec *pwm_rgb = INIT_GetAPWM(PWMS::RGB);
 
-    int ret = GPIO_SetAsOutput(peripheral_reset, 0);
+    int ret = GPIO_SetAsOutput(peripheral_reset, 1);
 
     ret -= SAADC_Configure(&saadc_timer);
 
@@ -177,6 +171,11 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+
+        // Toggling a pin !
+        ret = GPIO_Toggle(peripheral_reset);
+        if (!ret)
+            return 0;
     }
 }
 

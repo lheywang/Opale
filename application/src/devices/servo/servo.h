@@ -35,14 +35,14 @@
  */
 
 // Period
-#define PWM_SERVO_PERIOD DT_PROP(WINGS_1, period)
+#define PWM_SERVO_PERIOD DT_PROP(DT_PATH(wings, wings1), period)
 
 // Pulse specs
-#define PWM_SERVO_MIN_PULSE_WIDTH DT_PROP(WINGS_1, min_pulse)
-#define PWM_SERVO_MAX_PULSE_WIDTH DT_PROP(WINGS_1, max_pulse)
+#define PWM_SERVO_MIN_PULSE_WIDTH DT_PROP(DT_PATH(wings, wings1), min_pulse)
+#define PWM_SERVO_MAX_PULSE_WIDTH DT_PROP(DT_PATH(wings, wings1), max_pulse)
 
 // Motor specs (and compute the correct values)
-#define PWM_SERVO_MAX_RANGE DT_PROP(WINGS_1, max_angle)
+#define PWM_SERVO_MAX_RANGE DT_PROP(DT_PATH(wings, wings1), max_angle)
 #define PWM_SERVO_MAX_ANGLE (PWM_SERVO_MAX_RANGE / 2)
 #define PWM_SERVO_MIN_ANGLE (-PWM_SERVO_MAX_RANGE / 2)
 
