@@ -58,12 +58,6 @@ int main(void)
      * -----------------------------------------------------------------
      */
     int err = 0;
-    err -= INIT_CheckGPIO();
-    err -= INIT_CheckPWM();
-    err -= INIT_CheckUART();
-    err -= INIT_CheckI2C();
-    err -= INIT_CheckSPI();
-    err -= INIT_CheckUSB();
 
     if (err != 0)
     {
@@ -71,7 +65,13 @@ int main(void)
         return 0;
     }
 
-    int ret = GPIO_SetAsOutput(&peripheral_reset, 0);
+    // Fetch peripherals
+    gpio_dt_spec *peripheral_reset = INIT_GetAGPIO(GPIOS::PERIPHERAL_RESET);
+    pwm_dt_spec *pwm_wings = INIT_GetAPWM(PWMS::SERVOS);
+    pwm_dt_spec *pwm_rgb = INIT_GetAPWM(PWMS::RGB);
+
+    int ret = GPIO_SetAsOutput(peripheral_reset, 0);
+
     ret -= SAADC_Configure(&saadc_timer);
 
     if (ret < 0)
