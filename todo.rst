@@ -12,18 +12,18 @@ Drivers
 - Implement IIS2DPLC IO functions (and handle the two sensors !)
 - Build GNSS driver from provided ST examples and drivers
 
-------------
-Peripherals
-------------
-
-- Refactor initializer for Peripherals
-- Implement generic UART HAL
-- Implement generic I2C HAL
-- Implement generic SPI HAL
-
 -----------
 Threads
 -----------
 
 - Implement threading management and init
     - Broke some links, restore them !
+
+-----------
+SAADC
+-----------
+
+- Implement mean per channel (and output to dbg com port)
+- Python script to fetch every output and write it into a files
+- Find max Fs for 8 all channels ?
+    --> GBF ?
