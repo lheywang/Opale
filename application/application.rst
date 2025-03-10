@@ -2,7 +2,7 @@
 Application
 ================
 
-This folder contain all of the sources (.h and .c) files that are used by the application core.
+This folder contain all of the sources (.h and .c / .cpp) files that are used by the application core.
 
 ----------------
 Tasks

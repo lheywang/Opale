@@ -37,11 +37,11 @@
  * -----------------------------------------------------------------
  */
 
-// Sample rate of the ADC
+// Sample rate of the ADC (Trigger a sequencer every X us !)
 #define SAADC_CHANNEL_SAMPLE_RATE 1000 // us
 
-// Buffer settings
-#define SAADC_BUFFER_SIZE 2500 // 2.5 seconds
+// Buffer lengh. How many measures we want for EACH channels
+#define SAADC_BUFFER_SIZE 2400 // 2.5 seconds
 
 // Analog inputs settings
 #define SAADC_INPUT_COUNT 8
@@ -68,7 +68,7 @@ static nrfx_saadc_channel_t channels[SAADC_INPUT_COUNT] = {NRFX_SAADC_DEFAULT_CH
  * STORAGES BUFFERS
  * -----------------------------------------------------------------
  */
-static uint16_t saadc_buffer[2][SAADC_BUFFER_SIZE] = {0};
+static int16_t saadc_buffer[2][SAADC_BUFFER_SIZE] = {0};
 static uint32_t saadc_buffer_index = 0;
 
 /* -----------------------------------------------------------------

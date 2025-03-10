@@ -55,7 +55,7 @@
  */
 #define PWM_SERVO_LEN DT_PROP_LEN(DT_PATH(wings, wings1), pwms)
 #define PWM_RGB_LEN DT_PROP_LEN(DT_PATH(rgb, rgb1), pwms)
-#define EEPROM_NB DT_PROP_LEN(DT_PATH(soc, peripheral_40000000, spi_a000), cs_gpios)
+#define EEPROM_NB 1
 #define ACCEL_NB 2
 #define INPUTS_NB 3
 

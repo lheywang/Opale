@@ -112,7 +112,7 @@ int SAADC_Configure(nrfx_timer_t *Target_Timer)
         LOG_ERR("Failed to set the buffer 0: %08x", err);
         return -5;
     }
-    err = nrfx_saadc_buffer_set(saadc_buffer[0], SAADC_BUFFER_SIZE);
+    err = nrfx_saadc_buffer_set(saadc_buffer[1], SAADC_BUFFER_SIZE);
     if (err != NRFX_SUCCESS)
     {
         LOG_ERR("Failed to set the buffer 1: %08x", err);
@@ -198,9 +198,6 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
         int16_t min = INT16_MAX;
         int16_t current_value;
 
-        int16_t channels_data[SAADC_INPUT_COUNT][SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT] = {0};
-        int16_t sample_number = 0;
-
         for (int i = 0; i < p_event->data.done.size; i++)
         {
             current_value = ((int16_t *)(p_event->data.done.p_buffer))[i];
@@ -213,17 +210,11 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
             {
                 min = current_value;
             }
-
-            channels_data[i % SAADC_INPUT_COUNT][sample_number] = current_value;
-            if ((i % SAADC_INPUT_COUNT) == (SAADC_INPUT_COUNT - 1))
-                sample_number += 1;
         }
         average = average / p_event->data.done.size;
         LOG_INF("SAADC buffer at 0x%x filled with %d samples", (uint32_t)p_event->data.done.p_buffer, p_event->data.done.size);
         LOG_INF("AVG=%d, MIN=%d, MAX=%d", (int16_t)average, min, max);
 
-        for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
-            LOG_HEXDUMP_INF(channels_data[k], SAADC_BUFFER_SIZE / SAADC_INPUT_COUNT, "Channel data");
         break;
     }
     // Unknown event...

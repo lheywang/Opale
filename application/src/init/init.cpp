@@ -762,7 +762,7 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
 
             // Check that the device is working
             int err = 0;
-            for (uint8_t k = 0; k < PWM_SERVO_LEN; k++)
+            for (uint8_t k = 0; k < DT_PROP_LEN(DT_PATH(rgb, rgb1), pwms); k++)
             {
                 err -= CheckAPWM(&rgb[k]);
             }

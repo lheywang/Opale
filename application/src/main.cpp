@@ -57,7 +57,7 @@ int main(void)
      * PERIPHERALS INITS
      * -----------------------------------------------------------------
      */
-    // INIT_CheckUSB();
+    INIT_CheckUSB();
 
     // Fetch peripherals
     gpio_dt_spec *peripheral_reset = INIT_GetAGPIO(GPIOS::PERIPHERAL_RESET);
@@ -84,9 +84,9 @@ int main(void)
     ret += SERVO_SetPosition(pwm_wings, &Command);
 
     Color Command2 = {.red = 255,
-                      .green = 127,
-                      .blue = 0,
-                      .alpha = 100};
+                      .green = 255,
+                      .blue = 255,
+                      .alpha = 50};
 
     ret += RGB_SetColor(pwm_rgb, &Command2);
 
@@ -109,6 +109,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 2
         Command.east = -12.5;
@@ -117,6 +118,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 3
         Command.north = -90;
@@ -127,6 +129,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 4
         Command.east = -2.5;
@@ -135,6 +138,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 5
         Command.north = 90;
@@ -145,6 +149,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 6
         Command.east = 7.5;
@@ -153,6 +158,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 7
         Command.north = -90;
@@ -163,6 +169,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
+        GPIO_Toggle(peripheral_reset);
 
         // Command 8
         Command.east = 17.5;
@@ -171,11 +178,7 @@ int main(void)
         if (ret != 0)
             return 0;
         k_msleep(2500);
-
-        // Toggling a pin !
-        ret = GPIO_Toggle(peripheral_reset);
-        if (!ret)
-            return 0;
+        GPIO_Toggle(peripheral_reset);
     }
 }
 

@@ -27,6 +27,9 @@
 #include "../../config.h"
 #include "../../init/init.h"
 
+// STD
+#include <math.h>
+
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
  * -----------------------------------------------------------------
@@ -53,27 +56,27 @@ int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
 
     // Computing values$
     // pulse[0] = red, pulses[1] = green, pulses[2] = blue
-    int pulses[3] = {0};
+    float pulses[3] = {0};
 
     pulses[0] = Command->red;
     pulses[1] = Command->green;
     pulses[2] = Command->blue;
 
     // Apply the alpha value
-    pulses[0] *= (Command->alpha / 100);
-    pulses[1] *= (Command->alpha / 100);
-    pulses[2] *= (Command->alpha / 100);
+    pulses[0] *= (Command->alpha / 100.0);
+    pulses[1] *= (Command->alpha / 100.0);
+    pulses[2] *= (Command->alpha / 100.0);
 
     // Compute the pulses values
-    pulses[0] *= (PWM_RGB_PERIOD / 255);
-    pulses[1] *= (PWM_RGB_PERIOD / 255);
-    pulses[2] *= (PWM_RGB_PERIOD / 255);
+    pulses[0] *= (PWM_RGB_PERIOD / 255.0);
+    pulses[1] *= (PWM_RGB_PERIOD / 255.0);
+    pulses[2] *= (PWM_RGB_PERIOD / 255.0);
 
     // Configure the PWM engines
     int err = 0;
     for (uint8_t k = 0; k < 3; k++)
     {
-        err += pwm_set_dt(&Target[k], PWM_RGB_PERIOD, pulses[k]);
+        err += pwm_set_dt(&Target[k], PWM_RGB_PERIOD, (int)round(pulses[k]));
     }
 
     // End log, and return
