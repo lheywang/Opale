@@ -28,7 +28,7 @@
         };
 
         engine1: engine1{
-            gpios =     <&gpio0 22 GPIO_ACTIVE_HIGH>;
+            gpios =     <&gpio0 2 GPIO_ACTIVE_HIGH>; // 22 on the PCB
             label =     "Start signal for engine n1";
         };
 
