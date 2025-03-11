@@ -189,27 +189,56 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
     // The SAADC has filled a buffer.
     case nrfx_saadc_evt_type_t::NRFX_SAADC_EVT_DONE:
     {
-        int64_t average = 0;
-        int16_t max = INT16_MIN;
-        int16_t min = INT16_MAX;
-        int16_t current_value;
+        float averages[SAADC_INPUT_COUNT];
+        float minimals[SAADC_INPUT_COUNT];
+        float maximals[SAADC_INPUT_COUNT];
+
+        for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
+        {
+            averages[k] = 0.0;
+
+            minimals[k] = (float)INT16_MAX;
+            maximals[k] = (float)INT16_MIN;
+        }
+
+        int16_t current = 0;
 
         for (int i = 0; i < p_event->data.done.size; i++)
         {
-            current_value = ((int16_t *)(p_event->data.done.p_buffer))[i];
-            average += current_value;
-            if (current_value > max)
+            current = ((int16_t *)(p_event->data.done.p_buffer))[i];
+
+            int8_t chan = (i % SAADC_INPUT_COUNT);
+            averages[chan] += (float)current;
+
+            if (current > maximals[chan])
             {
-                max = current_value;
+                maximals[chan] = (float)current;
             }
-            if (current_value < min)
+            if (current < minimals[chan])
             {
-                min = current_value;
+                minimals[chan] = (float)current;
             }
         }
-        average = average / p_event->data.done.size;
+
+        for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
+        {
+            averages[k] = averages[k] / (p_event->data.done.size / SAADC_INPUT_COUNT);
+            averages[k] = averages[k] * (3.3 / 4096.0);
+
+            minimals[k] = minimals[k] * (3.3 / 4096.0);
+            maximals[k] = maximals[k] * (3.3 / 4096.0);
+        }
+
         LOG_INF("SAADC buffer at 0x%x filled with %d samples", (uint32_t)p_event->data.done.p_buffer, p_event->data.done.size);
-        LOG_INF("AVG=%d, MIN=%d, MAX=%d", (int16_t)average, min, max);
+        for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
+        {
+            LOG_INF("Channel %d (Pin %d) has : average %.3f, min %.3f, max %.3f",
+                    k,
+                    channels[k].pin_p,
+                    averages[k],
+                    minimals[k],
+                    maximals[k]);
+        }
 
         break;
     }

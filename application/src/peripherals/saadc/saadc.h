@@ -41,7 +41,7 @@
 #define SAADC_CHANNEL_SAMPLE_RATE 1000 // us
 
 // Buffer lengh. How many measures we want for EACH channels
-#define SAADC_BUFFER_SIZE 2400 // 2.5 seconds
+#define SAADC_BUFFER_SIZE 120 // 2.5 seconds
 
 // Analog inputs settings
 #define SAADC_INPUT_COUNT 8

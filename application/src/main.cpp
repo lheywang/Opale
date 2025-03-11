@@ -97,8 +97,6 @@ int main(void)
 
     while (1)
     {
-        LOG_INF("New cycle started !");
-        k_yield();
 
         // Command 1
         Command.north = 90;
@@ -106,8 +104,7 @@ int main(void)
         Command.east = -17.5;
         Command.west = -50;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : 90° \n- South : 45°\n- East  : -17.5°\n- West  : -50°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -115,8 +112,7 @@ int main(void)
         Command.east = -12.5;
         Command.west = -10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : 90° \n- South : 45°\n- East  : -12.5°\n- West  : -10°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -126,8 +122,7 @@ int main(void)
         Command.east = -7.5;
         Command.west = -30;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : -90° \n- South : -45°\n- East  : -7.5°\n- West  : -30°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -135,8 +130,7 @@ int main(void)
         Command.east = -2.5;
         Command.west = 10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : -90° \n- South : -45°\n- East  : -2.5°\n- West  : 10°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -144,10 +138,9 @@ int main(void)
         Command.north = 90;
         Command.south = 45;
         Command.east = 2.5;
-        Command.west = 10;
+        Command.west = -10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : 90° \n- South : 45°\n- East  : 2.5°\n- West  : -10°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -155,8 +148,7 @@ int main(void)
         Command.east = 7.5;
         Command.west = 30;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : 90° \n- South : 45°\n- East  : 7.5°\n- West  : 30°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -166,8 +158,7 @@ int main(void)
         Command.east = 12.5;
         Command.west = 10;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : -90° \n- South : -45°\n- East  : 12.5°\n- West  : 10°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
 
@@ -175,8 +166,7 @@ int main(void)
         Command.east = 17.5;
         Command.west = 50;
         ret += SERVO_SetPosition(pwm_wings, &Command);
-        if (ret != 0)
-            return 0;
+        LOG_INF("Configured engines to : \n- North : -90° \n- South : -45°\n- East  : 17.5°\n- West  : 50°\n\n");
         k_msleep(2500);
         GPIO_Toggle(peripheral_reset);
     }
