@@ -174,15 +174,10 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
     nrfx_err_t err;
     switch (p_event->type)
     {
-    // Buffer has been initialized, we're ready. Then, we start the timer !
-
     // The SAADC need a new buffer
-    case NRFX_SAADC_EVT_BUF_REQ:
+    case nrfx_saadc_evt_type_t::NRFX_SAADC_EVT_BUF_REQ:
     {
-
-        /* STEP 5.2 - Set up the next available buffer. Alternate between buffer 0 and 1 */
         err = nrfx_saadc_buffer_set(saadc_buffer[(saadc_buffer_index++) % 2], SAADC_BUFFER_SIZE);
-        // err = nrfx_saadc_buffer_set(saadc_sample_buffer[((saadc_current_buffer == 0 )? saadc_current_buffer++ : 0)], SAADC_BUFFER_SIZE);
         if (err != NRFX_SUCCESS)
         {
             LOG_ERR("nrfx_saadc_buffer_set error: %08x", err);
@@ -190,9 +185,10 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
         }
         break;
     }
-    case NRFX_SAADC_EVT_DONE:
+
+    // The SAADC has filled a buffer.
+    case nrfx_saadc_evt_type_t::NRFX_SAADC_EVT_DONE:
     {
-        /* STEP 5.3 - Buffer has been filled. Do something with the data and proceed */
         int64_t average = 0;
         int16_t max = INT16_MIN;
         int16_t min = INT16_MAX;
@@ -217,6 +213,7 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
 
         break;
     }
+
     // Unknown event...
     default:
     {
