@@ -13,10 +13,14 @@ Edited by l.heywang in 2025 to make it compatible with nRF (Zephyr) API.
 
 // Zephyr
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
 
 // init lib
 #include "../../init/init.h"
+#include "../../config.h"
+
+LOG_MODULE_REGISTER(MS5611, PROJECT_LOG_LEVEL);
 
 constexpr uint8_t OSR = 3; // 0-3
 constexpr uint8_t CMD_RESET = 0x1E;
@@ -44,7 +48,7 @@ MS5611::MS5611()
         _C[k] = 69;
 
     // Fetch the associated device on the DT
-    i2c_dt_spec dev DEV_STRUCT = *INIT_GetAnI2C(I2CS::BAROMETER);
+    this->dev = *INIT_GetAnI2C(I2CS::BAROMETER);
 
     begin();
 }
@@ -159,7 +163,11 @@ void MS5611::getCalibration(uint16_t *C)
 void MS5611::sendCommand(uint8_t cmd)
 {
     // Replaced with the zephyr call
-    i2c_write_dt(&(this->dev), &cmd, sizeof(cmd));
+    int ret = i2c_write_dt(&this->dev, &cmd, sizeof(cmd));
+    if (ret != 0)
+    {
+        LOG_ERR("I2C Write failed ! Error code : %d", ret);
+    }
     return;
 }
 
@@ -173,7 +181,11 @@ uint32_t MS5611::readnBytes(const uint8_t *cmd, uint8_t wlen, uint8_t rlen)
     memset(rbuf, 0, rlen);
 
     // Read bytes
-    *rbuf = i2c_write_read_dt(&(this->dev), cmd, wlen, rbuf, rlen);
+    int ret = i2c_write_read_dt(&this->dev, cmd, wlen, rbuf, rlen);
+    if (ret != 0)
+    {
+        LOG_ERR("I2C Write failed ! Error code : %d", ret);
+    }
 
     int data = 0;
     for (int8_t k = rlen - 1; k >= 0; k--)
@@ -186,6 +198,10 @@ void MS5611::reset()
 {
     // Replaced with the zephyr call
     const uint8_t buf = CMD_RESET;
-    i2c_write_dt(&dev, &buf, 1);
+    int ret = i2c_write_dt(&dev, &buf, 1);
+    if (ret != 0)
+    {
+        LOG_ERR("I2C Write failed ! Error code : %d", ret);
+    }
     return;
 }

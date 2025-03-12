@@ -133,7 +133,7 @@ typedef enum
  *
  * @return  gpio_dt_spec    Pointer to a struct that design THIS gpio !
  */
-gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
+struct gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
 
 /**
  * @brief   This function de-allocate a GPIO, making it available for a further usage !
@@ -146,7 +146,7 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
  *
  * @return  Nothing
  */
-void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO);
+void INIT_FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO);
 
 /**
  * @brief   This function initialize a PWM, test it and return it for the user.
@@ -158,7 +158,7 @@ void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO);
  *
  * @return  pwm_dt_spec     Pointer to a struct that design THIS gpio !
  */
-pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
+struct pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
 
 /**
  * @brief   This function de-allocate a PWM, making it available for a further usage !
@@ -171,7 +171,7 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
  *
  * @return  Nothing
  */
-void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM);
+void INIT_FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
@@ -183,7 +183,7 @@ void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM);
  *
  * @return  spi_dt_spec     Pointer to a struct that design THIS gpio !
  */
-spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
+struct spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
 
 /**
  * @brief   This function de-allocate a SPIS, making it available for a further usage !
@@ -196,7 +196,7 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
  *
  * @return  Nothing
  */
-void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI);
+void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
@@ -208,7 +208,7 @@ void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI);
  *
  * @return  i2c_dt_spec     Pointer to a struct that design THIS gpio !
  */
-i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
+struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
 
 /**
  * @brief   This function de-allocate a I2C device, making it available for a further usage !
@@ -221,7 +221,7 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
  *
  * @return  Nothing
  */
-void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
+void INIT_FreeAnI2C(I2CS Dev, struct i2c_dt_spec *I2C);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
@@ -233,7 +233,7 @@ void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
  *
  * @return  device  Pointer to a struct that design THIS gpio !
  */
-const device *INIT_GetAnUART(UARTS Dev);
+const struct device *INIT_GetAnUART(UARTS Dev);
 
 /**
  * @brief   This function de-allocate a UART, making it available for a further usage !
@@ -246,7 +246,7 @@ const device *INIT_GetAnUART(UARTS Dev);
  *
  * @return  Nothing
  */
-void INIT_FreeAnUART(UARTS Dev, device *UART);
+void INIT_FreeAnUART(UARTS Dev, struct device *UART);
 /**
  * @brief   This function check the USB peripheral and initialize it.
  *          The USB port is then initialized as a virtual com port, and

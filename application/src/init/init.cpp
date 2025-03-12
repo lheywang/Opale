@@ -40,24 +40,6 @@
 LOG_MODULE_REGISTER(Initializer, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
- * LOCALS DEFINE
- * -----------------------------------------------------------------
- */
-// Needed, otherwise some unknow faults may come
-// SPI
-#define __INIT__EEPROM0 DT_NODELABEL(eeprom0)
-
-// I2C
-#define __INIT__ACCEL0 DT_NODELABEL(accelerometer0)
-#define __INIT__ACCEL1 DT_NODELABEL(accelerometer1)
-#define __INIT__BAROM0 DT_NODELABEL(barometer0)
-#define __INIT__EXPA0 DT_NODELABEL(expander0)
-
-// UARTS
-#define __INIT__GPS0 DT_NODELABEL(uart2)
-#define __INIT__IMU0 DT_NODELABEL(uart1)
-
-/* -----------------------------------------------------------------
  * PRIVATES FUNCTIONS (For a single peripheral instance)
  * -----------------------------------------------------------------
  */
@@ -87,7 +69,7 @@ int CheckAGPIO(const struct gpio_dt_spec *Target)
     }
 
     // Shall not get here...
-    return 0xdeadbeef;
+    return 0;
 }
 
 int CheckAPWM(const struct pwm_dt_spec *Target)
@@ -115,7 +97,7 @@ int CheckAPWM(const struct pwm_dt_spec *Target)
     }
 
     // Shall not get here...
-    return 0xdeadbeef;
+    return 0;
 }
 
 int CheckAnUART(const struct device *Target)
@@ -143,10 +125,10 @@ int CheckAnUART(const struct device *Target)
     }
 
     // Shall not get here...
-    return 0xdeadbeef;
+    return 0;
 }
 
-int CheckAnI2C(const struct i2c_dt_spec *Target)
+int CheckAnI2C(struct i2c_dt_spec *Target)
 {
     for (uint8_t k = 0; k < INIT_MAX_TRY; k++)
     {
@@ -171,7 +153,7 @@ int CheckAnI2C(const struct i2c_dt_spec *Target)
     }
 
     // Shall not get here...
-    return 0xdeadbeef;
+    return 0;
 }
 
 int CheckAnSPI(const struct spi_dt_spec *Target)
@@ -205,7 +187,7 @@ int CheckAnSPI(const struct spi_dt_spec *Target)
     }
 
     // Shall not get here...
-    return 0xdeadbeef;
+    return 0;
 }
 
 /* -----------------------------------------------------------------
@@ -252,19 +234,19 @@ static bool _IsTimer3Initialized = false;
  * -----------------------------------------------------------------
  */
 
-gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
+struct gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
 {
     // Switch over each GPIOS
     // We can't generlize due to the usage of macros by Zephyr kernel
     switch (Pin)
     {
     case GPIOS::PERIPHERAL_RESET:
-
+    {
         // First, check that the device was effectively free
         if (!_IsPeripheralResetInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *p_rst = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *p_rst = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (p_rst == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for peripheral reset GPIO structure");
@@ -291,14 +273,15 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::MODE:
-
+    {
         // First, check that the device was effectively free
         if (!_IsModeInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *mode = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *mode = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (mode == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for rocket mode GPIO structure");
@@ -325,14 +308,15 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::LATCH:
-
+    {
         // First, check that the device was effectively free
         if (!_IsLatchInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *p_latch = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *p_latch = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (p_latch == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for rocket latch GPIO structure");
@@ -359,9 +343,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::ENGINES:
-
+    {
 #if (PWM_SERVO_LEN != 4)
 #error "There is not 4 servo engines. Their init may fail !"
 #endif
@@ -370,7 +355,7 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
         if (!_IsEnginesInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *engine = (gpio_dt_spec *)k_malloc(PWM_SERVO_LEN * sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *engine = (gpio_dt_spec *)k_malloc(PWM_SERVO_LEN * sizeof(gpio_dt_spec));
             if (engine == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for engines control GPIO structure");
@@ -406,14 +391,15 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::IMU_BOOTSTATUS:
-
+    {
         // First, check that the device was effectively free
         if (!_IsImuBootStatusInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *btstat = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *btstat = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (btstat == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for IMU boot GPIO structure");
@@ -440,14 +426,15 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::IMU_ACTSTATUS:
-
+    {
         // First, check that the device was effectively free
         if (!_IsImuActStatusInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *actstat = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *actstat = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (actstat == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for IMU status GPIO structure");
@@ -474,14 +461,15 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::IMU_INT:
-
+    {
         // First, check that the device was effectively free
         if (!_IsImuIntInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *imunit = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *imunit = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (imunit == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for IMU int GPIO structure");
@@ -508,14 +496,15 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::GPS_INT:
-
+    {
         // First, check that the device was effectively free
         if (!_IsGpsIntInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *gpsint = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *gpsint = (gpio_dt_spec *)k_malloc(sizeof(gpio_dt_spec));
             if (gpsint == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for IMU int GPIO structure");
@@ -542,9 +531,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::ACCEL_INT:
-
+    {
 #if (ACCEL_NB != 2)
 #error "Accelerometer number shall be 2 to ensure a correct initialization !"
 #endif
@@ -553,7 +543,7 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
         if (!_IsAccelIntInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *accel = (gpio_dt_spec *)k_malloc(ACCEL_NB * sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *accel = (gpio_dt_spec *)k_malloc(ACCEL_NB * sizeof(gpio_dt_spec));
             if (accel == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for Accels int GPIO structure");
@@ -587,9 +577,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
             return nullptr;
         }
         break;
+    }
 
     case GPIOS::INPUTS:
-
+    {
 #if (INPUTS_NB != 3)
 #error "Input number shall be equal to three to ensure a correct initialization of the gpios !"
 #endif
@@ -598,7 +589,7 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
         if (!_IsInputsInitialized)
         {
             // Allocate memory, and check
-            gpio_dt_spec *inp = (gpio_dt_spec *)k_malloc(INPUTS_NB * sizeof(gpio_dt_spec));
+            struct gpio_dt_spec *inp = (gpio_dt_spec *)k_malloc(INPUTS_NB * sizeof(gpio_dt_spec));
             if (inp == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for Inputs GPIO structure");
@@ -634,11 +625,12 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
         }
         break;
     }
+    }
 
     // Can't get this, but who knows...
     return nullptr;
 }
-void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO)
+void INIT_FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO)
 {
     // First, set as High Z
     gpio_pin_configure_dt(GPIO, GPIO_DISCONNECTED);
@@ -647,65 +639,75 @@ void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO)
     switch (Pin)
     {
     case GPIOS::PERIPHERAL_RESET:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsPeripheralResetInitialized = false;
         break;
+    }
     case GPIOS::MODE:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsModeInitialized = false;
         break;
+    }
     case GPIOS::LATCH:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsLatchInitialized = false;
         break;
+    }
     case GPIOS::ENGINES:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsEnginesInitialized = false;
         break;
+    }
     case GPIOS::IMU_BOOTSTATUS:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsImuBootStatusInitialized = false;
         break;
+    }
     case GPIOS::IMU_ACTSTATUS:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsImuActStatusInitialized = false;
         break;
+    }
     case GPIOS::IMU_INT:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsImuIntInitialized = false;
         break;
+    }
     case GPIOS::GPS_INT:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsGpsIntInitialized = false;
         break;
+    }
     case GPIOS::INPUTS:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsInputsInitialized = false;
         break;
+    }
     case GPIOS::ACCEL_INT:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsAccelIntInitialized = false;
         break;
+    }
     }
 
     // Free memory
@@ -713,12 +715,13 @@ void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO)
     return;
 }
 
-pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
+struct pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
 {
     switch (Dev)
     {
 
     case PWMS::SERVOS:
+    {
 #if (PWM_SERVO_LEN != 4)
 #error "Not enough Servos engines PWM channels were found on the device tree !"
 #endif
@@ -726,7 +729,7 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
         if (!_IsServoInitialized)
         {
             // Allocate memory, and check
-            pwm_dt_spec *pwm = (pwm_dt_spec *)k_malloc(PWM_SERVO_LEN * sizeof(pwm_dt_spec));
+            struct pwm_dt_spec *pwm = (pwm_dt_spec *)k_malloc(PWM_SERVO_LEN * sizeof(pwm_dt_spec));
             if (pwm == nullptr)
             {
                 LOG_ERR("Failed to allocate enough memory for the PWM Servo structure !");
@@ -762,8 +765,10 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             return nullptr;
         }
         break;
+    }
 
     case PWMS::RGB:
+    {
 #if (DT_PROP_LEN(DT_PATH(rgb, rgb1), pwms) != 3)
 #error "Not enough RGB PWM channels were found on the device tree !"
 #endif
@@ -771,7 +776,7 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
         if (!_IsRGBInitialized)
         {
             // Allocate memory, and check
-            pwm_dt_spec *rgb = (pwm_dt_spec *)k_malloc(DT_PROP_LEN(DT_PATH(rgb, rgb1), pwms) * sizeof(pwm_dt_spec));
+            struct pwm_dt_spec *rgb = (pwm_dt_spec *)k_malloc(DT_PROP_LEN(DT_PATH(rgb, rgb1), pwms) * sizeof(pwm_dt_spec));
             if (rgb == nullptr)
             {
                 LOG_ERR("Failed to allocate enough memory for the PWM RGB structure !");
@@ -806,13 +811,14 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             return nullptr;
         }
         break;
+    }
 
     case PWMS::PARACHUTE:
-        // First, check that the device was effectively free
+    { // First, check that the device was effectively free
         if (!_IsParachuteInitialized)
         {
             // Allocate memory, and check
-            pwm_dt_spec *para = (pwm_dt_spec *)k_malloc(sizeof(pwm_dt_spec));
+            struct pwm_dt_spec *para = (pwm_dt_spec *)k_malloc(sizeof(pwm_dt_spec));
             if (para == nullptr)
             {
                 LOG_ERR("Failed to allocate enough memory for the PWM RGB structure !");
@@ -841,13 +847,14 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
             return nullptr;
         }
         break;
+    }
 
     case PWMS::BUZZER:
-        // First, check that the device was effectively free
+    { // First, check that the device was effectively free
         if (!_IsBuzzerInitialized)
         {
             // Allocate memory, and check
-            pwm_dt_spec *buzz = (pwm_dt_spec *)k_malloc(sizeof(pwm_dt_spec));
+            struct pwm_dt_spec *buzz = (pwm_dt_spec *)k_malloc(sizeof(pwm_dt_spec));
             if (buzz == nullptr)
             {
                 LOG_ERR("Failed to allocate enough memory for the PWM RGB structure !");
@@ -877,11 +884,12 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
         }
         break;
     }
+    }
 
     return nullptr;
 }
 
-void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM)
+void INIT_FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM)
 {
     // First, set as inactive !
     pwm_set(PWM->dev,
@@ -894,29 +902,33 @@ void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM)
     switch (Dev)
     {
     case PWMS::SERVOS:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsServoInitialized = false;
         break;
+    }
     case PWMS::RGB:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsRGBInitialized = false;
         break;
+    }
     case PWMS::BUZZER:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsBuzzerInitialized = false;
         break;
+    }
     case PWMS::PARACHUTE:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsParachuteInitialized = false;
         break;
+    }
     }
 
     // Free memory
@@ -924,16 +936,16 @@ void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM)
     return;
 }
 
-spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
+struct spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
 {
     switch (Dev)
     {
     case SPIS::EEPROM:
-        // First, check that the device was effectively free
+    { // First, check that the device was effectively free
         if (!_IsEepromInitialzed)
         {
             // Allocate memory, and check
-            spi_dt_spec *eep = (spi_dt_spec *)k_malloc(sizeof(spi_dt_spec));
+            struct spi_dt_spec *eep = (spi_dt_spec *)k_malloc(sizeof(spi_dt_spec));
             if (eep == nullptr)
             {
                 LOG_ERR("Failed to allocate enough memory for the SPI EEPROM structure !");
@@ -941,7 +953,7 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
             }
 
             // Fill this memory with the device infos
-            *eep = SPI_DT_SPEC_GET(__INIT__EEPROM0,
+            *eep = SPI_DT_SPEC_GET(DT_NODELABEL(eeprom0),
                                    SPI_WORD_SET(8) | SPI_TRANSFER_MSB,
                                    0);
 
@@ -965,22 +977,24 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
         }
         break;
     }
+    }
 
     // Shall never get here !
     return nullptr;
 }
 
-void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI)
+void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI)
 {
     // no shutdown procedure here...
     switch (Dev)
     {
     case SPIS::EEPROM:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsEepromInitialzed = false;
         break;
+    }
     }
 
     // Free mem
@@ -988,17 +1002,18 @@ void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI)
     return;
 }
 
-i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
+struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
 {
     switch (Dev)
     {
     case I2CS::ACCELEROMETERS:
+    {
 
         // First, check that the device was effectively free
         if (!_IsAccelerometersInitialized)
         {
             // Allocate memory, and check
-            i2c_dt_spec *accel = (i2c_dt_spec *)k_malloc(ACCEL_NB * sizeof(i2c_dt_spec));
+            struct i2c_dt_spec *accel = (i2c_dt_spec *)k_malloc(ACCEL_NB * sizeof(i2c_dt_spec));
             if (accel == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for the I2C accelerometers structure");
@@ -1006,8 +1021,8 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             }
 
             // Fill this memory with the device infos
-            accel[0] = I2C_DT_SPEC_GET(__INIT__ACCEL1);
-            accel[1] = I2C_DT_SPEC_GET(__INIT__ACCEL1);
+            accel[0] = I2C_DT_SPEC_GET(DT_NODELABEL(accelerometer0));
+            accel[1] = I2C_DT_SPEC_GET(DT_NODELABEL(accelerometer1));
 
             // Check that the device is working
             int err = 0;
@@ -1031,22 +1046,23 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             return nullptr;
         }
         break;
+    }
 
     case I2CS::BAROMETER:
+    {
 
         // First, check that the device was effectively free
         if (!_IsBarometerInitialized)
         {
             // Allocate memory, and check
-            i2c_dt_spec *barom = (i2c_dt_spec *)k_malloc(sizeof(i2c_dt_spec));
+            struct i2c_dt_spec *barom = (i2c_dt_spec *)k_malloc(sizeof(i2c_dt_spec));
             if (barom == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for barometer I2C structure");
                 return nullptr;
             }
 
-            // Fill this memory with the device infos
-            *barom = I2C_DT_SPEC_GET(__INIT__BAROM0);
+            *barom = I2C_DT_SPEC_GET(DT_NODELABEL(barometer0));
 
             // Check that the device is working
             int err = CheckAnI2C(barom);
@@ -1065,14 +1081,15 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             return nullptr;
         }
         break;
+    }
 
     case I2CS::EXPANDER:
-
+    {
         // First, check that the device was effectively free
         if (!_IsExpanderInitialized)
         {
             // Allocate memory, and check
-            i2c_dt_spec *expa = (i2c_dt_spec *)k_malloc(sizeof(i2c_dt_spec));
+            struct i2c_dt_spec *expa = (i2c_dt_spec *)k_malloc(sizeof(i2c_dt_spec));
             if (expa == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for barometer I2C structure");
@@ -1080,7 +1097,7 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             }
 
             // Fill this memory with the device infos
-            *expa = I2C_DT_SPEC_GET(__INIT__EXPA0);
+            *expa = I2C_DT_SPEC_GET(DT_NODELABEL(expander0));
 
             // Check that the device is working
             int err = CheckAnI2C(expa);
@@ -1100,35 +1117,39 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
         }
         break;
     }
+    }
 
     // Shall not get here, but anyway...
     return nullptr;
 }
-void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C)
+void INIT_FreeAnI2C(I2CS Dev, struct i2c_dt_spec *I2C)
 {
     // Update status of the I2C device
     switch (Dev)
     {
     case I2CS::ACCELEROMETERS:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsAccelerometersInitialized = false;
         break;
+    }
 
     case I2CS::BAROMETER:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsBarometerInitialized = false;
         break;
+    }
 
     case I2CS::EXPANDER:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsExpanderInitialized = false;
         break;
+    }
     }
 
     // Freed memory
@@ -1136,17 +1157,17 @@ void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C)
     return;
 }
 
-const device *INIT_GetAnUART(UARTS Dev)
+const struct device *INIT_GetAnUART(UARTS Dev)
 {
     switch (Dev)
     {
     case UARTS::GPS:
-
+    {
         // First, check that the device was effectively free
         if (!_IsGPSInitialized)
         {
             // Allocate memory, and check
-            const device *p_gps = (device *)k_malloc(sizeof(device));
+            const struct device *p_gps = (device *)k_malloc(sizeof(device));
             if (p_gps == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for GPS UART structure");
@@ -1154,7 +1175,7 @@ const device *INIT_GetAnUART(UARTS Dev)
             }
 
             // Fill this memory with the device infos
-            p_gps = DEVICE_DT_GET(__INIT__GPS0);
+            p_gps = DEVICE_DT_GET(DT_NODELABEL(uart2));
 
             // Check that the device is working
             int err = CheckAnUART(p_gps);
@@ -1173,14 +1194,15 @@ const device *INIT_GetAnUART(UARTS Dev)
             return nullptr;
         }
         break;
+    }
 
     case UARTS::IMU:
-
+    {
         // First, check that the device was effectively free
         if (!_IsIMUInitialized)
         {
             // Allocate memory, and check
-            const device *p_imu = (device *)k_malloc(sizeof(device));
+            const struct device *p_imu = (device *)k_malloc(sizeof(device));
             if (p_imu == nullptr)
             {
                 LOG_ERR("Failed to allocate memory for IMU UART structure");
@@ -1188,7 +1210,7 @@ const device *INIT_GetAnUART(UARTS Dev)
             }
 
             // Fill this memory with the device infos
-            p_imu = DEVICE_DT_GET(__INIT__IMU0);
+            p_imu = DEVICE_DT_GET(DT_NODELABEL(uart1));
 
             // Check that the device is working
             int err = CheckAnUART(p_imu);
@@ -1208,28 +1230,31 @@ const device *INIT_GetAnUART(UARTS Dev)
         }
         break;
     }
+    }
 
     // Shall not get here, but anyway...
     return nullptr;
 }
 
-void INIT_FreeAnUART(UARTS Dev, device *UART)
+void INIT_FreeAnUART(UARTS Dev, struct device *UART)
 {
     switch (Dev)
     {
     case UARTS::GPS:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsGpsIntInitialized = false;
         break;
+    }
 
     case UARTS::IMU:
-        /*
-         * Add here your de-init code !
-         */
+    { /*
+       * Add here your de-init code !
+       */
         _IsIMUInitialized = false;
         break;
+    }
     }
 
     // Free memory and exit
@@ -1249,7 +1274,7 @@ nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
     switch (Dev)
     {
     case TIMERS::TIMER0:
-        // First, check that the device was effectively free
+    { // First, check that the device was effectively free
         if (!_IsTimer1Initialized)
         {
             // Allocate memory, and check
@@ -1274,9 +1299,10 @@ nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
             return nullptr;
         }
         break;
+    }
 
     case TIMERS::TIMER1:
-        // First, check that the device was effectively free
+    { // First, check that the device was effectively free
         if (!_IsTimer2Initialized)
         {
             // Allocate memory, and check
@@ -1301,9 +1327,10 @@ nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
             return nullptr;
         }
         break;
+    }
 
     case TIMERS::SAADC_TIMER:
-        // First, check that the device was effectively free
+    { // First, check that the device was effectively free
         if (!_IsTimer3Initialized)
         {
             // Allocate memory, and check
@@ -1329,6 +1356,7 @@ nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
         }
         break;
     }
+    }
 
     // Shall not get here, but anyway...
     return nullptr;
@@ -1340,19 +1368,24 @@ void INIT_FreeATimer(TIMERS Dev, nrfx_timer_t *Timer)
     switch (Dev)
     {
     case TIMERS::TIMER0:
+    {
         nrfx_timer_disable(Timer);
         _IsTimer1Initialized = false;
         break;
-
+    }
     case TIMERS::TIMER1:
+    {
         nrfx_timer_disable(Timer);
         _IsTimer2Initialized = false;
         break;
+    }
 
     case TIMERS::SAADC_TIMER:
+    {
         nrfx_timer_disable(Timer);
         _IsTimer3Initialized = false;
         break;
+    }
     }
 
     // Free memory and exit
