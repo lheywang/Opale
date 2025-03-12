@@ -56,7 +56,7 @@ int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
 
     // Computing values$
     // pulse[0] = red, pulses[1] = green, pulses[2] = blue
-    float pulses[3] = {0};
+    double pulses[3] = {0};
 
     pulses[0] = Command->red;
     pulses[1] = Command->green;

@@ -46,8 +46,14 @@ LOG_MODULE_REGISTER(SAADC, PROJECT_LOG_LEVEL);
  * -----------------------------------------------------------------
  */
 
-int SAADC_Configure(nrfx_timer_t *Target_Timer)
+int SAADC_Configure()
 {
+    // Fetch the timer
+    nrfx_timer_t *Target_Timer = INIT_GetATimer(TIMERS::SAADC_TIMER);
+
+    // Initialize variables (and remove warnings)
+    saadc_buffer_index = 0;
+    memset(saadc_buffer, 0, 2 * SAADC_BUFFER_SIZE);
     int err = 0;
 
     // First, configure the timer to default settings
@@ -163,13 +169,7 @@ int SAADC_Configure(nrfx_timer_t *Target_Timer)
     return 0;
 }
 
-int SAADC_Stop(nrfx_timer_t *Target_Timer)
-{
-    nrfx_timer_disable(Target_Timer);
-    return 0;
-}
-
-static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
+void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
 {
     nrfx_err_t err;
     switch (p_event->type)
@@ -189,16 +189,16 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
     // The SAADC has filled a buffer.
     case nrfx_saadc_evt_type_t::NRFX_SAADC_EVT_DONE:
     {
-        float averages[SAADC_INPUT_COUNT];
-        float minimals[SAADC_INPUT_COUNT];
-        float maximals[SAADC_INPUT_COUNT];
+        double averages[SAADC_INPUT_COUNT];
+        double minimals[SAADC_INPUT_COUNT];
+        double maximals[SAADC_INPUT_COUNT];
 
         for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
         {
             averages[k] = 0.0;
 
-            minimals[k] = (float)INT16_MAX;
-            maximals[k] = (float)INT16_MIN;
+            minimals[k] = (double)INT16_MAX;
+            maximals[k] = (double)INT16_MIN;
         }
 
         int16_t current = 0;
@@ -208,15 +208,15 @@ static void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
             current = ((int16_t *)(p_event->data.done.p_buffer))[i];
 
             int8_t chan = (i % SAADC_INPUT_COUNT);
-            averages[chan] += (float)current;
+            averages[chan] += (double)current;
 
             if (current > maximals[chan])
             {
-                maximals[chan] = (float)current;
+                maximals[chan] = (double)current;
             }
             if (current < minimals[chan])
             {
-                minimals[chan] = (float)current;
+                minimals[chan] = (double)current;
             }
         }
 
