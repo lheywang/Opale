@@ -46,11 +46,8 @@
 // Number of try before declaring peripheral out.
 #define INIT_MAX_TRY 3
 
-// Timers
-#define SAADC_TIMER_NUMBER 2 // Timer2 will be used for the SAADC sampling triggering.
-
 /* -----------------------------------------------------------------
- * DEVICETREE PARAMETERS FETCHING
+ * DEVICETREE PARAMETERS FETCHING FOR OTHER FILE USAGE
  * -----------------------------------------------------------------
  */
 #define PWM_SERVO_LEN DT_PROP_LEN(DT_PATH(wings, wings1), pwms)
@@ -58,6 +55,16 @@
 #define EEPROM_NB 1
 #define ACCEL_NB 2
 #define INPUTS_NB 3
+
+/* -----------------------------------------------------------------
+ * PROJECT CUSTOM ATTRIBUTES
+ * -----------------------------------------------------------------
+ */
+
+// Declare a variable as unused, but used anyway...
+#define ISR_ONLY_VARIABLE __attribute__((unused))
+#define ISR_CALLBACK __attribute__((unused))
+#define DEV_STRUCT __attribute__((unused))
 
 /* -----------------------------------------------------------------
  * ENUMS
@@ -104,16 +111,15 @@ typedef enum
     EXPANDER
 } I2CS;
 
-/* -----------------------------------------------------------------
- * FETCHING C STRUCTS THAT DESCRIBE EACH PERIPHERALS
- * -----------------------------------------------------------------
- */
+typedef enum
+{
+    TIMER0,
+    TIMER1,
+    SAADC_TIMER
+} TIMERS;
 
-// Timers
-static nrfx_timer_t saadc_timer = NRFX_TIMER_INSTANCE(SAADC_TIMER_NUMBER);
-
 /* -----------------------------------------------------------------
- * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
+ * FUNCTIONS TO GET HANDLER OF PERIPHERALS
  * -----------------------------------------------------------------
  */
 
@@ -137,6 +143,8 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
  *
  * @param   GPIO    A meùber of the GPIO enum, to free it's associated soft-lock
  * @param   Pin     A pointer to a gpio_dt_spec struct to be freed
+ *
+ * @return  Nothing
  */
 void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO);
 
@@ -160,6 +168,8 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
  *
  * @param   Dev     A pointer to a pwm_dt_spec struct to be freed
  * @param   PWM     A meber of the PWMS enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
 void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM);
 
@@ -183,6 +193,8 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
  *
  * @param   Dev     A pointer to a spi_dt_spec struct to be freed
  * @param   SPI     A meber of the GPIO enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
 void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI);
 
@@ -206,6 +218,8 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
  *
  * @param   Dev     A pointer to a i2c_dt_spec struct to be freed
  * @param   I2C     A member of the I2CS enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
 void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
 
@@ -229,6 +243,8 @@ const device *INIT_GetAnUART(UARTS Dev);
  *
  * @param   Dev     A pointer to a device struct to be freed
  * @param   UART    A member of the UART enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
 void INIT_FreeAnUART(UARTS Dev, device *UART);
 /**
@@ -240,5 +256,27 @@ void INIT_FreeAnUART(UARTS Dev, device *UART);
  * @return -1   Fail
  */
 int INIT_CheckUSB();
+
+/**
+ * @brief   This function return an instance of a timer in the nRFX driver mode.
+ *
+ * @param   Dev A member of the TIMERS enum to describe the right timer
+ *
+ * @return  nrfx_timer_t    Pointer to a struct that design THIS gpio !
+ */
+nrfx_timer_t *INIT_GetATimer(TIMERS Dev);
+
+/**
+ * @brief   This function de-allocate a Timer, making it available for a further usage !
+ *
+ * @warning The soft lock is only cleared by it's name, passing an incorrect reference may free
+ *          another memory struct while maintaining the GPIO soft-locked !
+ *
+ * @param   Dev     A pointer to a nrfx_timer_t struct to be freed
+ * @param   UART    A member of the TIMERS enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
+ */
+void INIT_FreeATimer(TIMERS Dev, nrfx_timer_t *Timer);
 
 #endif /* DEF_INIT*/

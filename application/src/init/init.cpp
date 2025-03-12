@@ -224,6 +224,11 @@ static bool _IsEepromInitialzed = false;
 static bool _IsGPSInitialized = false;
 static bool _IsIMUInitialized = false;
 
+// TIMERS
+static bool _IsTimer1Initialized = false;
+static bool _IsTimer2Initialized = false;
+static bool _IsTimer3Initialized = false;
+
 /* -----------------------------------------------------------------
  * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
  * -----------------------------------------------------------------
@@ -1219,4 +1224,120 @@ int INIT_CheckUSB()
     if (usb_enable(NULL))
         return -1;
     return 0;
+}
+
+nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
+{
+    switch (Dev)
+    {
+    case TIMERS::TIMER0:
+        // First, check that the device was effectively free
+        if (!_IsTimer1Initialized)
+        {
+            // Allocate memory, and check
+            nrfx_timer_t *p_tmr1 = (nrfx_timer_t *)k_malloc(sizeof(nrfx_timer_t));
+            if (p_tmr1 == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for Timer 0 structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            *p_tmr1 = NRFX_TIMER_INSTANCE(0);
+
+            // No checks can be done !
+
+            _IsTimer1Initialized = true;
+            return p_tmr1;
+        }
+        else
+        {
+            LOG_ERR("Timer 1 was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+
+    case TIMERS::TIMER1:
+        // First, check that the device was effectively free
+        if (!_IsTimer2Initialized)
+        {
+            // Allocate memory, and check
+            nrfx_timer_t *p_tmr1 = (nrfx_timer_t *)k_malloc(sizeof(nrfx_timer_t));
+            if (p_tmr1 == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for Timer 1 structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            *p_tmr1 = NRFX_TIMER_INSTANCE(1);
+
+            // No checks can be done !
+
+            _IsTimer2Initialized = true;
+            return p_tmr1;
+        }
+        else
+        {
+            LOG_ERR("Timer 0 was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+
+    case TIMERS::SAADC_TIMER:
+        // First, check that the device was effectively free
+        if (!_IsTimer3Initialized)
+        {
+            // Allocate memory, and check
+            nrfx_timer_t *p_tmr1 = (nrfx_timer_t *)k_malloc(sizeof(nrfx_timer_t));
+            if (p_tmr1 == nullptr)
+            {
+                LOG_ERR("Failed to allocate memory for Timer 2 structure");
+                return nullptr;
+            }
+
+            // Fill this memory with the device infos
+            *p_tmr1 = NRFX_TIMER_INSTANCE(2);
+
+            // No checks can be done !
+
+            _IsTimer3Initialized = true;
+            return p_tmr1;
+        }
+        else
+        {
+            LOG_ERR("Timer 2 was already initialized... Ignoring this request");
+            return nullptr;
+        }
+        break;
+    }
+
+    // Shall not get here, but anyway...
+    return nullptr;
+}
+
+void INIT_FreeATimer(TIMERS Dev, nrfx_timer_t *Timer)
+{
+    // Disable and free the memory for other usages
+    switch (Dev)
+    {
+    case TIMERS::TIMER0:
+        nrfx_timer_disable(Timer);
+        _IsTimer1Initialized = false;
+        break;
+
+    case TIMERS::TIMER1:
+        nrfx_timer_disable(Timer);
+        _IsTimer2Initialized = false;
+        break;
+
+    case TIMERS::SAADC_TIMER:
+        nrfx_timer_disable(Timer);
+        _IsTimer3Initialized = false;
+        break;
+    }
+
+    // Free memory and exit
+    k_free(Timer);
+    return;
 }
