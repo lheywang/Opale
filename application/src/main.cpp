@@ -66,7 +66,7 @@ int main(void)
 
     int ret = GPIO_SetAsOutput(peripheral_reset, 1);
 
-    ret -= SAADC_Configure(&saadc_timer);
+    ret -= SAADC_Configure();
 
     if (ret < 0)
         return 0;
