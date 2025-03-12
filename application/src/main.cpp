@@ -40,6 +40,9 @@
 #include "peripherals/gpio/gpio.h"
 #include "peripherals/saadc/saadc.h"
 
+// Devices drivers
+#include "drivers/MS5611/MS5611.h"
+
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
  * -----------------------------------------------------------------
@@ -70,6 +73,10 @@ int main(void)
 
     if (ret < 0)
         return 0;
+
+    MS5611 TempSensor = MS5611();
+    double *val = TempSensor.getPressure();
+    LOG_INF("Vals %f %f", val[0], val[1]);
 
     /* -----------------------------------------------------------------
      * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION

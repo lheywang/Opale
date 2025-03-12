@@ -40,6 +40,24 @@
 LOG_MODULE_REGISTER(Initializer, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
+ * LOCALS DEFINE
+ * -----------------------------------------------------------------
+ */
+// Needed, otherwise some unknow faults may come
+// SPI
+#define __INIT__EEPROM0 DT_NODELABEL(eeprom0)
+
+// I2C
+#define __INIT__ACCEL0 DT_NODELABEL(accelerometer0)
+#define __INIT__ACCEL1 DT_NODELABEL(accelerometer1)
+#define __INIT__BAROM0 DT_NODELABEL(barometer0)
+#define __INIT__EXPA0 DT_NODELABEL(expander0)
+
+// UARTS
+#define __INIT__GPS0 DT_NODELABEL(uart2)
+#define __INIT__IMU0 DT_NODELABEL(uart1)
+
+/* -----------------------------------------------------------------
  * PRIVATES FUNCTIONS (For a single peripheral instance)
  * -----------------------------------------------------------------
  */
@@ -923,7 +941,7 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
             }
 
             // Fill this memory with the device infos
-            *eep = SPI_DT_SPEC_GET(DT_NODELABEL(eeprom0),
+            *eep = SPI_DT_SPEC_GET(__INIT__EEPROM0,
                                    SPI_WORD_SET(8) | SPI_TRANSFER_MSB,
                                    0);
 
@@ -988,8 +1006,8 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             }
 
             // Fill this memory with the device infos
-            accel[0] = I2C_DT_SPEC_GET(DT_NODELABEL(accelerometer0));
-            accel[1] = I2C_DT_SPEC_GET(DT_NODELABEL(accelerometer1));
+            accel[0] = I2C_DT_SPEC_GET(__INIT__ACCEL1);
+            accel[1] = I2C_DT_SPEC_GET(__INIT__ACCEL1);
 
             // Check that the device is working
             int err = 0;
@@ -1028,7 +1046,7 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             }
 
             // Fill this memory with the device infos
-            *barom = I2C_DT_SPEC_GET(DT_NODELABEL(barometer0));
+            *barom = I2C_DT_SPEC_GET(__INIT__BAROM0);
 
             // Check that the device is working
             int err = CheckAnI2C(barom);
@@ -1062,7 +1080,7 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
             }
 
             // Fill this memory with the device infos
-            *expa = I2C_DT_SPEC_GET(DT_NODELABEL(expander0));
+            *expa = I2C_DT_SPEC_GET(__INIT__EXPA0);
 
             // Check that the device is working
             int err = CheckAnI2C(expa);
@@ -1136,7 +1154,7 @@ const device *INIT_GetAnUART(UARTS Dev)
             }
 
             // Fill this memory with the device infos
-            p_gps = DEVICE_DT_GET(DT_NODELABEL(uart2));
+            p_gps = DEVICE_DT_GET(__INIT__GPS0);
 
             // Check that the device is working
             int err = CheckAnUART(p_gps);
@@ -1170,7 +1188,7 @@ const device *INIT_GetAnUART(UARTS Dev)
             }
 
             // Fill this memory with the device infos
-            p_imu = DEVICE_DT_GET(DT_NODELABEL(uart2));
+            p_imu = DEVICE_DT_GET(__INIT__IMU0);
 
             // Check that the device is working
             int err = CheckAnUART(p_imu);
