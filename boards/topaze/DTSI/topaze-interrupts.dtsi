@@ -1,0 +1,70 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the GPIOs
+ *
+ * We describe here the peripherals configuration for the 
+ * interruptibles pins only.
+ *
+ * l.heywang
+ * 01/03/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// GPIO INTERRUPTS PINS
+// ============================================================
+// Virtual device that map physical pins to names
+&pinctrl {
+    int {
+		compatible = "gpio-keys";
+        
+        intimu: intimu {
+            gpios =     <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            label =     "IMU (9 axis sensor) interrupt pin";
+        };
+
+        intaccel1: intaccel1 {
+            gpios =     <&gpio0 29 GPIO_ACTIVE_LOW>;
+            label =     "Accelerometer 1 interrupt pin";
+        };
+
+        intaccel2: intaccel2 {
+            gpios =     <&gpio0 8 GPIO_ACTIVE_LOW>;
+            label =     "Accelerometer 2 interrupt pin";
+        };
+
+        intgps: intgps {
+            gpios =     <&gpio1 15 GPIO_ACTIVE_LOW>;
+            label =     "GPS interrupt pin";
+        };
+
+        int1: int1 {
+            gpios =     <&gpio1 7 GPIO_ACTIVE_HIGH>;
+            label =     "External Interrupt pin n1";
+        };
+
+        int2: int2 {
+            gpios =     <&gpio1 9 GPIO_ACTIVE_HIGH>;
+            label =     "External Interrupt pin n2";
+        };
+
+        int3: int3 {
+            gpios =     <&gpio0 24 GPIO_ACTIVE_HIGH>;
+            label =     "External Interrupt pin n3";
+        };
+	};
+};
+
+/{
+    aliases {
+        intimu = &intimu;
+        intgps = &intgps;
+        intaccel1 = &intaccel1;
+        intaccel2 = &intaccel2;
+        int1 = &int1;
+        int2 = &int2;
+        int3 = &int3;
+    };
+};
+
+

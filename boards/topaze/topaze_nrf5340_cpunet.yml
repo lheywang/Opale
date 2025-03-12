@@ -6,5 +6,5 @@ arch: arm
 ram: 64
 flash: 256
 toolchain:
-  - zephyr
+- zephyr
 supported: []

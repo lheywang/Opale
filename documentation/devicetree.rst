@@ -143,7 +143,51 @@ Then, it may sometimes be needed to add a root property. For example, for the PW
 
     You're configuring some behavior of the peripheral here, for a single pin.
 
+Now, enable the driver for Zephyr build, in the \*\_defconfig file, for example 
+here we enable the pwm driver
+
+.. code::
+
+    # enable uart driver
+    CONFIG_PWM=y
+
+.. note::
+
+    If you're not doing this, you will be able to compile the code, and the peripheral
+    will operate in the default state, but you won't be able to interact with it.
+
 And to conclude, don't forget to aliase youre node into the topaze-aliases.dtsi file,
 nor you won't be able to call your peripheral from the main file !
+(And sometimes a bindings)
+
+-----------------------
+Bindings
+-----------------------
+
+In some specific cases, you may need to create a new binding under the boards/topaze/dts/bindings folder.
+Theses are used by the DTC compiler to ensure the required properties are present on the device tree, and 
+thus validate the compilation of the device tree.
+
+For example, this is done for the pwm-servos where we want to add two more field on the device tree :
+
+.. code::
+
+    description: PWM Servos parent node
+
+    compatible: "pwm-servo"
+
+    child-binding:
+    description: PWM servo child node
+    properties:
+        pwms:
+            required: true
+            type: phandle-array
+            description: ...
+
+        max-pulse:
+            required: false
+            type: int
+            description: ...
 
 
+We can specify here any number of properties, and if they're needed, or not !

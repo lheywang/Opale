@@ -1,0 +1,57 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the PWM
+ * peripheral
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 01/03/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// PWM
+// ============================================================
+// Peripheral configuration
+&pwm1 {
+    status = "okay";
+    pinctrl-0 = <&pwm1_topaze>;
+    pinctrl-names = "default";
+};
+
+// Pin muxing configuration
+&pinctrl {
+    pwm1_topaze: pwm1_topaze {
+        group1 {
+            psels =     <NRF_PSEL(PWM_OUT0, 0, 12)>;
+        };
+    };
+};
+
+// Operating parameters configuration
+/{
+    parachute {
+        compatible = "pwm-servo";
+        parachute: parachute {
+            pwms =      <&pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+            period =    <PWM_HZ(50)>;
+        };
+    };
+};
+
+// Set aliases for this module
+/{
+    aliases {
+        pwm1 = &pwm1;
+        parachute = &parachute;
+    };
+};
+
+
+
+
+
+
+
+

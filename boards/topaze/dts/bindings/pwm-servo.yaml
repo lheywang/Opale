@@ -1,0 +1,63 @@
+# boards/topaze/bindings/pwm-servo.yml
+#
+# l.heywang
+# 19/02/2025
+#
+
+description: PWM Servos parent node
+
+compatible: "pwm-servo"
+
+child-binding:
+  description: PWM servo child node
+  properties:
+    pwms:
+      required: true
+      type: phandle-array
+      description: |
+        Reference to a PWM instance. (phandle + output number, from 0 to 3)
+
+        The period field is used by the set_brightness function of the LED API.
+        Its value should at least be greater that 100 nanoseconds (for a full
+        brigtness granularity) and lesser than 50 milliseconds (average visual
+        persistence time of the human eye). Typical values for the PWM period
+        are 10 or 20 milliseconds.
+
+    label:
+      type: string
+      description: |
+        Human readable string describing the LED. It can be used by an
+        application to identify this LED or to retrieve its number/index
+        (i.e. child node number) on the parent device.
+
+    period:
+      type: int
+      required: false
+      description: |
+        The duration of a PWM cycle (use NRF macros to get the correct format !)
+
+    min-pulse:
+      required: false
+      type: int
+      description: |
+        Minimal value of the output pulse for the PWM servo. Generally, this is around 1 millisec.
+
+        This value shall correspond to the minimal angle wanted.
+
+    max-pulse:
+      required: false
+      type: int
+      description: |
+        Maximal value of the output pulse for the PWM servo. Generally, this is around 2 millisecs.
+
+        This shall correspond to the maximum angle wanted.
+
+    max-angle:
+      required: false
+      type: int
+      description: |
+        The maximal area that can be covered, as an unsigned integer :
+
+        This value assume to be centered arround 0 and is calculated as MAX - MIN in absolute degrees.
+        For our servo, this is :
+          90 - (-90) -> 180°

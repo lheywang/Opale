@@ -1,0 +1,46 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the GPIOs
+ *
+ * We describe here the peripherals configuration for the non-
+ * interruptibles pins only.
+ *
+ * l.heywang
+ * 01/03/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// GPIO INPUTS
+// ============================================================
+// Virtual device that map physical pins to names
+&pinctrl {
+    inputs {
+		compatible = "gpio-keys";
+
+        imuboot: imuboot {
+            gpios =     <&gpio0 3 GPIO_ACTIVE_HIGH>;
+            label =     "IMU (9 axis sensor) boot pin";
+        };
+
+        imustatus: imustatus {
+            gpios =     <&gpio0 3 GPIO_ACTIVE_HIGH>; // 21 on the PCB
+            label =     "IMU (9 axis sensor) status pin";
+        };
+
+        mode: mode{
+            gpios =     <&gpio1 5 GPIO_ACTIVE_HIGH>;
+            label =     "DLatch output value";
+        };
+	};
+};
+
+/{
+    aliases {
+        imuboot = &imuboot;
+        imustatus = &imustatus;
+        mode = &mode;
+    };
+};
+
+

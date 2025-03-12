@@ -1,0 +1,26 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the GPIOs
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 23/02/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// GPIO AND PINCTRL
+// ============================================================
+// Enable GPIO controllers
+&gpio0 {
+    status = "okay";
+};
+
+&gpio1 {
+    status = "okay";
+};
+
+&gpiote {
+    status = "okay";
+};

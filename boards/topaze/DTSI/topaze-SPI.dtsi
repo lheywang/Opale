@@ -1,0 +1,69 @@
+/* ============================================================
+ * This file is the overlay DTS for topaze that define the UARTS
+ *
+ * We describe here the peripherals configuration, and so on...
+ *
+ * l.heywang
+ * 01/03/2025
+ *
+ * ============================================================
+ */
+
+// ============================================================
+// UARTS and PINCTRL
+// ============================================================
+// Enable SPI drivers with defined settings
+&spi4 {
+    status = "okay";
+    pinctrl-0 = <&spi4_topaze>;
+    pinctrl-names = "default";
+};
+
+// UART for IMU. No flow control.
+// On the DK, exposed pins to an header.
+&pinctrl {
+    spi4_topaze: spi4_topaze {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 14)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 13)>,
+                    <NRF_PSEL(SPIM_MISO, 0, 16)>;
+		};
+	};
+};
+
+// Add devices to the bus
+&spi4 {
+    /*
+     * Warning : The number of CS-GPIOS is used by a C macro to count 
+     * the number of slaves on the SPI bus.
+     *
+     * Make sure to comment them if they're disabled.
+     */
+    cs-gpios =  <&gpio0 15 GPIO_ACTIVE_LOW>;
+
+    /*
+     * Here another strange behavior :
+     * With spi-device only, some errors will exists. 
+     * They remain unknown.
+     * 
+     * But, as https://devzone.nordicsemi.com/f/nordic-q-a/108613/yet-another-zephyr-devicetree-problem-this-time-with-spi-spi-max-frequency-amongst-others
+     * say, if we change it to vnd,spi-device it then works.
+     *
+     * Why ?
+     *
+     * And don't forget : Fuck up VSCode for your complains...
+     *
+     */
+    eeprom0: eeprom0@0 {
+        compatible = "vnd,spi-device";
+        reg = <0>;
+        spi-max-frequency = <DT_FREQ_M(20)>;
+    };
+};
+
+/ {
+    aliases {
+        spi4 = &spi4;
+        eeprom0 = &eeprom0;
+    };
+};
