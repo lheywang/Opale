@@ -44,7 +44,7 @@ MS5611::MS5611()
         _C[k] = 69;
 
     // Fetch the associated device on the DT
-    i2c_dt_spec *dev DEV_STRUCT = INIT_GetAnI2C(I2CS::BAROMETER);
+    i2c_dt_spec dev DEV_STRUCT = *INIT_GetAnI2C(I2CS::BAROMETER);
 
     begin();
 }
@@ -52,7 +52,7 @@ MS5611::MS5611()
 MS5611::~MS5611()
 {
     // Close the I2C device
-    INIT_FreeAnI2C(I2CS::BAROMETER, dev);
+    INIT_FreeAnI2C(I2CS::BAROMETER, &dev);
 
     // Variables are handled by the C++ compiler
 }
@@ -159,7 +159,7 @@ void MS5611::getCalibration(uint16_t *C)
 void MS5611::sendCommand(uint8_t cmd)
 {
     // Replaced with the zephyr call
-    i2c_write_dt(this->dev, &cmd, sizeof(cmd));
+    i2c_write_dt(&(this->dev), &cmd, sizeof(cmd));
     return;
 }
 
@@ -173,7 +173,7 @@ uint32_t MS5611::readnBytes(const uint8_t *cmd, uint8_t wlen, uint8_t rlen)
     memset(rbuf, 0, rlen);
 
     // Read bytes
-    *rbuf = i2c_write_read_dt(this->dev, cmd, wlen, rbuf, rlen);
+    *rbuf = i2c_write_read_dt(&(this->dev), cmd, wlen, rbuf, rlen);
 
     int data = 0;
     for (int8_t k = rlen - 1; k >= 0; k--)
@@ -186,6 +186,6 @@ void MS5611::reset()
 {
     // Replaced with the zephyr call
     const uint8_t buf = CMD_RESET;
-    i2c_write_dt(this->dev, &buf, 1);
+    i2c_write_dt(&dev, &buf, 1);
     return;
 }

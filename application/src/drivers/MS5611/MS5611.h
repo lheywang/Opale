@@ -30,14 +30,74 @@ public:
     /*
      * FUNCTIONS
      */
+
+    /**
+     * @brief   Begin the sensor operation mode. Automatically called on construction of the class.
+     *
+     * @return  None
+     */
     void begin();
+
+    /**
+     * @brief   Read the raw temperature. For a fully compensated one, call getTemperature.
+     *
+     * @return  uint32_t    Raw register value
+     */
     uint32_t getRawTemperature();
+
+    /**
+     * @brief   Read the compensated temperature with the second order approx.
+     *
+     * @return  double      Temperature value
+     */
     double getTemperature();
+
+    /**
+     * @brief   Get the Raw Pressure. For a fully compensated one, call getPressure
+     *
+     * @return  uint32_t    Raw register value
+     */
     uint32_t getRawPressure();
+
+    /**
+     * @brief   Read the compensated pressure (and the temperture, as a byproduct)
+     *
+     * @return  double*
+     * @retval  [0] :   Pressure in mbar
+     * @retval  [1] :   Temperature in degree C
+     */
     double *getPressure();
+
+    /**
+     * @brief   Read the calibration of the sensor. Called once on the start.
+     *
+     * @return  None
+     */
     void readCalibration();
+
+    /**
+     * @brief   Return the calibration stored on the class.
+     *
+     * @param   Buf     Output buffer of 6 element longs.
+     */
     void getCalibration(uint16_t *);
+
+    /**
+     * @brief   Send a command on the I2C bus to the sensor.
+     *
+     * @param   CMD     The command to be sent
+     */
     void sendCommand(uint8_t);
+
+    /**
+     * @brief   Read n bytes from the sensor
+     *
+     * @param   CMD     The command sent to trigger the read
+     * @param   WLEN    The lenght of the command in bytes
+     * @param   RLEN    The lenght of the read in bytes
+     *
+     * @return  The rode buffer concatenaned into a single integer or -1 if RLEN > 4
+     */
     uint32_t readnBytes(const uint8_t *, uint8_t, uint8_t);
 
 private:
@@ -52,7 +112,7 @@ private:
     uint16_t _C[N_PROM_PARAMS];
     uint32_t _lastTime;
 
-    i2c_dt_spec *dev;
+    i2c_dt_spec dev;
 };
 
 #endif
