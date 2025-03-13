@@ -43,6 +43,9 @@
 
 // Devices drivers
 #include "drivers/MS5611/MS5611.h"
+#include "drivers/MCP23008/mcp23008.h"
+#include "drivers/BNO055/bno055.h"
+#include "drivers/IIS2DLPC/iis2dlpc_reg.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
@@ -72,7 +75,7 @@ int main(void)
 
     int ret = GPIO_SetAsOutput(peripheral_reset, 1);
 
-    ret -= SAADC_Configure();
+    // ret -= SAADC_Configure();
 
     if (ret < 0)
         return 0;
@@ -81,6 +84,14 @@ int main(void)
     MS5611 TempSensor = MS5611();
     double *val = TempSensor.getPressure();
     LOG_WRN("Vals %f %f", val[0], val[1]);
+
+    MCP23008 ExternalStart = MCP23008(MCP23008_GPIOS::GPIO0);
+    MCP23008 ExternalStart2 = MCP23008(MCP23008_GPIOS::GPIO0);
+
+    while (1)
+    {
+        k_yield();
+    }
 
     /* -----------------------------------------------------------------
      * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
