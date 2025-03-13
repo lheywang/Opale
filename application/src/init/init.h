@@ -46,11 +46,8 @@
 // Number of try before declaring peripheral out.
 #define INIT_MAX_TRY 3
 
-// Timers
-#define SAADC_TIMER_NUMBER 2 // Timer2 will be used for the SAADC sampling triggering.
-
 /* -----------------------------------------------------------------
- * DEVICETREE PARAMETERS FETCHING
+ * DEVICETREE PARAMETERS FETCHING FOR OTHER FILE USAGE
  * -----------------------------------------------------------------
  */
 #define PWM_SERVO_LEN DT_PROP_LEN(DT_PATH(wings, wings1), pwms)
@@ -104,16 +101,15 @@ typedef enum
     EXPANDER
 } I2CS;
 
-/* -----------------------------------------------------------------
- * FETCHING C STRUCTS THAT DESCRIBE EACH PERIPHERALS
- * -----------------------------------------------------------------
- */
+typedef enum
+{
+    TIMER0,
+    TIMER1,
+    SAADC_TIMER
+} TIMERS;
 
-// Timers
-static nrfx_timer_t saadc_timer = NRFX_TIMER_INSTANCE(SAADC_TIMER_NUMBER);
-
 /* -----------------------------------------------------------------
- * FUNCTIONS TO CHECK IF THE PERIPHERAL IS OK
+ * FUNCTIONS TO GET HANDLER OF PERIPHERALS
  * -----------------------------------------------------------------
  */
 
@@ -127,7 +123,7 @@ static nrfx_timer_t saadc_timer = NRFX_TIMER_INSTANCE(SAADC_TIMER_NUMBER);
  *
  * @return  gpio_dt_spec    Pointer to a struct that design THIS gpio !
  */
-gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
+struct gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
 
 /**
  * @brief   This function de-allocate a GPIO, making it available for a further usage !
@@ -137,8 +133,10 @@ gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin);
  *
  * @param   GPIO    A meùber of the GPIO enum, to free it's associated soft-lock
  * @param   Pin     A pointer to a gpio_dt_spec struct to be freed
+ *
+ * @return  Nothing
  */
-void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO);
+void INIT_FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO);
 
 /**
  * @brief   This function initialize a PWM, test it and return it for the user.
@@ -150,7 +148,7 @@ void INIT_FreeAGPIO(GPIOS Pin, gpio_dt_spec *GPIO);
  *
  * @return  pwm_dt_spec     Pointer to a struct that design THIS gpio !
  */
-pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
+struct pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
 
 /**
  * @brief   This function de-allocate a PWM, making it available for a further usage !
@@ -160,8 +158,10 @@ pwm_dt_spec *INIT_GetAPWM(PWMS Dev);
  *
  * @param   Dev     A pointer to a pwm_dt_spec struct to be freed
  * @param   PWM     A meber of the PWMS enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
-void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM);
+void INIT_FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
@@ -173,7 +173,7 @@ void INIT_FreeAPWM(PWMS Dev, pwm_dt_spec *PWM);
  *
  * @return  spi_dt_spec     Pointer to a struct that design THIS gpio !
  */
-spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
+struct spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
 
 /**
  * @brief   This function de-allocate a SPIS, making it available for a further usage !
@@ -183,8 +183,10 @@ spi_dt_spec *INIT_GetAnSPI(SPIS Dev);
  *
  * @param   Dev     A pointer to a spi_dt_spec struct to be freed
  * @param   SPI     A meber of the GPIO enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
-void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI);
+void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
@@ -196,7 +198,7 @@ void INIT_FreeAnSPI(SPIS Dev, spi_dt_spec *SPI);
  *
  * @return  i2c_dt_spec     Pointer to a struct that design THIS gpio !
  */
-i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
+const struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
 
 /**
  * @brief   This function de-allocate a I2C device, making it available for a further usage !
@@ -206,8 +208,10 @@ i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
  *
  * @param   Dev     A pointer to a i2c_dt_spec struct to be freed
  * @param   I2C     A member of the I2CS enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
-void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
+void INIT_FreeAnI2C(I2CS Dev, const struct i2c_dt_spec *I2C);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
@@ -219,7 +223,7 @@ void INIT_FreeAnI2C(I2CS Dev, i2c_dt_spec *I2C);
  *
  * @return  device  Pointer to a struct that design THIS gpio !
  */
-const device *INIT_GetAnUART(UARTS Dev);
+const struct device *INIT_GetAnUART(UARTS Dev);
 
 /**
  * @brief   This function de-allocate a UART, making it available for a further usage !
@@ -229,8 +233,10 @@ const device *INIT_GetAnUART(UARTS Dev);
  *
  * @param   Dev     A pointer to a device struct to be freed
  * @param   UART    A member of the UART enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
  */
-void INIT_FreeAnUART(UARTS Dev, device *UART);
+void INIT_FreeAnUART(UARTS Dev, const struct device *UART);
 /**
  * @brief   This function check the USB peripheral and initialize it.
  *          The USB port is then initialized as a virtual com port, and
@@ -240,5 +246,27 @@ void INIT_FreeAnUART(UARTS Dev, device *UART);
  * @return -1   Fail
  */
 int INIT_CheckUSB();
+
+/**
+ * @brief   This function return an instance of a timer in the nRFX driver mode.
+ *
+ * @param   Dev A member of the TIMERS enum to describe the right timer
+ *
+ * @return  nrfx_timer_t    Pointer to a struct that design THIS gpio !
+ */
+nrfx_timer_t *INIT_GetATimer(TIMERS Dev);
+
+/**
+ * @brief   This function de-allocate a Timer, making it available for a further usage !
+ *
+ * @warning The soft lock is only cleared by it's name, passing an incorrect reference may free
+ *          another memory struct while maintaining the GPIO soft-locked !
+ *
+ * @param   Dev     A pointer to a nrfx_timer_t struct to be freed
+ * @param   UART    A member of the TIMERS enum, to free it's associated soft-lock
+ *
+ * @return  Nothing
+ */
+void INIT_FreeATimer(TIMERS Dev, nrfx_timer_t *Timer);
 
 #endif /* DEF_INIT*/

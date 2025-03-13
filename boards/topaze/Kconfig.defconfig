@@ -61,3 +61,7 @@ config BT_CTLR
 	default y if BT
 
 endif # BOARD_TOPAZE_NRF5340_CPUNET
+
+config SPM_NRF_QSPI_NS
+	bool "QSPI is Non-Secure"
+	default y

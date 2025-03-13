@@ -25,6 +25,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/drivers/i2c.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
@@ -40,12 +41,17 @@
 #include "peripherals/gpio/gpio.h"
 #include "peripherals/saadc/saadc.h"
 
+// Devices drivers
+#include "drivers/MS5611/MS5611.h"
+
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
  * -----------------------------------------------------------------
  */
 // Identify the module on the LOG Output
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
+
+#define I2C_NODE DT_NODELABEL(barometer0)
 
 /* -----------------------------------------------------------------
  * MAIN LOOP
@@ -66,10 +72,15 @@ int main(void)
 
     int ret = GPIO_SetAsOutput(peripheral_reset, 1);
 
-    ret -= SAADC_Configure(&saadc_timer);
+    ret -= SAADC_Configure();
 
     if (ret < 0)
         return 0;
+
+    // This is working ! --> Due to the zephyr thread management, some task are executed way after !
+    MS5611 TempSensor = MS5611();
+    double *val = TempSensor.getPressure();
+    LOG_WRN("Vals %f %f", val[0], val[1]);
 
     /* -----------------------------------------------------------------
      * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION

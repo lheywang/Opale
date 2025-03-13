@@ -34,7 +34,6 @@ target_sources(app PRIVATE application/src/devices/eeprom/eeprom.cpp)
 # ============
 ## BNO055
 target_sources(app PRIVATE application/src/drivers/bno055/bno055.cpp)
-target_sources(app PRIVATE application/src/drivers/bno055/imu.cpp)
 ## Teseo
 
 ## II2SDLPC
