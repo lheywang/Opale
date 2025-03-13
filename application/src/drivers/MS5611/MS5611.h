@@ -112,7 +112,7 @@ private:
     uint16_t _C[N_PROM_PARAMS];
     uint32_t _lastTime;
 
-    struct i2c_dt_spec dev;
+    const struct i2c_dt_spec *dev;
 };
 
 #endif

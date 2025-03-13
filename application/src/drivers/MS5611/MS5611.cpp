@@ -48,7 +48,7 @@ MS5611::MS5611()
         _C[k] = 69;
 
     // Fetch the associated device on the DT
-    this->dev = *INIT_GetAnI2C(I2CS::BAROMETER);
+    this->dev = INIT_GetAnI2C(I2CS::BAROMETER);
 
     begin();
 }
@@ -56,7 +56,7 @@ MS5611::MS5611()
 MS5611::~MS5611()
 {
     // Close the I2C device
-    INIT_FreeAnI2C(I2CS::BAROMETER, &dev);
+    INIT_FreeAnI2C(I2CS::BAROMETER, this->dev);
 
     // Variables are handled by the C++ compiler
 }
@@ -83,9 +83,11 @@ double *MS5611::getPressure()
                    this->_Sens2;
 
     this->_P = D1 * SENS - OFF;
+
     double *retval = (double *)k_malloc(2 * sizeof(double));
     retval[0] = this->_P / 100;
     retval[1] = temp;
+
     return retval;
 }
 
@@ -163,7 +165,7 @@ void MS5611::getCalibration(uint16_t *C)
 void MS5611::sendCommand(uint8_t cmd)
 {
     // Replaced with the zephyr call
-    int ret = i2c_write_dt(&this->dev, &cmd, sizeof(cmd));
+    int ret = i2c_write_dt(this->dev, &cmd, sizeof(cmd));
     if (ret != 0)
     {
         LOG_ERR("I2C Write failed ! Error code : %d", ret);
@@ -181,7 +183,7 @@ uint32_t MS5611::readnBytes(const uint8_t *cmd, uint8_t wlen, uint8_t rlen)
     memset(rbuf, 0, rlen);
 
     // Read bytes
-    int ret = i2c_write_read_dt(&this->dev, cmd, wlen, rbuf, rlen);
+    int ret = i2c_write_read_dt(this->dev, cmd, wlen, rbuf, rlen);
     if (ret != 0)
     {
         LOG_ERR("I2C Write failed ! Error code : %d", ret);
@@ -198,7 +200,7 @@ void MS5611::reset()
 {
     // Replaced with the zephyr call
     const uint8_t buf = CMD_RESET;
-    int ret = i2c_write_dt(&dev, &buf, 1);
+    int ret = i2c_write_dt(this->dev, &buf, 1);
     if (ret != 0)
     {
         LOG_ERR("I2C Write failed ! Error code : %d", ret);

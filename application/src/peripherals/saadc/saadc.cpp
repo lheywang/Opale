@@ -53,7 +53,7 @@ int SAADC_Configure()
 
     // Initialize variables (and remove warnings)
     saadc_buffer_index = 0;
-    memset(saadc_buffer, 0, 2 * SAADC_BUFFER_SIZE);
+    memset((void *)saadc_buffer, 0, 2 * SAADC_BUFFER_SIZE);
     int err = 0;
 
     // First, configure the timer to default settings
@@ -92,7 +92,7 @@ int SAADC_Configure()
         channels[k].channel_config.gain = NRF_SAADC_GAIN1_6;
 
     // Configuring the channels used
-    err = nrfx_saadc_channels_config(channels, 8);
+    err = nrfx_saadc_channels_config((const nrfx_saadc_channel_t *)channels, 8);
     if (err != NRFX_SUCCESS)
     {
         LOG_ERR("Failed to configure the SAADC gain: %08x", err);
@@ -112,13 +112,13 @@ int SAADC_Configure()
     }
 
     // Pass the double buffers to the ADC
-    err = nrfx_saadc_buffer_set(saadc_buffer[0], SAADC_BUFFER_SIZE);
+    err = nrfx_saadc_buffer_set((void *)saadc_buffer[0], SAADC_BUFFER_SIZE);
     if (err != NRFX_SUCCESS)
     {
         LOG_ERR("Failed to set the buffer 0: %08x", err);
         return -5;
     }
-    err = nrfx_saadc_buffer_set(saadc_buffer[1], SAADC_BUFFER_SIZE);
+    err = nrfx_saadc_buffer_set((void *)saadc_buffer[1], SAADC_BUFFER_SIZE);
     if (err != NRFX_SUCCESS)
     {
         LOG_ERR("Failed to set the buffer 1: %08x", err);
@@ -177,7 +177,7 @@ void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
     // The SAADC need a new buffer
     case nrfx_saadc_evt_type_t::NRFX_SAADC_EVT_BUF_REQ:
     {
-        err = nrfx_saadc_buffer_set(saadc_buffer[(saadc_buffer_index++) % 2], SAADC_BUFFER_SIZE);
+        err = nrfx_saadc_buffer_set((void *)saadc_buffer[(saadc_buffer_index++) % 2], SAADC_BUFFER_SIZE);
         if (err != NRFX_SUCCESS)
         {
             LOG_ERR("nrfx_saadc_buffer_set error: %08x", err);

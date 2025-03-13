@@ -1002,7 +1002,7 @@ void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI)
     return;
 }
 
-struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
+const struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
 {
     switch (Dev)
     {
@@ -1122,7 +1122,7 @@ struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
     // Shall not get here, but anyway...
     return nullptr;
 }
-void INIT_FreeAnI2C(I2CS Dev, struct i2c_dt_spec *I2C)
+void INIT_FreeAnI2C(I2CS Dev, const struct i2c_dt_spec *I2C)
 {
     // Update status of the I2C device
     switch (Dev)
@@ -1153,7 +1153,7 @@ void INIT_FreeAnI2C(I2CS Dev, struct i2c_dt_spec *I2C)
     }
 
     // Freed memory
-    k_free(I2C);
+    k_free((void *)I2C);
     return;
 }
 

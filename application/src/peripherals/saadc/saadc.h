@@ -48,14 +48,14 @@
 
 // Analog inputs channels
 // Defined as ISR_ONLY_VARIABLE to get rid of the unused variable.
-static nrfx_saadc_channel_t ISR_ONLY_VARIABLE channels[SAADC_INPUT_COUNT] = {NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN7, 0),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN6, 1),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN1, 2),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN0, 3),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN4, 4),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN3, 5),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN2, 6),
-                                                                             NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN5, 7)};
+static volatile nrfx_saadc_channel_t channels[SAADC_INPUT_COUNT] = {NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN7, 0),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN6, 1),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN1, 2),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN0, 3),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN4, 4),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN3, 5),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN2, 6),
+                                                                    NRFX_SAADC_DEFAULT_CHANNEL_SE(NRF_SAADC_INPUT_AIN5, 7)};
 
 /*
  * The defined channels here may seem to be in disorder, but this is intentional.
@@ -69,9 +69,8 @@ static nrfx_saadc_channel_t ISR_ONLY_VARIABLE channels[SAADC_INPUT_COUNT] = {NRF
  * STORAGES BUFFERS
  * -----------------------------------------------------------------
  */
-// Defined as ISR_ONLY_VARIABLE to get rid of the unused variable.
-static int16_t ISR_ONLY_VARIABLE saadc_buffer[2][SAADC_BUFFER_SIZE] = {0};
-static uint32_t ISR_ONLY_VARIABLE saadc_buffer_index = 0;
+static volatile int16_t saadc_buffer[2][SAADC_BUFFER_SIZE] = {0};
+static volatile uint32_t saadc_buffer_index = 0;
 
 /* -----------------------------------------------------------------
  * FUNCTIONS TO COMMAND THE SAADC
@@ -110,6 +109,6 @@ int SAADC_Configure();
  *
  * @return  None
  */
-void saadc_event_handler(nrfx_saadc_evt_t const *p_event) ISR_CALLBACK;
+void saadc_event_handler(nrfx_saadc_evt_t const *p_event);
 
 #endif /* DEF_SAADC*/

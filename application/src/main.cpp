@@ -77,20 +77,10 @@ int main(void)
     if (ret < 0)
         return 0;
 
-    // struct i2c_dt_spec dev_i2c = *INIT_GetAnI2C(I2CS::BAROMETER);
-    // // struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C_NODE);
-    // if (!device_is_ready(dev_i2c.bus))
-    // {
-    //     printk("I2C bus %s is not ready!\n\r", dev_i2c.bus->name);
-    //     return -1;
-    // }
-
-    // const uint8_t buf = 0x30;
-    // i2c_write_dt(&dev_i2c, &buf, 1);
-
+    // This is working ! --> Due to the zephyr thread management, some task are executed way after !
     MS5611 TempSensor = MS5611();
     double *val = TempSensor.getPressure();
-    // LOG_INF("Vals %f %f", val[0], val[1]);
+    LOG_WRN("Vals %f %f", val[0], val[1]);
 
     /* -----------------------------------------------------------------
      * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION

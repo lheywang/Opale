@@ -57,16 +57,6 @@
 #define INPUTS_NB 3
 
 /* -----------------------------------------------------------------
- * PROJECT CUSTOM ATTRIBUTES
- * -----------------------------------------------------------------
- */
-
-// Declare a variable as unused, but used anyway...
-#define ISR_ONLY_VARIABLE __attribute__((unused))
-#define ISR_CALLBACK __attribute__((unused))
-#define DEV_STRUCT __attribute__((unused))
-
-/* -----------------------------------------------------------------
  * ENUMS
  * -----------------------------------------------------------------
  */
@@ -208,7 +198,7 @@ void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI);
  *
  * @return  i2c_dt_spec     Pointer to a struct that design THIS gpio !
  */
-struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
+const struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
 
 /**
  * @brief   This function de-allocate a I2C device, making it available for a further usage !
@@ -221,7 +211,7 @@ struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev);
  *
  * @return  Nothing
  */
-void INIT_FreeAnI2C(I2CS Dev, struct i2c_dt_spec *I2C);
+void INIT_FreeAnI2C(I2CS Dev, const struct i2c_dt_spec *I2C);
 
 /**
  * @brief   This function initialize a GPIO, test it and return it for the user.
