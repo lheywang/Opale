@@ -40,6 +40,11 @@ typedef enum
     GPIO7
 } MCP23008_GPIOS;
 
+/* -----------------------------------------------------------------
+ * CLASS
+ * -----------------------------------------------------------------
+ */
+
 /**
  * @brief   This class define A GPIO of the MCP23008. This is done to
  *          separate the differents GPIO from each threads, and enabling

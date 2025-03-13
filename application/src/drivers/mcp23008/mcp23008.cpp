@@ -331,7 +331,7 @@ uint8_t MCP23008::write(uint8_t reg, uint8_t *data, uint8_t wlen)
         buf[k + 1] = data[k];
     }
 
-    LOG_WRN("Buffer infos %x : %d-%d", buf, buf[0], buf[1]);
+    LOG_WRN("Buffer infos %x : %d-%d", (unsigned int)buf, buf[0], buf[1]);
 
     return i2c_write_dt(_dev, buf, sizeof(buf));
 }
