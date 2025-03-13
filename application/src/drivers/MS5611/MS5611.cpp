@@ -20,7 +20,7 @@ Edited by l.heywang in 2025 to make it compatible with nRF (Zephyr) API.
 #include "../../init/init.h"
 #include "../../config.h"
 
-LOG_MODULE_REGISTER(MS5611, PROJECT_LOG_LEVEL);
+LOG_MODULE_REGISTER(ms5611, PROJECT_LOG_LEVEL);
 
 constexpr uint8_t OSR = 3; // 0-3
 constexpr uint8_t CMD_RESET = 0x1E;
