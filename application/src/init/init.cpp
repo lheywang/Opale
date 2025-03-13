@@ -711,7 +711,7 @@ void INIT_FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO)
     }
 
     // Free memory
-    k_free(GPIO);
+    k_free((void *)GPIO);
     return;
 }
 
@@ -932,7 +932,7 @@ void INIT_FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM)
     }
 
     // Free memory
-    k_free(PWM);
+    k_free((void *)PWM);
     return;
 }
 
@@ -998,7 +998,7 @@ void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI)
     }
 
     // Free mem
-    k_free(SPI);
+    k_free((void *)SPI);
     return;
 }
 
@@ -1236,7 +1236,7 @@ const struct device *INIT_GetAnUART(UARTS Dev)
     return nullptr;
 }
 
-void INIT_FreeAnUART(UARTS Dev, struct device *UART)
+void INIT_FreeAnUART(UARTS Dev, const struct device *UART)
 {
     switch (Dev)
     {
@@ -1258,7 +1258,7 @@ void INIT_FreeAnUART(UARTS Dev, struct device *UART)
     }
 
     // Free memory and exit
-    k_free(UART);
+    k_free((void *)UART);
     return;
 }
 
@@ -1389,6 +1389,6 @@ void INIT_FreeATimer(TIMERS Dev, nrfx_timer_t *Timer)
     }
 
     // Free memory and exit
-    k_free(Timer);
+    k_free((void *)Timer);
     return;
 }

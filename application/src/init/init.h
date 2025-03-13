@@ -236,7 +236,7 @@ const struct device *INIT_GetAnUART(UARTS Dev);
  *
  * @return  Nothing
  */
-void INIT_FreeAnUART(UARTS Dev, struct device *UART);
+void INIT_FreeAnUART(UARTS Dev, const struct device *UART);
 /**
  * @brief   This function check the USB peripheral and initialize it.
  *          The USB port is then initialized as a virtual com port, and
