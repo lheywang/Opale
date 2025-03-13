@@ -84,6 +84,12 @@ MCP23008::MCP23008(MCP23008_GPIOS pin)
         if (_dev == nullptr)
         {
             LOG_ERR("Failed to get the I2C device. Aborting...");
+
+            // Locking any further call to the class.
+            this->PinID = -1;
+            this->PinIsAvailable = false;
+
+            // Return
             return;
         }
 
@@ -98,7 +104,13 @@ MCP23008::MCP23008(MCP23008_GPIOS pin)
     // If available, check if the pin is used or not.
     if (_GPIOS[(int)pin] != false)
     {
-        LOG_ERR("Pin is already used. Aborting...");
+        LOG_ERR("Pin %d is already used. Aborting...", pin);
+
+        // Locking any further call to the class.
+        this->PinID = -1;
+        this->PinIsAvailable = false;
+
+        // Return
         return;
     }
 
@@ -305,7 +317,7 @@ uint8_t MCP23008::setPinAsOutput()
 
 uint8_t MCP23008::write(uint8_t reg, uint8_t *data, uint8_t wlen)
 {
-    if (_IsDevOpenned == false)
+    if (this->PinIsAvailable == false)
     {
         LOG_ERR("Device is not openned. Cancelled write...");
         return -1;
@@ -319,11 +331,13 @@ uint8_t MCP23008::write(uint8_t reg, uint8_t *data, uint8_t wlen)
         buf[k + 1] = data[k];
     }
 
-    return i2c_write_dt(_dev, data, wlen + 1);
+    LOG_WRN("Buffer infos %x : %d-%d", buf, buf[0], buf[1]);
+
+    return i2c_write_dt(_dev, buf, sizeof(buf));
 }
 uint8_t MCP23008::read(uint8_t reg, uint8_t *data, uint8_t rlen)
 {
-    if (_IsDevOpenned == false)
+    if (this->PinIsAvailable == false)
     {
         LOG_ERR("Device is not openned. Cancelled read...");
         return -1;

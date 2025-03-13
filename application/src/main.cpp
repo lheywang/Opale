@@ -85,8 +85,11 @@ int main(void)
     double *val = TempSensor.getPressure();
     LOG_WRN("Vals %f %f", val[0], val[1]);
 
+    // This is working, we use the GPIO0. The second call always get an error, since it can't be used twice !
     MCP23008 ExternalStart = MCP23008(MCP23008_GPIOS::GPIO0);
     MCP23008 ExternalStart2 = MCP23008(MCP23008_GPIOS::GPIO0);
+    ExternalStart.readPin();
+    ExternalStart2.readPin();
 
     while (1)
     {
