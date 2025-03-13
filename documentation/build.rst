@@ -36,7 +36,7 @@ This file would be full if we're using a standard developpement board, for examp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 CMakeLists.txt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-This file handle all of the stuff around the C compilation into executable.
+This file handle all of the stuff around the C / C++ compilation into executable.
 Syntax is standard for a CMake file, at the exeception of the target_sources command to add a file.
 Repeat is as many times as needed.
 
@@ -54,6 +54,3 @@ Here some screenshots about this config :
 .. image:: images/build_1.png
 .. image:: images/build_2.png
 
----------------------------
-END
----------------------------

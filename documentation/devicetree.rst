@@ -10,7 +10,7 @@ to the user code execution, and advanced security.
 Let's dig into the boards/topaze folder !
 
 ---------------------------
-Files 
+**Files**
 ---------------------------
 First, there is a lot of files in this folder ! Each one has it's own usage...
 
@@ -40,7 +40,7 @@ First, there is a lot of files in this folder ! Each one has it's own usage...
  * topaze_nrf5340_cpuapp_ns.dts
  * topaze_nrf5340_cpunet.dts
  * topaze_cpuapp_partitionning.Description
- * topaze-pinctrl.dtsi 
+ * DTSI/topaze-pinctrl.dtsi 
  * topaze-shared_sram.dtsi 
 
 First, generated files should not be modified by any one, 
@@ -62,7 +62,7 @@ There is two types of them :
 * .dtsi
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-DTS
+**DTS**
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 This first file is the base device tree file. The compiler point on 
 theses files for know the hardware.
@@ -71,7 +71,7 @@ Theses are generated, and pretty short since they include most
 of their final content for DTSI files.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-DTSI
+**DTSI**
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 Theses file can only be included, and contain some "patches" for the 
 base DTS file.
@@ -81,9 +81,9 @@ All others shall not be modified by the user.
 
 I've used an multi file architecture to make file easier to read.
 
-----------------------------------
-How to configure a new peripheral 
-----------------------------------
+---------------------------------------
+**How to configure a new peripheral**
+---------------------------------------
 To add a new peripheral, first create it's .dtsi file in the ../DTSI folder.
 Name it topaze-[peripheral name].dtsi.
 
@@ -161,7 +161,7 @@ nor you won't be able to call your peripheral from the main file !
 (And sometimes a bindings)
 
 -----------------------
-Bindings
+**Bindings**
 -----------------------
 
 In some specific cases, you may need to create a new binding under the boards/topaze/dts/bindings folder.
@@ -191,3 +191,27 @@ For example, this is done for the pwm-servos where we want to add two more field
 
 
 We can specify here any number of properties, and if they're needed, or not !
+
+--------------------------------------
+**Getting peripherals from C  / C++**
+--------------------------------------
+The last step is on the compiled software. To fetch a peripheral structure, 
+there is package, included on init/init.h file.
+
+This file expose some functions that can be called from anywhere in the code,
+and return a pointer to the struct.
+AND, theses functions included a mutex that is threadproof, to ensure the peripheral
+is only accessed from one thread at a time.
+
+This may look like :
+
+.. code::
+
+    gpio_dt_spec *peripheral_reset = INIT_GetAGPIO(GPIOS::PERIPHERAL_RESET);
+    pwm_dt_spec *pwm_wings = INIT_GetAPWM(PWMS::SERVOS);
+    pwm_dt_spec *pwm_rgb = INIT_GetAPWM(PWMS::RGB);
+
+You may notice the enums (PWMS::RGB) for examples that are used to request THIS peripheral.
+This leave the real peripheral used at the discretion of the device tree.
+
+The opposite functions are also possibles : INIT_FreeA[name].

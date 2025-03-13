@@ -46,6 +46,7 @@
 #include "drivers/MCP23008/mcp23008.h"
 #include "drivers/BNO055/bno055.h"
 #include "drivers/IIS2DLPC/iis2dlpc_reg.h"
+#include "drivers/TESEO/teseo.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
@@ -75,7 +76,7 @@ int main(void)
 
     int ret = GPIO_SetAsOutput(peripheral_reset, 1);
 
-    // ret -= SAADC_Configure();
+    ret -= SAADC_Configure();
 
     if (ret < 0)
         return 0;

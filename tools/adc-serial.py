@@ -6,7 +6,7 @@ import csv
 com = serial.Serial(port="COM7", baudrate=115200)
 print(com.name)
 
-lines_nb = 5000  # Set to 5000 for a very good experience ! (~75 /s --> One full cycle is 20 seconds, lets take 30 --> 2250 mini)
+lines_nb = 200000  # Set to 5000 for a very good experience ! (~75 /s --> One full cycle is 20 seconds, lets take 30 --> 2250 mini)
 lines = []
 
 for _ in tqdm(range(lines_nb)):
@@ -88,7 +88,7 @@ servo4 = servo4[first_val:]
 
 # Zip (change lists to rows) and write to CSV
 rows = zip(north, south, east, west, servo1, servo2, servo3, servo4)
-with open("meas.csv", "w+", newline="") as csvfile:
+with open("tools/meas.csv", "w+", newline="") as csvfile:
     writter = csv.writer(csvfile)
 
     writter.writerow(
