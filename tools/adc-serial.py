@@ -3,10 +3,10 @@ from tqdm import tqdm
 import csv
 
 # Openning serial
-com = serial.Serial(port="COM7", baudrate=115200)
+com = serial.Serial(port="COM5", baudrate=115200)
 print(com.name)
 
-lines_nb = 200000  # Set to 5000 for a very good experience ! (~75 /s --> One full cycle is 20 seconds, lets take 30 --> 2250 mini)
+lines_nb = 10000  # Set to 5000 for a very good experience ! (~75 /s --> One full cycle is 20 seconds, lets take 30 --> 2250 mini)
 lines = []
 
 for _ in tqdm(range(lines_nb)):
