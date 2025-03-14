@@ -208,15 +208,15 @@ void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
             current = ((int16_t *)(p_event->data.done.p_buffer))[i];
 
             int8_t chan = (i % SAADC_INPUT_COUNT);
-            averages[chan] += (double)current;
+            averages[chan] += ((double)current * K);
 
             if (current > maximals[chan])
             {
-                maximals[chan] = (double)current;
+                maximals[chan] = ((double)current * K);
             }
             if (current < minimals[chan])
             {
-                minimals[chan] = (double)current;
+                minimals[chan] = ((double)current * K);
             }
         }
 
