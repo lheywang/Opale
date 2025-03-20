@@ -111,7 +111,7 @@ BNO055::BNO055()
     // Then, register the bus communication ISR (and data)
     int ret = uart_callback_set(this->bus,
                                 BNO055::ISR_RX,
-                                (void *)this);
+                                (void *)this->IO_DataReady);
     if (ret != 0)
     {
         LOG_ERR("Failed to set the RX callback ISR !");

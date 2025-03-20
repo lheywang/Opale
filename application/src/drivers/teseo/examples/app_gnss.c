@@ -142,7 +142,7 @@ void MX_GNSS_Init(void)
     /* USER CODE END GNSS_Init_PreTreatment */
 
     /* Initialize the BSP common utilities*/
-    if (BSP_COM_Init(COM1) != BSP_ERROR_NONE)
+    if (BSP_COM_Init(COM1) != 0)
     {
         Error_Handler();
     }
@@ -172,6 +172,7 @@ void MX_GNSS_PostOSInit(void)
 #endif /* USE_I2C */
     Teseo_Consumer_Task_Init();
 
+    // -------------------------------------------------------------------------------- Done up to here
     PRINT_DBG("Booting...\r\n");
 
     /* USER CODE BEGIN GNSS_PostOSInit_PostTreatment */
@@ -602,7 +603,7 @@ static void AppCmdProcess(char *com)
         osMutexRelease(gnssDataMutexHandle);
     }
 
-#if (configUSE_FEATURE == 1)
+#if (configUSE_FEATURE)
     /* 14 - EN-FEATURE */
     else if (strcmp((char *)com, "14") == 0 || strcmp((char *)com, "en-feature") == 0)
     {
@@ -625,7 +626,7 @@ static void AppCmdProcess(char *com)
     }
 #endif /* configUSE_FEATURE */
 
-#if (configUSE_FEATURE == 1)
+#if (configUSE_FEATURE)
     else if (strncmp((char *)com, "GEOFENCE,1", strlen("GEOFENCE,1")) == 0 ||
              strncmp((char *)com, "GEOFENCE,0", strlen("GEOFENCE,0")) == 0 ||
              strncmp((char *)com, "ODO,1", strlen("ODO,1")) == 0 ||
@@ -637,7 +638,7 @@ static void AppCmdProcess(char *com)
     }
 #endif /* configUSE_FEATURE */
 
-#if (configUSE_GEOFENCE == 1)
+#if (configUSE_GEOFENCE)
     /* 15 - CONF-GEOFENCE */
     else if (strcmp((char *)com, "15") == 0 || strcmp((char *)com, "conf-geofence") == 0)
     {
@@ -660,7 +661,7 @@ static void AppCmdProcess(char *com)
     }
 #endif /* configUSE_GEOFENCE */
 
-#if (configUSE_ODOMETER == 1)
+#if (configUSE_ODOMETER)
     /* 17 - ODOMETER (START/STOP) */
     else if (strcmp((char *)com, "17") == 0 || strcmp((char *)com, "odometer-op") == 0)
     {
@@ -678,7 +679,7 @@ static void AppCmdProcess(char *com)
     }
 #endif /* configUSE_ODOMETER */
 
-#if (configUSE_DATALOG == 1)
+#if (configUSE_DATALOG)
     /* 18 - DATALOG (START/STOP/ERASE) */
     else if (strcmp((char *)com, "18") == 0 || strcmp((char *)com, "datalog-op") == 0)
     {

@@ -25,7 +25,8 @@ extern "C"
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "NMEA_parser.h"
+#include "../LibNMEA/NMEA_parser.h"
+
 #include "gnss_geofence.h"
 #include "gnss_datalog.h"
 

@@ -32,7 +32,7 @@ extern "C"
 #endif
 
 #if (USE_GNSS1A1_GNSS_TESEO_LIV3F == 1)
-#include "teseo_liv3f.h"
+#include "../LibTESEO/teseo_liv3f.h"
 #endif
 
     /** @addtogroup BSP BSP
@@ -121,7 +121,7 @@ extern "C"
                used for all Teseo modules.
 
     Returns
-    If successful, the module returns 0 (BSP_ERROR_NONE).
+    If successful, the module returns 0 (0).
     A return of non-zero value indicates an error.
 
     Remarks
@@ -141,7 +141,7 @@ extern "C"
      * Instance: Hardcoded as GNSS1A1_TESEO_LIV3F.
      *					This parameter can be used for all Teseo modules.
      *
-     * @return If successful, the module returns 0 (BSP_ERROR_NONE). A return of non-zero value indicates an error.
+     * @return If successful, the module returns 0 (0). A return of non-zero value indicates an error.
      *
      * @remarks None.
      */
@@ -239,7 +239,7 @@ extern "C"
      *
      * @param Instance Hardcoded as GNSS1A1_TESEO_LIV3F. This parameter can be used for all Teseo modules.
      *
-     * @return If successful, the module returns 0 (BSP_ERROR_NONE). A return of non-zero value indicates an error.
+     * @return If successful, the module returns 0 (0). A return of non-zero value indicates an error.
      *
      * @remark UART or I2C must be configured.
      */

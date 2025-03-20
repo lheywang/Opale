@@ -44,5 +44,5 @@ int32_t GNSS_Wrapper_Reset(void)
 
 void GNSS_Wrapper_Delay(uint32_t Delay)
 {
-    HAL_Delay(Delay);
+    // HAL_Delay(Delay);
 }

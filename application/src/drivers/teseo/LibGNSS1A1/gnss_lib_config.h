@@ -27,7 +27,7 @@ extern "C"
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
 
-#include "teseo_liv3f_conf.h"
+#include "../teseo_liv3f_conf.h"
 #if (USE_FREE_RTOS_NATIVE_API) /* native FreeRTOS API */
 #include "FreeRTOS.h"
 #include "task.h"

@@ -37,7 +37,7 @@ extern "C"
 #endif
 
 /* Defines -------------------------------------------------------------------*/
-#define USE_osCMSIS 1 /* Use CMSIS RTOS wrapper API */
+#define USE_osCMSIS 0 /* Use CMSIS RTOS wrapper API */
 
 #if !(USE_osCMSIS)
 #define USE_FREE_RTOS_NATIVE_API 0 /* native FreeRTOS API (not supported at application level) */

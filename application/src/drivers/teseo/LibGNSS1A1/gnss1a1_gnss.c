@@ -14,9 +14,19 @@
  * If no LICENSE file comes with this software, it is provided AS-IS.
  *
  ******************************************************************************
- */
+
+ /**
+  * This file was heavily modified to become compatible with the nRF SDK.
+  *
+  * Changes shall be documented.
+  *
+  * @todo   Need to be rewrote !
+  *
+  */
+
 /* Includes ------------------------------------------------------------------*/
 #include "gnss1a1_gnss.h"
+#include "../../../init/init.h"
 
 /** @addtogroup BSP BSP
  * @{
@@ -61,7 +71,7 @@ static void GNSS1A1_GNSS_RegisterCallbacks(void);
 
 __weak int32_t GNSS1A1_GNSS_GetTick(void)
 {
-    return BSP_ERROR_NONE;
+    return 0;
 }
 
 #if (USE_GNSS1A1_GNSS_TESEO_LIV3F == 1)
@@ -76,34 +86,34 @@ __weak int32_t GNSS1A1_GNSS_I2C_Transmit_IT(uint16_t DevAddr, uint8_t *pData, ui
     UNUSED(DevAddr);
     UNUSED(pData);
     UNUSED(Length);
-    return BSP_ERROR_NONE;
+    return 0;
 }
 __weak int32_t GNSS1A1_GNSS_I2C_Receive_IT(uint16_t DevAddr, uint8_t *pData, uint16_t Length)
 {
     UNUSED(DevAddr);
     UNUSED(pData);
     UNUSED(Length);
-    return BSP_ERROR_NONE;
+    return 0;
 }
 
 #else
 /* UART CBs */
-void GNSS1A1_GNSS_UART_RxCb(UART_HandleTypeDef *huart);
-void GNSS1A1_GNSS_UART_ErrorCb(UART_HandleTypeDef *huart);
+void GNSS1A1_GNSS_UART_RxCb(void /*UART_HandleTypeDef*/ *huart);
+void GNSS1A1_GNSS_UART_ErrorCb(void /*UART_HandleTypeDef*/ *huart);
 
 __weak int32_t GNSS1A1_GNSS_UART_Transmit_IT(uint16_t DevAddr, uint8_t *pData, uint16_t Length)
 {
     UNUSED(DevAddr);
     UNUSED(pData);
     UNUSED(Length);
-    return BSP_ERROR_NONE;
+    return 0;
 }
 __weak int32_t GNSS1A1_GNSS_UART_Receive_IT(uint16_t DevAddr, uint8_t *pData, uint16_t Length)
 {
     UNUSED(DevAddr);
     UNUSED(pData);
     UNUSED(Length);
-    return BSP_ERROR_NONE;
+    return 0;
 }
 __weak void GNSS1A1_GNSS_UART_ClearOREF(void)
 {
@@ -114,21 +124,21 @@ __weak void GNSS1A1_GNSS_UART_ClearOREF(void)
 
 int32_t GNSS1A1_GNSS_Init(uint32_t Instance)
 {
-    int32_t ret = BSP_ERROR_NONE;
+    int32_t ret = 0;
 
     switch (Instance)
     {
 #if (USE_GNSS1A1_GNSS_TESEO_LIV3F == 1)
     case GNSS1A1_TESEO_LIV3F:
-        if (TESEO_LIV3F_Probe() != BSP_ERROR_NONE)
+        if (TESEO_LIV3F_Probe() != 0)
         {
-            ret = BSP_ERROR_NO_INIT;
+            ret = -1;
         }
         break;
 #endif
 
     default:
-        ret = BSP_ERROR_WRONG_PARAM;
+        ret = -1;
         break;
     }
 
@@ -141,15 +151,15 @@ int32_t GNSS1A1_GNSS_DeInit(uint32_t Instance)
 
     if (Instance >= GNSS1A1_GNSS_INSTANCES_NBR)
     {
-        ret = BSP_ERROR_WRONG_PARAM;
+        ret = -1;
     }
-    else if (TESEO_LIV3F_DeInit(&teseo_liv3f_obj) != BSP_ERROR_NONE)
+    else if (TESEO_LIV3F_DeInit(&teseo_liv3f_obj) != 0)
     {
-        ret = BSP_ERROR_COMPONENT_FAILURE;
+        ret = -1;
     }
     else
     {
-        ret = BSP_ERROR_NONE;
+        ret = 0;
     }
 
     return ret;
@@ -177,17 +187,17 @@ int32_t GNSS1A1_GNSS_ReleaseMessage(uint32_t Instance, const GNSS1A1_GNSS_Msg_t 
 
     if (Instance >= GNSS1A1_GNSS_INSTANCES_NBR)
     {
-        ret = BSP_ERROR_WRONG_PARAM;
+        ret = -1;
     }
     else
     {
-        if (TESEO_LIV3F_ReleaseMessage(&teseo_liv3f_obj, (TESEO_LIV3F_Msg_t *)Message) != BSP_ERROR_NONE)
+        if (TESEO_LIV3F_ReleaseMessage(&teseo_liv3f_obj, (TESEO_LIV3F_Msg_t *)Message) != 0)
         {
-            ret = BSP_ERROR_COMPONENT_FAILURE;
+            ret = -1;
         }
         else
         {
-            ret = BSP_ERROR_NONE;
+            ret = 0;
         }
     }
 
@@ -200,17 +210,17 @@ int32_t GNSS1A1_GNSS_Send(uint32_t Instance, const GNSS1A1_GNSS_Msg_t *Message)
 
     if (Instance >= GNSS1A1_GNSS_INSTANCES_NBR)
     {
-        ret = BSP_ERROR_WRONG_PARAM;
+        ret = -1;
     }
     else
     {
-        if (TESEO_LIV3F_Send(&teseo_liv3f_obj, (TESEO_LIV3F_Msg_t *)Message) != BSP_ERROR_NONE)
+        if (TESEO_LIV3F_Send(&teseo_liv3f_obj, (TESEO_LIV3F_Msg_t *)Message) != 0)
         {
-            ret = BSP_ERROR_COMPONENT_FAILURE;
+            ret = -1;
         }
         else
         {
-            ret = BSP_ERROR_NONE;
+            ret = 0;
         }
     }
 
@@ -219,15 +229,16 @@ int32_t GNSS1A1_GNSS_Send(uint32_t Instance, const GNSS1A1_GNSS_Msg_t *Message)
 
 int32_t GNSS1A1_GNSS_Wakeup_Status(uint32_t Instance, uint8_t *status)
 {
-    int32_t ret = BSP_ERROR_NONE;
+    int32_t ret = 0;
 
     if (Instance >= GNSS1A1_GNSS_INSTANCES_NBR)
     {
-        ret = BSP_ERROR_WRONG_PARAM;
+        ret = -1;
     }
     else
     {
-        (HAL_GPIO_ReadPin(GNSS1A1_WAKEUP_PORT, GNSS1A1_WAKEUP_PIN) == GPIO_PIN_RESET) ? (*status = 0) : (*status = 1);
+        // Todo ???
+        // (HAL_GPIO_ReadPin(GNSS1A1_WAKEUP_PORT, GNSS1A1_WAKEUP_PIN) == GPIO_PIN_RESET) ? (*status = 0) : (*status = 1);
     }
 
     return ret;
@@ -235,23 +246,23 @@ int32_t GNSS1A1_GNSS_Wakeup_Status(uint32_t Instance, uint8_t *status)
 
 int32_t GNSS1A1_GNSS_Reset(uint32_t Instance)
 {
-    int32_t ret = BSP_ERROR_NONE;
+    int32_t ret = 0;
 
     if (Instance >= GNSS1A1_GNSS_INSTANCES_NBR)
     {
-        ret = BSP_ERROR_WRONG_PARAM;
+        ret = -1;
     }
     else
     {
         if (TESEO_LIV3F_DeInit(&teseo_liv3f_obj) != TESEO_LIV3F_OK)
         {
-            ret = BSP_ERROR_COMPONENT_FAILURE;
+            ret = -1;
         }
         else
         {
             if (TESEO_LIV3F_Init(&teseo_liv3f_obj) != TESEO_LIV3F_OK)
             {
-                ret = BSP_ERROR_COMPONENT_FAILURE;
+                ret = -1;
             }
             else
             {
@@ -309,8 +320,8 @@ static int32_t TESEO_LIV3F_Probe(void)
 #else
 
     io_ctx.BusType = TESEO_LIV3F_UART_BUS;
-    io_ctx.Init = GNSS1A1_GNSS_UART_Init;
-    io_ctx.DeInit = GNSS1A1_GNSS_UART_DeInit;
+    // io_ctx.Init = GNSS1A1_GNSS_UART_Init;
+    // io_ctx.DeInit = GNSS1A1_GNSS_UART_DeInit;
     io_ctx.Transmit_IT = GNSS1A1_GNSS_UART_Transmit_IT;
     io_ctx.Receive_IT = GNSS1A1_GNSS_UART_Receive_IT;
     io_ctx.ClearOREF = GNSS1A1_GNSS_UART_ClearOREF;
@@ -324,19 +335,19 @@ static int32_t TESEO_LIV3F_Probe(void)
 
     if (TESEO_LIV3F_RegisterBusIO(&teseo_liv3f_obj, &io_ctx) != TESEO_LIV3F_OK)
     {
-        ret = BSP_ERROR_UNKNOWN_COMPONENT;
+        ret = -1;
     }
     else
     {
         if (TESEO_LIV3F_Init(&teseo_liv3f_obj) != TESEO_LIV3F_OK)
         {
-            ret = BSP_ERROR_COMPONENT_FAILURE;
+            ret = -1;
         }
         else
         {
             GNSS1A1_GNSS_RegisterCallbacks();
 
-            ret = BSP_ERROR_NONE;
+            ret = 0;
         }
     }
     return ret;
@@ -344,10 +355,11 @@ static int32_t TESEO_LIV3F_Probe(void)
 
 static void GNSS1A1_GNSS_Rst(void)
 {
-    HAL_GPIO_WritePin(GNSS1A1_RST_PORT, GNSS1A1_RST_PIN, GPIO_PIN_RESET);
-    HAL_Delay(10);
-    HAL_GPIO_WritePin(GNSS1A1_RST_PORT, GNSS1A1_RST_PIN, GPIO_PIN_SET);
-    HAL_Delay(150);
+    // Todo : Adapt to Zephyr API !
+    // HAL_GPIO_WritePin(GNSS1A1_RST_PORT, GNSS1A1_RST_PIN, GPIO_PIN_RESET);
+    // HAL_Delay(10);
+    // HAL_GPIO_WritePin(GNSS1A1_RST_PORT, GNSS1A1_RST_PIN, GPIO_PIN_SET);
+    // HAL_Delay(150);
 }
 
 static void GNSS1A1_GNSS_RegisterCallbacks(void)

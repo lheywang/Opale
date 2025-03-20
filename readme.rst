@@ -19,7 +19,7 @@ Bosch BNO055 lib :
 STMicro IIS2DLPC lib
 :ref: https://github.com/STMicroelectronics/iis2dlpc-pid
 
-STMicro Teset Liv3R lib :
+STMicro Teseo Liv3R lib :
 :ref: https://github.com/STMicroelectronics/x-cube-gnss1
 
 Library Master MCP23008 lib :

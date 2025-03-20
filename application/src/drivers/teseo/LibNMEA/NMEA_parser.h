@@ -121,15 +121,15 @@ extern "C"
      * @{
      */
 
-    /**
-     * @brief MISRA compliant typedef for float
-     */
-    typedef float float32_t;
+    // /**
+    //  * @brief MISRA compliant typedef for float
+    //  */
+    // typedef float double;
 
-    /**
-     * @brief MISRA compliant typedef for double
-     */
-    typedef double float64_t;
+    // /**
+    //  * @brief MISRA compliant typedef for double
+    //  */
+    // typedef double double;
 
     /**
      * @brief Enumeration structure that contains the two states of a parsing process
@@ -178,9 +178,9 @@ extern "C"
      */
     typedef struct
     {
-        float64_t lat; /**< Latitude */
-        float64_t lon; /**< Longitude */
-        float64_t alt; /**< Altitude */
+        double lat; /**< Latitude */
+        double lon; /**< Longitude */
+        double alt; /**< Altitude */
         uint8_t ns;    /**< Nord / Sud latitude type */
         uint8_t ew;    /**< East / West longitude type */
         uint8_t mis;   /**< Altitude unit misure */
@@ -224,7 +224,7 @@ extern "C"
     {
         UTC_Info_t utc;     /**< UTC Time */
         Coords_t xyz;       /**< Coords data member */
-        float32_t acc;      /**< GPS Accuracy */
+        double acc;         /**< GPS Accuracy */
         int16_t sats;       /**< Number of satellities acquired */
         uint8_t valid;      /**< GPS Signal fix quality */
         Geoid_Info_t geoid; /**< Geoids data info member */
@@ -244,8 +244,8 @@ extern "C"
         uint8_t gps_mode;                   /**< N = NO Fix, A = Autonomous, D = Differential GPS, E = Estimated (dead reckoning mode) */
         uint8_t glonass_mode;               /**< N = NO Fix, A = Autonomous, D = Differential Glonass, E = Estimated (dead reckoning mode) */
         int16_t sats;                       /**< Number of satellities acquired */
-        float32_t hdop;                     /**< Horizontal Dilution of Precision, max: 99.0 */
-        float32_t geo_sep;                  /**< Geoidal separation, meter */
+        double hdop;                        /**< Horizontal Dilution of Precision, max: 99.0 */
+        double geo_sep;                     /**< Geoidal separation, meter */
         uint8_t dgnss_age;                  /**< Not supported */
         uint8_t dgnss_ref;                  /**< Not supported */
         uint32_t checksum;                  /**< Checksum of the message bytes */
@@ -256,15 +256,15 @@ extern "C"
      */
     typedef struct
     {
-        UTC_Info_t utc;             /**< UTC Time */
-        float32_t EHPE;             /**< Equivalent Horizontal Position Error */
-        float32_t semi_major_dev;   /**< Standard deviation (meters) of semi-major axis of error ellipse */
-        float32_t semi_minor_dev;   /**< Standard deviation (meters) of semi-minor axis of error ellipse */
-        float32_t semi_major_angle; /**< Orientation of semi-major axis of error ellipse (true north degrees) */
-        float32_t lat_err_dev;      /**< Standard deviation (meters) of latitude error */
-        float32_t lon_err_dev;      /**< Standard deviation (meters) of longitude error */
-        float32_t alt_err_dev;      /**< Standard deviation (meters) of altitude error */
-        uint32_t checksum;          /**< Checksum of the message bytes */
+        UTC_Info_t utc;          /**< UTC Time */
+        double EHPE;             /**< Equivalent Horizontal Position Error */
+        double semi_major_dev;   /**< Standard deviation (meters) of semi-major axis of error ellipse */
+        double semi_minor_dev;   /**< Standard deviation (meters) of semi-minor axis of error ellipse */
+        double semi_major_angle; /**< Orientation of semi-major axis of error ellipse (true north degrees) */
+        double lat_err_dev;      /**< Standard deviation (meters) of latitude error */
+        double lon_err_dev;      /**< Standard deviation (meters) of longitude error */
+        double alt_err_dev;      /**< Standard deviation (meters) of altitude error */
+        uint32_t checksum;       /**< Checksum of the message bytes */
     } GPGST_Info_t;
 
     /**
@@ -275,10 +275,10 @@ extern "C"
         UTC_Info_t utc;      /**< UTC Time */
         uint8_t status;      /**< 'A' = valid, 'V' = Warning */
         Coords_t xyz;        /**< Coords data member */
-        float32_t speed;     /**< Speed over ground in knots */
-        float32_t trackgood; /**< Course made good */
+        double speed;        /**< Speed over ground in knots */
+        double trackgood;    /**< Course made good */
         int32_t date;        /**< Date of Fix */
-        float32_t mag_var;   /**< Magnetic Variation */
+        double mag_var;      /**< Magnetic Variation */
         uint8_t mag_var_dir; /**< Magnetic Variation Direction */
         uint32_t checksum;   /**< Checksum of the message bytes */
     } GPRMC_Info_t;
@@ -292,9 +292,9 @@ extern "C"
         uint8_t operating_mode;             /**< Operating Mode: 'M' = Manual, 'A' = Auto (2D/3D) */
         int16_t current_mode;               /**< Current Mode: 1. no fix available, 2. 2D, 3. 3D */
         int32_t sat_prn[MAX_SAT_NUM];       /**< Satellites list used in position fix (max N 12) */
-        float32_t pdop;                     /**< Position Dilution of Precision, max: 99.0 */
-        float32_t hdop;                     /**< Horizontal Dilution of Precision, max: 99.0 */
-        float32_t vdop;                     /**< Vertical Dilution of Precision, max: 99.0 */
+        double pdop;                        /**< Position Dilution of Precision, max: 99.0 */
+        double hdop;                        /**< Horizontal Dilution of Precision, max: 99.0 */
+        double vdop;                        /**< Vertical Dilution of Precision, max: 99.0 */
         uint32_t checksum;                  /**< Checksum of the message bytes */
     } GSA_Info_t;
 
@@ -325,11 +325,11 @@ extern "C"
      */
     typedef struct
     {
-        float64_t lat;       /**< Latitude */
-        float64_t lon;       /**< Longitude */
-        float64_t radius;    /**< Circle Radius */
-        float64_t distance;  /**< Distance from circle */
-        float64_t tolerance; /**< Sigma tolerance */
+        double lat;       /**< Latitude */
+        double lon;       /**< Longitude */
+        double radius;    /**< Circle Radius */
+        double distance;  /**< Distance from circle */
+        double tolerance; /**< Sigma tolerance */
     } Geofence_Coords_t;
 
     /**
