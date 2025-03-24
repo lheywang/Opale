@@ -2,7 +2,7 @@
 **Opale**
 ############
 
-This is a school project, to design and program a flight controller for a small scale rocket.
+This is a school project, to design and program a flight controller for a "small" scale rocket.
 
 You may found a lot of documentation under the documentation/* folder.
 
