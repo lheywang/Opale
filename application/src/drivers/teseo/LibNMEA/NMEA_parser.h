@@ -178,12 +178,12 @@ extern "C"
      */
     typedef struct
     {
-        double lat; /**< Latitude */
-        double lon; /**< Longitude */
-        double alt; /**< Altitude */
-        uint8_t ns;    /**< Nord / Sud latitude type */
-        uint8_t ew;    /**< East / West longitude type */
-        uint8_t mis;   /**< Altitude unit misure */
+        double lat;  /**< Latitude */
+        double lon;  /**< Longitude */
+        double alt;  /**< Altitude */
+        uint8_t ns;  /**< Nord / Sud latitude type */
+        uint8_t ew;  /**< East / West longitude type */
+        uint8_t mis; /**< Altitude unit misure */
     } Coords_t;
 
     /**

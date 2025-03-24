@@ -26,14 +26,12 @@
 #include <cstdint>
 
 // Custom
-#include "structs/UTC.h"
-#include "structs/GLL.h"
-#include "structs/SAT.h"
 #include "../../init/init.h"
 #include "../../config.h"
 
 // External libs
 #include "LibGNSS/gnss_parser.h"
+#include "LibNMEA/NMEA_parser.h"
 
 /* -----------------------------------------------------------------
  * MODULES SETTINGS
@@ -72,17 +70,21 @@ public:
      * @param   date    A pointer to a date structure to be filled
      *
      * @return  Status code
-     * @retval  0
-     * @retval  -1
+     * @retval   0      Sucess
+     * @retval  -1      Failed to send the command to the TESEO module
+     * @retval  -2      Received message was not properly formed.
+     * @retval  -3      Failed to parse the message
      */
-    uint8_t getUTCTime(struct UTCTime *const date);
+    uint8_t getUTCTime(GPGGA_Info_t *const date);
 
     /**
      * @brief   Enable the 1 PPS (Pulse per second) output on the module
      *
      * @return  Status code
-     * @retval  0
-     * @retval  -1
+     * @retval   0      Sucess
+     * @retval  -1      Failed to send the command to the TESEO module
+     * @retval  -2      Received message was not properly formed.
+     * @retval  -3      Module returned an error
      */
     uint8_t enablePPS();
 
@@ -90,8 +92,10 @@ public:
      * @brief   Disable the 1 PPS (Pulse per second) output on the module
      *
      * @return  Status code
-     * @retval  0
-     * @retval  -1
+     * @retval   0      Sucess
+     * @retval  -1      Failed to send the command to the TESEO module
+     * @retval  -2      Received message was not properly formed.
+     * @retval  -3      Module returned an error
      */
     uint8_t disablePPS();
 
@@ -101,10 +105,25 @@ public:
      * @warning If re-called, the measure will be discarded.
      *
      * @return  Status code
-     * @retval  0
-     * @retval  -1
+     * @retval   0      Sucess
+     * @retval  -1      Failed to send the command to the TESEO module
+     * @retval  -2      Received message was not properly formed.
+     * @retval  -3      Module returned an error
      */
     uint8_t enableOdometer();
+
+    /**
+     * @brief   Disable the odometer measure (distance moved).abs
+     *
+     * @warning If re-called, the measure will be discarded.
+     *
+     * @return  Status code
+     * @retval   0      Sucess
+     * @retval  -1      Failed to send the command to the TESEO module
+     * @retval  -2      Received message was not properly formed.
+     * @retval  -3      Module returned an error
+     */
+    uint8_t disableOdometer();
 
     /**
      * @brief   Configure the GPS used for the positionning
@@ -175,7 +194,7 @@ private:
      * BUS IO
      * -----------------------------------------------------------------
      */
-    uint8_t write(char *const cmd, uint16_t len);
+    uint8_t write(const uint8_t *cmd, uint16_t len);
 
     static void ISR_RX(const struct device *dev,
                        struct uart_event *evt,
