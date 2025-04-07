@@ -34,19 +34,25 @@
 #include "init/init.h"
 #include "config.h"
 
-#include "devices/servo/servo.h"
-#include "devices/rgb/rgb.h"
-#include "devices/eeprom/eeprom.h"
+#include "devices/servo.h"
+#include "devices/rgb.h"
+#include "devices/eeprom.h"
 
-#include "peripherals/gpio/gpio.h"
-#include "peripherals/saadc/saadc.h"
+#include "peripherals/gpio.h"
+#include "peripherals/saadc.h"
 
 // Devices drivers
-#include "drivers/MS5611/MS5611.h"
-#include "drivers/MCP23008/mcp23008.h"
-#include "drivers/BNO055/bno055.h"
-#include "drivers/IIS2DLPC/iis2dlpc_reg.h"
-#include "drivers/TESEO/teseo.h"
+#include "drivers/MS5611.h"
+#include "drivers/mcp23008.h"
+#include "drivers/bno055.h"
+#include "drivers/iis2dlpc_reg.h"
+#include "drivers/teseo.h"
+
+// Threads
+#include "threads/controller.h"
+#include "threads/logger.h"
+#include "threads/safety.h"
+#include "threads/threads.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
@@ -56,6 +62,10 @@
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 
 #define I2C_NODE DT_NODELABEL(barometer0)
+
+K_THREAD_STACK_DEFINE(controller_stack, THREAD_STACKSIZE);
+K_THREAD_STACK_DEFINE(logger_stack, THREAD_STACKSIZE);
+K_THREAD_STACK_DEFINE(safety_stack, THREAD_STACKSIZE);
 
 /* -----------------------------------------------------------------
  * MAIN LOOP
@@ -92,15 +102,73 @@ int main(void)
     // ExternalStart.readPin();
     // ExternalStart2.readPin();
 
+    // Creating threads
+    struct k_fifo toto;
+    k_fifo_init(&toto);
+
+    struct safety_p1 tmp1 = {.barom_data = toto,
+                            .adc_data = toto,
+                            .imu_data = toto,
+                            .gps_data = toto,
+                            .gpio_data = toto};
+
+    struct logger_p1 tmp2 = {.barom_data = toto,
+                            .adc_data = toto,
+                            .imu_data = toto,
+                            .gps_data = toto};
+
+    struct controller_p1 tmp3 = {.barom_data = toto,
+                                .adc_data = toto,
+                                .imu_data = toto};
+
+    struct k_thread controller_data;
+    struct k_thread logger_data;
+    struct k_thread safety_data;
+
+    k_thread_create(&controller_data, 
+                    controller_stack, 
+                    K_THREAD_STACK_SIZEOF(controller_stack),
+                    thread_controller,
+                    (void *)&tmp3,
+                    nullptr,
+                    nullptr,
+                    CONTROLLER_PRIORITY,
+                    0,
+                    K_NO_WAIT);
+
+    k_thread_create(&logger_data,
+                    logger_stack,
+                    K_THREAD_STACK_SIZEOF(logger_stack),
+                    thread_logger,
+                    (void *)&tmp2,
+                    nullptr,
+                    nullptr,
+                    LOGGER_PRIORITY,
+                    0,
+                    K_NO_WAIT);
+
+    k_thread_create(&safety_data,
+                    safety_stack,
+                    K_THREAD_STACK_SIZEOF(safety_stack),
+                    thread_safety,
+                    (void *)&tmp1,
+                    nullptr,
+                    nullptr,
+                    SAFETY_PRIORITY,
+                    0,
+                    K_NO_WAIT);
+
+    // This works fine !
+
     /* -----------------------------------------------------------------
-     * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
-     * -----------------------------------------------------------------
-     */
+        * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
+        * -----------------------------------------------------------------
+        */
 
     ServoAngles Command = {.north = 90,
-                           .south = 0,
-                           .east = -90,
-                           .west = 0};
+                            .south = 0,
+                            .east = -90,
+                            .west = 0};
 
     ret += SERVO_SetPosition(pwm_wings, &Command);
 
