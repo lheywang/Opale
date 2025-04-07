@@ -6,6 +6,12 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(Opale)
 
 # ============
+# INCLUDES
+# ============
+# Remove the requirement for absolute include path
+target_include_directories(app PUBLIC application/include)
+
+# ============
 # MAIN
 # ============
 target_sources(app PRIVATE application/src/main.cpp)
@@ -52,4 +58,11 @@ target_sources(app PRIVATE application/src/drivers/IIS2DLPC/accelerometer.cpp)
 target_sources(app PRIVATE application/src/drivers/MCP23008/mcp23008.cpp)
 ## MS5611
 target_sources(app PRIVATE application/src/drivers/MS5611/MS5611.cpp)
+
+# ============
+# THREADS
+# ============
+target_sources(app PRIVATE application/src/threads/controller/controller.cpp)
+target_sources(app PRIVATE application/src/threads/logger/logger.cpp)
+target_sources(app PRIVATE application/src/threads/safety/safety.cpp)
 
