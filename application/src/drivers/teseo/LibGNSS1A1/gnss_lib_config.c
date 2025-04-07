@@ -16,8 +16,8 @@
  ******************************************************************************
  */
 
-#include "gnss_lib_config.h"
-#include "gnss1a1_gnss.h"
+#include "drivers/teseo/gnss_lib_config.h"
+#include "drivers/teseo/gnss1a1_gnss.h"
 
 int32_t GNSS_Wrapper_Send(uint8_t *buffer, uint16_t length)
 {

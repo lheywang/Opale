@@ -24,9 +24,9 @@
 #include <zephyr/kernel.h>
 
 // Local libs
-#include "rocket.h"
-#include "../../peripherals/gpio/gpio.h"
-#include "../../config.h"
+#include "devices/rocket.h"
+#include "peripherals/gpio.h"
+#include "config.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG

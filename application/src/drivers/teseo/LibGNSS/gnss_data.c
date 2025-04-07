@@ -19,14 +19,14 @@
 #include <math.h>
 #include <string.h>
 
-#include "gnss_data.h"
+#include "drivers/teseo/gnss_data.h"
 #ifdef ASSISTED_GNSS
 #include "assisted_gnss.h"
 #endif /* ASSISTED_GNSS */
-#include "gnss_geofence.h"
-#include "../LibGNSS1A1/gnss_lib_config.h"
+#include "drivers/teseo/gnss_geofence.h"
+#include "drivers/teseo/gnss_lib_config.h"
 
-#include "../teseo_liv3f_conf.h"
+#include "drivers/teseo/teseo_liv3f_conf.h"
 
 /* Private defines -----------------------------------------------------------*/
 #define MSG_SZ (256)

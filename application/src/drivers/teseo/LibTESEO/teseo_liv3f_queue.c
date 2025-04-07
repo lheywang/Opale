@@ -16,7 +16,7 @@
  ******************************************************************************
  */
 /* Includes ------------------------------------------------------------------*/
-#include "teseo_liv3f_queue.h"
+#include "drivers/teseo/teseo_liv3f_queue.h"
 
 /* Defines -------------------------------------------------------------------*/
 #define ANY_RTOS ((USE_FREE_RTOS_NATIVE_API) || (USE_AZRTOS_NATIVE_API) || (osCMSIS))

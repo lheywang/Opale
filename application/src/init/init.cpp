@@ -29,8 +29,8 @@
 #include <zephyr/kernel.h>
 
 // Custom libs
-#include "init.h"
-#include "../config.h"
+#include "init/init.h"
+#include "config.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG

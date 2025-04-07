@@ -27,9 +27,9 @@
 #include <nrfx_dppi.h> // This line must be replaced with nrfx_ppi for nRF52 and less series.
 
 // Libs
-#include "../../init/init.h"
-#include "../../config.h"
-#include "saadc.h"
+#include "init/init.h"
+#include "config.h"
+#include "peripherals/saadc.h"
 
 // Zephyr
 #include <zephyr/logging/log.h>
@@ -229,16 +229,17 @@ void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
             maximals[k] = maximals[k] * (3.3 / 4096.0);
         }
 
-        LOG_INF("SAADC buffer at 0x%x filled with %d samples", (uint32_t)p_event->data.done.p_buffer, p_event->data.done.size);
-        for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
-        {
-            LOG_INF("Channel %d (Pin %d) has : average %.3f, min %.3f, max %.3f",
-                    k,
-                    channels[k].pin_p,
-                    averages[k],
-                    minimals[k],
-                    maximals[k]);
-        }
+        // LOG_INF("SAADC buffer at 0x%x filled with %d samples", (uint32_t)p_event->data.done.p_buffer, p_event->data.done.size);
+        // for (uint8_t k = 0; k < SAADC_INPUT_COUNT; k++)
+        // {
+        //     LOG_INF("Channel %d (Pin %d) has : average %.3f, min %.3f, max %.3f",
+        //             k,
+        //             channels[k].pin_p,
+        //             averages[k],
+        //             minimals[k],
+        //             maximals[k]);
+        // }
+        // TODO Push on a FIFO here !
 
         break;
     }

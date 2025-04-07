@@ -11,7 +11,7 @@
  *
  *  ================================================================
  */
-#include "mcp23008.h"
+#include "drivers/mcp23008.h"
 
 /* -----------------------------------------------------------------
  * LIBS
@@ -23,8 +23,8 @@
 #include <zephyr/drivers/i2c.h>
 
 // Local libs
-#include "../../init/init.h"
-#include "../../config.h"
+#include "init/init.h"
+#include "config.h"
 
 // STD
 #include <cstdint>

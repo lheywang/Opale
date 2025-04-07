@@ -23,9 +23,9 @@
 #include <zephyr/logging/log.h>
 
 // Local libs
-#include "rgb.h"
-#include "../../config.h"
-#include "../../init/init.h"
+#include "devices/rgb.h"
+#include "config.h"
+#include "init/init.h"
 
 // STD
 #include <math.h>

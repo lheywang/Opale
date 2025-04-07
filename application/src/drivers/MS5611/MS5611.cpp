@@ -7,9 +7,14 @@ by Petr Gronat@2014
 Edited by l.heywang in 2025 to make it compatible with nRF (Zephyr) API.
 */
 
+/*
+ * -----------------------------------------------------------------
+ * LIBS
+ * -----------------------------------------------------------------
+ */
+
 // Libs
-#include "MS5611.h"
-#include <cstdint>
+#include "drivers/MS5611.h"
 
 // Zephyr
 #include <zephyr/drivers/i2c.h>
@@ -17,9 +22,17 @@ Edited by l.heywang in 2025 to make it compatible with nRF (Zephyr) API.
 #include <zephyr/kernel.h>
 
 // init lib
-#include "../../init/init.h"
-#include "../../config.h"
+#include "init/init.h"
+#include "config.h"
 
+// STD
+#include <cstdint>
+
+/*
+ * -----------------------------------------------------------------
+ * LOGGER MODULES
+ * -----------------------------------------------------------------
+ */
 LOG_MODULE_REGISTER(ms5611, PROJECT_LOG_LEVEL);
 
 constexpr uint8_t OSR = 3; // 0-3
@@ -37,6 +50,11 @@ constexpr uint8_t NBYTES_PROM = 2;
 // Kindly read the comment bellow in getPressure() method
 constexpr int T_THR = 1000;
 
+/*
+ * -----------------------------------------------------------------
+ * FUNCTIONS
+ * -----------------------------------------------------------------
+ */
 MS5611::MS5611()
 {
     // Defining some settings

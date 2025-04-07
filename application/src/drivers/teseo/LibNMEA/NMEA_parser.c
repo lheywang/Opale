@@ -18,7 +18,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <stdlib.h>
 #include "string.h"
-#include "NMEA_parser.h"
+#include "drivers/teseo/NMEA_parser.h"
 
 /* Private defines -----------------------------------------------------------*/
 

@@ -39,7 +39,7 @@
 /*********************************************************/
 /*              INCLUDES    */
 /*******************************************************/
-#include "bno055.h"
+#include "drivers/bno055.h"
 
 #ifdef __KERNEL__
 #include <linux/types.h>
@@ -65,8 +65,8 @@
 #include <zephyr/drivers/uart.h>
 
 // Personnals libs
-#include "../../init/init.h"
-#include "../../config.h"
+#include "init/init.h"
+#include "config.h"
 
 /*********************************************************/
 /*              LOGGER CONFIG   */

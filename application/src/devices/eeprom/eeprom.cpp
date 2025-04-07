@@ -21,8 +21,8 @@
 #include <zephyr/drivers/spi.h>
 
 // Local libs
-#include "eeprom.h"
-#include "../../init/init.h"
+#include "devices/eeprom.h"
+#include "init/init.h"
 
 /* -----------------------------------------------------------------
  * FUNCTIONS TO COMMAND AN EEPROM

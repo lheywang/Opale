@@ -16,9 +16,9 @@
  ******************************************************************************
  */
 /* Includes ------------------------------------------------------------------*/
-#include "teseo_liv3f.h"
-#include "teseo_liv3f_i2c.h"
-#include "teseo_liv3f_uart.h"
+#include "drivers/teseo/teseo_liv3f.h"
+#include "drivers/teseo/teseo_liv3f_i2c.h"
+#include "drivers/teseo/teseo_liv3f_uart.h"
 
 /** @addtogroup BSP BSP
  * @{
