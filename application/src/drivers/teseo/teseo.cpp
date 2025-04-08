@@ -39,16 +39,28 @@
 #include <stdlib.h> // C++ lib not present ??
 
 /* -----------------------------------------------------------------
+ * LOGGER MODULE
+ * -----------------------------------------------------------------
+ */
+// Identify the module on the LOG Output
+LOG_MODULE_REGISTER(Teseo, PROJECT_LOG_LEVEL);
+
+/* -----------------------------------------------------------------
  * PRIVATE DEFINES
  * -----------------------------------------------------------------
  */
 // Let's define standard commands
-constexpr char *_NMEA_PPSEN = (char *)"$PSTMCFGPPSGEN,1,0,0,0*_\r\n";
-constexpr char *_NMEA_PPSOF = (char *)"$PSTMCFGPPSGEN,0,0,0,0*_\r\n";
-constexpr char *_NMEA_ODOEN = (char *)"$PSTMCFGODO,1,0,65535*_\r\n";
-constexpr char *_NMEA_ODOOF = (char *)"$PSTMCFGODO,0,0,65535*_\r\n";
-constexpr char *_NMEA_CONST = (char *)"$PSTMCFGCONST"; // No \r\n, they're added afterward
+constexpr char *_NMEA_PPSEN = (char *)"$PSTMCFGPPSGEN,1,0,0,0*_\r\n\0";
+constexpr int _NMEA_PPSEN_LEN = 28;
+constexpr char *_NMEA_PPSOF = (char *)"$PSTMCFGPPSGEN,0,0,0,0*_\r\n\0";
+constexpr int _NMEA_PPSOF_LEN = 28;
+constexpr char *_NMEA_ODOEN = (char *)"$PSTMCFGODO,1,0,65535*_\r\n\0";
+constexpr int _NMEA_ODOEN_LEN = 27;
+constexpr char *_NMEA_ODOOF = (char *)"$PSTMCFGODO,0,0,65535*_\r\n\0";
+constexpr int _NMEA_ODOOF_LEN = 27;
+constexpr char *_NMEA_CONST = (char *)"$PSTMCFGCONST\0"; // No \r\n, they're added afterward
                                                        // once the command is formatted.
+constexpr int _NMEA_CONST_LEN = 15;
 
 // Define NMEA command delimiters
 constexpr char CMD_Addr = '$';
@@ -65,7 +77,7 @@ constexpr char Chksm_placeholder = '_';
  *
  * This function shall be executed at compile time rather than on the nRF !
  */
-const char *_TESEO_CHKSM(const char *input, uint8_t len)
+const char *_TESEO_CHKSM(const char input[], uint8_t len)
 {
     // Check that the input is well formed
     if (char2int(input[0]) != char2int('$'))
@@ -73,7 +85,8 @@ const char *_TESEO_CHKSM(const char *input, uint8_t len)
         return (char *)' ';
     }
 
-    char *placeholder = strchr(input, CMD_Chkm);
+    char *placeholder;
+    placeholder = strchr(input, CMD_Chkm);
     if (placeholder == nullptr)
     {
         return (char *)'E';
@@ -83,23 +96,26 @@ const char *_TESEO_CHKSM(const char *input, uint8_t len)
         return (char *)'R';
     }
 
-    if (strchr(input, Chksm_placeholder) < (input + len))
+    char *pos;
+    pos = strchr(input, Chksm_placeholder);
+    if (pos == nullptr)
     {
         return (char *)'T';
     }
 
     // Iterate over the string to compute the checksum
-    int n = 0;
     uint8_t checksum = 0;
-
-    while ((char2int(input[n] != char2int('*'))) || (n < len))
+    for(int k = 0; k < len; k++)
     {
-        checksum ^= input[n];
-        n += 1;
+        if (input[k] == '*')
+        {
+            break;
+        }
+        checksum ^= input[k];
     }
 
     // Inserting the computed value into the char
-    // strncpy(placeholder, (const char *)&checksum, 1);
+    *placeholder = checksum;
     return input;
 }
 
@@ -108,28 +124,21 @@ const char *_TESEO_CHKSM(const char *input, uint8_t len)
  * -----------------------------------------------------------------
  */
 // Theses values are computed by GCC at the compile time
-const char *NMEA_PPSEN = _TESEO_CHKSM(_NMEA_PPSEN, sizeof(_NMEA_PPSEN));
-const char *NMEA_PPSOF = _TESEO_CHKSM(_NMEA_PPSOF, sizeof(_NMEA_PPSOF));
-const char *NMEA_ODOEN = _TESEO_CHKSM(_NMEA_ODOEN, sizeof(_NMEA_ODOEN));
-const char *NMEA_ODOOF = _TESEO_CHKSM(_NMEA_ODOOF, sizeof(_NMEA_ODOOF));
+const char *NMEA_PPSEN = _TESEO_CHKSM(_NMEA_PPSEN, _NMEA_PPSEN_LEN);
+const char *NMEA_PPSOF = _TESEO_CHKSM(_NMEA_PPSOF, _NMEA_PPSOF_LEN);
+const char *NMEA_ODOEN = _TESEO_CHKSM(_NMEA_ODOEN, _NMEA_ODOEN_LEN);
+const char *NMEA_ODOOF = _TESEO_CHKSM(_NMEA_ODOOF, _NMEA_ODOOF_LEN);
 
 // Commands
-const char *NMEA_PSTIM = (char *)"$PSTMTIM\r\n";
-const char *NMEA_GPGLL = (char *)"$GPGLL\r\n";
-const char *NMEA_GNGSA = (char *)"$GNGSA\r\n";
-const char *NMEA_GPVTG = (char *)"$GPVTG\r\n";
+const char *NMEA_PSTIM = (char *)"$PSTMTIM\r\n\0";
+const char *NMEA_GPGLL = (char *)"$GPGLL\r\n\0";
+const char *NMEA_GNGSA = (char *)"$GNGSA\r\n\0";
+const char *NMEA_GPVTG = (char *)"$GPVTG\r\n\0";
 
 // Return values
-const char *PSTMCFGPPSGENOK = (char *)"$PSTMCFGPPSGENOK";
-const char *PSTMCFGODOOK = (char *)"$PSTMCFGODOOK";
-const char *PSTMCFGTHGNSSOK = (char *)"$PSTMCFGTHGNSSOK";
-
-/* -----------------------------------------------------------------
-    * LOGGER MODULE
-    * -----------------------------------------------------------------
-    */
-// Identify the module on the LOG Output
-LOG_MODULE_REGISTER(Teseo, PROJECT_LOG_LEVEL);
+const char *PSTMCFGPPSGENOK = (char *)"$PSTMCFGPPSGENOK\0";
+const char *PSTMCFGODOOK = (char *)"$PSTMCFGODOOK\0";
+const char *PSTMCFGTHGNSSOK = (char *)"$PSTMCFGTHGNSSOK\0";
 
 /* -----------------------------------------------------------------
  * CONSTRUCTORS AND DESTRUCTORS
