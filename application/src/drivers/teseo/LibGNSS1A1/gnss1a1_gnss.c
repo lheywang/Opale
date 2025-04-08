@@ -13,16 +13,16 @@
  * in the root directory of this software component.
  * If no LICENSE file comes with this software, it is provided AS-IS.
  *
- ******************************************************************************
+ ******************************************************************************/
 
- /**
-  * This file was heavily modified to become compatible with the nRF SDK.
-  *
-  * Changes shall be documented.
-  *
-  * @todo   Need to be rewrote !
-  *
-  */
+   /*
+    * This file was heavily modified to become compatible with the nRF SDK.
+    *
+    * Changes shall be documented.
+    *
+    * @todo   Need to be rewrote !
+    *
+    */
 
 /* Includes ------------------------------------------------------------------*/
 #include "drivers/teseo/gnss1a1_gnss.h"

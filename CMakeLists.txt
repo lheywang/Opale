@@ -39,25 +39,25 @@ target_sources(app PRIVATE application/src/devices/eeprom/eeprom.cpp)
 # DRIVERS
 # ============
 ## BNO055
-target_sources(app PRIVATE application/src/drivers/BNO055/bno055.cpp)
+target_sources(app PRIVATE application/src/drivers/bno055/bno055.cpp)
 ## Teseo
-target_sources(app PRIVATE application/src/drivers/TESEO/teseo.cpp)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibGNSS/gnss_data.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibGNSS/gnss_parser.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibNMEA/NMEA_parser.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibGNSS1A1/gnss1a1_gnss.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibGNSS1A1/gnss_lib_config.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibTESEO/teseo_liv3f_i2c.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibTESEO/teseo_liv3f_queue.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibTESEO/teseo_liv3f_uart.c)
-target_sources(app PRIVATE application/src/drivers/TESEO/LibTESEO/teseo_liv3f.c)
+target_sources(app PRIVATE application/src/drivers/teseo/teseo.cpp)
+target_sources(app PRIVATE application/src/drivers/teseo/LibGNSS/gnss_data.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibGNSS/gnss_parser.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibNMEA/NMEA_parser.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibGNSS1A1/gnss1a1_gnss.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibGNSS1A1/gnss_lib_config.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibTESEO/teseo_liv3f_i2c.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibTESEO/teseo_liv3f_queue.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibTESEO/teseo_liv3f_uart.c)
+target_sources(app PRIVATE application/src/drivers/teseo/LibTESEO/teseo_liv3f.c)
 ## II2SDLPC
-target_sources(app PRIVATE application/src/drivers/IIS2DLPC/iis2dlpc_reg.cpp)
-target_sources(app PRIVATE application/src/drivers/IIS2DLPC/accelerometer.cpp)
+target_sources(app PRIVATE application/src/drivers/iis2dlpc/iis2dlpc_reg.cpp)
+target_sources(app PRIVATE application/src/drivers/iis2dlpc/accelerometer.cpp)
 ## MCP23008
-target_sources(app PRIVATE application/src/drivers/MCP23008/mcp23008.cpp)
+target_sources(app PRIVATE application/src/drivers/mcp23008/mcp23008.cpp)
 ## MS5611
-target_sources(app PRIVATE application/src/drivers/MS5611/MS5611.cpp)
+target_sources(app PRIVATE application/src/drivers/ms5611/MS5611.cpp)
 
 # ============
 # THREADS
