@@ -4,3 +4,6 @@ build*/
 # IDE settings
 .vscode/
 .VSCodeCounter/
+
+# Excel files
+*~$*

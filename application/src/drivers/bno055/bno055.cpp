@@ -39,7 +39,7 @@
 /*********************************************************/
 /*              INCLUDES    */
 /*******************************************************/
-#include "bno055.h"
+#include "drivers/bno055.h"
 
 #ifdef __KERNEL__
 #include <linux/types.h>
@@ -56,6 +56,95 @@
 #define NULL ((void *)0)
 #endif
 #endif
+
+/*********************************************************/
+/*              ZEPHYR   */
+/*******************************************************/
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/drivers/uart.h>
+
+// Personnals libs
+#include "init/init.h"
+#include "config.h"
+
+/*********************************************************/
+/*              LOGGER CONFIG   */
+/*******************************************************/
+LOG_MODULE_REGISTER(bno055, PROJECT_LOG_LEVEL);
+
+/*************************************************/
+/**CONSTRUCTOR AND DESTRUCTOR    */
+/*************************************************/
+BNO055::BNO055()
+{
+    // First, allocate memory for the bno055 struct
+    this->imu = (bno055_t *)k_malloc(sizeof(bno055_t));
+    if (imu == nullptr)
+    {
+        LOG_ERR("Failed to allocate enough memory for the BNO055 struct ! Aborting !");
+        return;
+    }
+
+    // Register the struct on itself (In fact, the original lib
+    // copy the pointer to another location,
+    // causing a loss of 4 bytes of memory (assuming 32bits pointer).
+    // We don't really care about that
+    // here !)
+    this->bno055_init(imu);
+
+    // First, allocate memory for the bno055 IO bufs
+    this->IO_buf = (uint8_t *)k_malloc(130 * sizeof(uint8_t));
+    if (imu == nullptr)
+    {
+        LOG_ERR("Failed to allocate enough memory for the BNO055 IO buf ! Aborting !");
+        return;
+    }
+
+    // Define a default value for the memory
+    memset(&this->IO_buf, 0, 130);
+    this->IO_DataReady = false;
+
+    // Open the UART bus
+    this->bus = INIT_GetAnUART(UARTS::IMU);
+
+    // Then, register the bus communication ISR (and data)
+    int ret = uart_callback_set(this->bus,
+                                BNO055::ISR_RX,
+                                (void *)this->IO_DataReady);
+    if (ret != 0)
+    {
+        LOG_ERR("Failed to set the RX callback ISR !");
+        return;
+    }
+
+    // Enabling UART reception
+    ret = uart_rx_enable(this->bus,
+                         (uint8_t *)this->IO_buf,
+                         sizeof(this->IO_buf),
+                         150);
+    // 150 us without no new data.
+    // This correspond to 1.5x the delta
+    // between two UART byte at 115200 baud.
+
+    if (ret != 0)
+    {
+        LOG_ERR("Failed to enable the UART RX !");
+        return;
+    }
+
+    return;
+}
+
+BNO055::~BNO055()
+{
+    // First, free the UART
+    INIT_FreeAnUART(UARTS::IMU, this->bus);
+
+    // Then, free memory
+    k_free((void *)this->IO_buf);
+    k_free((void *)this->imu);
+}
 
 /*! file <BNO055 >
  * brief <Sensor driver for BNO055> */
@@ -88,7 +177,7 @@ static struct bno055_t *p_bno055;
  *  affect the reference value of the parameter
  *  (Better case don't change the reference value of the parameter)
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_init(struct bno055_t *bno055)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_init(struct bno055_t *bno055)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -104,66 +193,66 @@ BNO055_RETURN_FUNCTION_TYPE bno055_init(struct bno055_t *bno055)
     p_bno055 = bno055;
 
     /* Write the default page as zero*/
-    com_rslt = p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                               BNO055_PAGE_ID_REG,
-                                               &bno055_page_zero_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt = this->bus_write(p_bno055->dev_addr,
+                               BNO055_PAGE_ID_REG,
+                               &bno055_page_zero_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
 
     /* Read the chip id of the sensor from page
      * zero 0x00 register*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_CHIP_ID_REG,
-                                               &data_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_CHIP_ID_REG,
+                               &data_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
     p_bno055->chip_id = data_u8;
 
     /* Read the accel revision id from page
      * zero 0x01 register*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_ACCEL_REV_ID_REG,
-                                               &data_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_ACCEL_REV_ID_REG,
+                               &data_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
     p_bno055->accel_rev_id = data_u8;
 
     /* Read the mag revision id from page
      * zero 0x02 register*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_MAG_REV_ID_REG,
-                                               &data_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_MAG_REV_ID_REG,
+                               &data_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
     p_bno055->mag_rev_id = data_u8;
 
     /* Read the gyro revision id from page
      * zero 0x02 register*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_GYRO_REV_ID_REG,
-                                               &data_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_GYRO_REV_ID_REG,
+                               &data_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
     p_bno055->gyro_rev_id = data_u8;
 
     /* Read the boot loader revision from page
      * zero 0x06 register*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_BL_REV_ID_REG,
-                                               &data_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_BL_REV_ID_REG,
+                               &data_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
     p_bno055->bl_rev_id = data_u8;
 
     /* Read the software revision id from page
      * zero 0x04 and 0x05 register( 2 bytes of data)*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_SW_REV_ID_LSB_REG,
-                                               a_SW_ID_u8,
-                                               BNO055_LSB_MSB_READ_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_SW_REV_ID_LSB_REG,
+                               a_SW_ID_u8,
+                               BNO055_LSB_MSB_READ_LENGTH);
     a_SW_ID_u8[BNO055_SW_ID_LSB] = BNO055_GET_BITSLICE(a_SW_ID_u8[BNO055_SW_ID_LSB], BNO055_SW_REV_ID_LSB);
     p_bno055->sw_rev_id =
         (u16)((((u32)((u8)a_SW_ID_u8[BNO055_SW_ID_MSB])) << BNO055_SHIFT_EIGHT_BITS) | (a_SW_ID_u8[BNO055_SW_ID_LSB]));
 
     /* Read the page id from the register 0x07*/
-    com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                               BNO055_PAGE_ID_REG,
-                                               &data_u8,
-                                               BNO055_GEN_READ_WRITE_LENGTH);
+    com_rslt += this->bus_read(p_bno055->dev_addr,
+                               BNO055_PAGE_ID_REG,
+                               &data_u8,
+                               BNO055_GEN_READ_WRITE_LENGTH);
     p_bno055->page_id = data_u8;
 
     return com_rslt;
@@ -184,7 +273,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_init(struct bno055_t *bno055)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_write_register(u8 addr_u8, u8 *data_u8, u8 len_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_write_register(u8 addr_u8, u8 *data_u8, u8 len_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -198,7 +287,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_register(u8 addr_u8, u8 *data_u8, u8 le
     else
     {
         /* Write the values of respective given register */
-        com_rslt = p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr, addr_u8, data_u8, len_u8);
+        com_rslt = this->bus_write(p_bno055->dev_addr, addr_u8, data_u8, len_u8);
     }
 
     return com_rslt;
@@ -219,7 +308,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_register(u8 addr_u8, u8 *data_u8, u8 le
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_register(u8 addr_u8, u8 *data_u8, u8 len_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_register(u8 addr_u8, u8 *data_u8, u8 len_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -233,7 +322,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_register(u8 addr_u8, u8 *data_u8, u8 len
     else
     {
         /* Read the value from given register*/
-        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr, addr_u8, data_u8, len_u8);
+        com_rslt = this->bus_read(p_bno055->dev_addr, addr_u8, data_u8, len_u8);
     }
 
     return com_rslt;
@@ -250,7 +339,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_register(u8 addr_u8, u8 *data_u8, u8 len
  *  @retval 0 -> BNO055_SUCCESS
  *  @retval 1 -> BNO055_ERROR
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_chip_id(u8 *chip_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_chip_id(u8 *chip_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -275,10 +364,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_chip_id(u8 *chip_id_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the chip id*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_CHIP_ID_REG,
-                                                      &data_u8,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_CHIP_ID_REG,
+                                      &data_u8,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *chip_id_u8 = data_u8;
         }
         else
@@ -302,7 +391,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_chip_id(u8 *chip_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_sw_rev_id(u16 *sw_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_sw_rev_id(u16 *sw_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -332,10 +421,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_sw_rev_id(u16 *sw_id_u8)
         {
             /* Read the two byte value of software
              * revision id*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SW_REV_ID_LSB_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SW_REV_ID_LSB_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SW_ID_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SW_ID_LSB], BNO055_SW_REV_ID_LSB);
             *sw_id_u8 =
                 (u16)((((u32)((u8)data_u8[BNO055_SW_ID_MSB])) << BNO055_SHIFT_EIGHT_BITS) |
@@ -366,7 +455,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_sw_rev_id(u16 *sw_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_page_id(u8 *page_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_page_id(u8 *page_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -381,10 +470,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_page_id(u8 *page_id_u8)
     else
     {
         /* Read the page id form 0x07*/
-        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                  BNO055_PAGE_ID_REG,
-                                                  &data_u8,
-                                                  BNO055_GEN_READ_WRITE_LENGTH);
+        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                  BNO055_PAGE_ID_REG,
+                                  &data_u8,
+                                  BNO055_GEN_READ_WRITE_LENGTH);
         if (com_rslt == BNO055_SUCCESS)
         {
             data_u8 = BNO055_GET_BITSLICE(data_u8, BNO055_PAGE_ID);
@@ -415,7 +504,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_page_id(u8 *page_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_write_page_id(u8 page_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_write_page_id(u8 page_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -430,10 +519,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_page_id(u8 page_id_u8)
     else
     {
         /* Read the current page*/
-        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                  BNO055_PAGE_ID_REG,
-                                                  &data_u8r,
-                                                  BNO055_GEN_READ_WRITE_LENGTH);
+        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                  BNO055_PAGE_ID_REG,
+                                  &data_u8r,
+                                  BNO055_GEN_READ_WRITE_LENGTH);
 
         /* Check condition for communication BNO055_SUCCESS*/
         if (com_rslt == BNO055_SUCCESS)
@@ -441,10 +530,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_page_id(u8 page_id_u8)
             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_PAGE_ID, page_id_u8);
 
             /* Write the page id*/
-            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                        BNO055_PAGE_ID_REG,
-                                                        &data_u8r,
-                                                        BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                        BNO055_PAGE_ID_REG,
+                                        &data_u8r,
+                                        BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 p_bno055->page_id = page_id_u8;
@@ -471,7 +560,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_page_id(u8 page_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_rev_id(u8 *accel_rev_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_accel_rev_id(u8 *accel_rev_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -496,10 +585,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_rev_id(u8 *accel_rev_id_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel revision id */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_REV_ID_REG,
-                                                      &data_u8,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_REV_ID_REG,
+                                      &data_u8,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_rev_id_u8 = data_u8;
         }
         else
@@ -523,7 +612,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_rev_id(u8 *accel_rev_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_rev_id(u8 *mag_rev_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_mag_rev_id(u8 *mag_rev_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -548,10 +637,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_rev_id(u8 *mag_rev_id_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the mag revision id */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_REV_ID_REG,
-                                                      &data_u8,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_REV_ID_REG,
+                                      &data_u8,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *mag_rev_id_u8 = data_u8;
         }
         else
@@ -577,7 +666,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_rev_id(u8 *mag_rev_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_rev_id(u8 *gyro_rev_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gyro_rev_id(u8 *gyro_rev_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -602,10 +691,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_rev_id(u8 *gyro_rev_id_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro revision id */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_REV_ID_REG,
-                                                      &data_u8,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_REV_ID_REG,
+                                      &data_u8,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_rev_id_u8 = data_u8;
         }
         else
@@ -630,7 +719,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_rev_id(u8 *gyro_rev_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_bl_rev_id(u8 *bl_rev_id_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_bl_rev_id(u8 *bl_rev_id_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -655,10 +744,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_bl_rev_id(u8 *bl_rev_id_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the boot loader revision id */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_BL_REV_ID_REG,
-                                                      &data_u8,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_BL_REV_ID_REG,
+                                      &data_u8,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *bl_rev_id_u8 = data_u8;
         }
         else
@@ -687,7 +776,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_bl_rev_id(u8 *bl_rev_id_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_x(s16 *accel_x_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_accel_x(s16 *accel_x_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -715,10 +804,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_x(s16 *accel_x_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel x axis two byte value*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_ACCEL_DATA_X_LSB_VALUEX);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -753,7 +842,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_x(s16 *accel_x_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_y(s16 *accel_y_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_accel_y(s16 *accel_y_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -783,10 +872,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_y(s16 *accel_y_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel y axis two byte value*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_DATA_Y_LSB_VALUEY_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_DATA_Y_LSB_VALUEY_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_ACCEL_DATA_Y_LSB_VALUEY);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -821,7 +910,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_y(s16 *accel_y_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_z(s16 *accel_z_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_accel_z(s16 *accel_z_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -851,10 +940,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_z(s16 *accel_z_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel z axis two byte value*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_DATA_Z_LSB_VALUEZ_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_DATA_Z_LSB_VALUEZ_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_ACCEL_DATA_Z_LSB_VALUEZ);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -892,7 +981,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_z(s16 *accel_z_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_xyz(struct bno055_accel_t *accel)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_accel_xyz(struct bno055_accel_t *accel)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -926,10 +1015,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_xyz(struct bno055_accel_t *accel)
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_ACCEL_XYZ_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_ACCEL_XYZ_DATA_SIZE);
 
             /* Data X*/
             data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB],
@@ -985,7 +1074,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_xyz(struct bno055_accel_t *accel)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_x(s16 *mag_x_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_mag_x(s16 *mag_x_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1015,10 +1104,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_x(s16 *mag_x_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /*Read the mag x two bytes of data */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_MAG_DATA_X_LSB_VALUEX);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -1053,7 +1142,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_x(s16 *mag_x_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_y(s16 *mag_y_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_mag_y(s16 *mag_y_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1083,10 +1172,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_y(s16 *mag_y_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /*Read the mag y two bytes of data */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_DATA_Y_LSB_VALUEY_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_DATA_Y_LSB_VALUEY_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_MAG_DATA_Y_LSB_VALUEY);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -1122,7 +1211,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_y(s16 *mag_y_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_z(s16 *mag_z_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_mag_z(s16 *mag_z_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1151,10 +1240,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_z(s16 *mag_z_s16)
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_DATA_Z_LSB_VALUEZ_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_DATA_Z_LSB_VALUEZ_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
 
             /*Read the mag z two bytes of data */
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
@@ -1194,7 +1283,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_z(s16 *mag_z_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_xyz(struct bno055_mag_t *mag)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_mag_xyz(struct bno055_mag_t *mag)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1229,10 +1318,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_xyz(struct bno055_mag_t *mag)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /*Read the six byte value of mag xyz*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_MAG_XYZ_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_MAG_XYZ_DATA_SIZE);
 
             /* Data X*/
             data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB],
@@ -1287,7 +1376,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_xyz(struct bno055_mag_t *mag)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_x(s16 *gyro_x_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gyro_x(s16 *gyro_x_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1312,10 +1401,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_x(s16 *gyro_x_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro 16 bit x value*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_GYRO_DATA_X_LSB_VALUEX);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -1350,7 +1439,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_x(s16 *gyro_x_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_y(s16 *gyro_y_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gyro_y(s16 *gyro_y_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1375,10 +1464,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_y(s16 *gyro_y_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of gyro y */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_DATA_Y_LSB_VALUEY_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_DATA_Y_LSB_VALUEY_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_GYRO_DATA_Y_LSB_VALUEY);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -1408,7 +1497,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_y(s16 *gyro_y_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_z(s16 *gyro_z_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gyro_z(s16 *gyro_z_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1433,10 +1522,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_z(s16 *gyro_z_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro z 16 bit value*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_DATA_Z_LSB_VALUEZ_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_DATA_Z_LSB_VALUEZ_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_GYRO_DATA_Z_LSB_VALUEZ);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -1474,7 +1563,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_z(s16 *gyro_z_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_xyz(struct bno055_gyro_t *gyro)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gyro_xyz(struct bno055_gyro_t *gyro)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1509,10 +1598,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_xyz(struct bno055_gyro_t *gyro)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the six bytes data of gyro xyz*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_GYRO_XYZ_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_GYRO_XYZ_DATA_SIZE);
 
             /* Data x*/
             data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB],
@@ -1561,7 +1650,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_xyz(struct bno055_gyro_t *gyro)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_h(s16 *euler_h_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_euler_h(s16 *euler_h_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1591,10 +1680,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_h(s16 *euler_h_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the eulre heading data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_EULER_H_LSB_VALUEH_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_EULER_H_LSB_VALUEH_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_EULER_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_EULER_LSB],
                                                                         BNO055_EULER_H_LSB_VALUEH);
             data_u8[BNO055_SENSOR_DATA_EULER_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_EULER_MSB],
@@ -1623,7 +1712,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_h(s16 *euler_h_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_r(s16 *euler_r_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_euler_r(s16 *euler_r_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1653,10 +1742,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_r(s16 *euler_r_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the Euler roll data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_EULER_R_LSB_VALUER_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_EULER_R_LSB_VALUER_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_EULER_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_EULER_LSB],
                                                                         BNO055_EULER_R_LSB_VALUER);
             data_u8[BNO055_SENSOR_DATA_EULER_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_EULER_MSB],
@@ -1686,7 +1775,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_r(s16 *euler_r_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_p(s16 *euler_p_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_euler_p(s16 *euler_p_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1716,10 +1805,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_p(s16 *euler_p_s16)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the Euler p data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_EULER_P_LSB_VALUEP_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_EULER_P_LSB_VALUEP_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_EULER_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_EULER_LSB],
                                                                         BNO055_EULER_P_LSB_VALUEP);
             data_u8[BNO055_SENSOR_DATA_EULER_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_EULER_MSB],
@@ -1756,7 +1845,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_p(s16 *euler_p_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_hrp(struct bno055_euler_t *euler)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_euler_hrp(struct bno055_euler_t *euler)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1791,10 +1880,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_hrp(struct bno055_euler_t *euler)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the six byte of Euler hrp data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_EULER_H_LSB_VALUEH_REG,
-                                                      data_u8,
-                                                      BNO055_EULER_HRP_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_EULER_H_LSB_VALUEH_REG,
+                                      data_u8,
+                                      BNO055_EULER_HRP_DATA_SIZE);
 
             /* Data h*/
             data_u8[BNO055_SENSOR_DATA_EULER_HRP_H_LSB] = BNO055_GET_BITSLICE(
@@ -1850,7 +1939,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_hrp(struct bno055_euler_t *euler)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_w(s16 *quaternion_w_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_quaternion_w(s16 *quaternion_w_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1881,10 +1970,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_w(s16 *quaternion_w_s16)
         {
             /* Read the two byte value
              * of quaternion w data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_QUATERNION_DATA_W_LSB_VALUEW_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_QUATERNION_DATA_W_LSB_VALUEW_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB],
                                                                              BNO055_QUATERNION_DATA_W_LSB_VALUEW);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB],
@@ -1914,7 +2003,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_w(s16 *quaternion_w_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_x(s16 *quaternion_x_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_quaternion_x(s16 *quaternion_x_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -1945,10 +2034,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_x(s16 *quaternion_x_s16)
         {
             /* Read the two byte value
              * of quaternion x data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_QUATERNION_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_QUATERNION_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB],
                                                                              BNO055_QUATERNION_DATA_X_LSB_VALUEX);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB],
@@ -1978,7 +2067,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_x(s16 *quaternion_x_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_y(s16 *quaternion_y_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_quaternion_y(s16 *quaternion_y_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2009,10 +2098,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_y(s16 *quaternion_y_s16)
         {
             /* Read the two byte value
              * of quaternion y data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_QUATERNION_DATA_Y_LSB_VALUEY_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_QUATERNION_DATA_Y_LSB_VALUEY_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB],
                                                                              BNO055_QUATERNION_DATA_Y_LSB_VALUEY);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB],
@@ -2042,7 +2131,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_y(s16 *quaternion_y_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_z(s16 *quaternion_z_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_quaternion_z(s16 *quaternion_z_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2073,10 +2162,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_z(s16 *quaternion_z_s16)
         {
             /* Read the two byte value
              * of quaternion z data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_QUATERNION_DATA_Z_LSB_VALUEZ_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_QUATERNION_DATA_Z_LSB_VALUEZ_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_LSB],
                                                                              BNO055_QUATERNION_DATA_Z_LSB_VALUEZ);
             data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_QUATERNION_MSB],
@@ -2115,7 +2204,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_z(s16 *quaternion_z_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_wxyz(struct bno055_quaternion_t *quaternion)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_quaternion_wxyz(struct bno055_quaternion_t *quaternion)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2154,10 +2243,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_wxyz(struct bno055_quaternion
         {
             /* Read the eight byte value
              * of quaternion wxyz data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_QUATERNION_DATA_W_LSB_VALUEW_REG,
-                                                      data_u8,
-                                                      BNO055_QUATERNION_WXYZ_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_QUATERNION_DATA_W_LSB_VALUEW_REG,
+                                      data_u8,
+                                      BNO055_QUATERNION_WXYZ_DATA_SIZE);
 
             /* Data W*/
             data_u8[BNO055_SENSOR_DATA_QUATERNION_WXYZ_W_LSB] =
@@ -2224,7 +2313,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_quaternion_wxyz(struct bno055_quaternion
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_x(s16 *linear_accel_x_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_linear_accel_x(s16 *linear_accel_x_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2255,10 +2344,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_x(s16 *linear_accel_x_s16)
         {
             /* Read the two byte value
              * of linear accel x data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_LINEAR_ACCEL_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_LINEAR_ACCEL_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_LINEAR_ACCEL_DATA_X_LSB_VALUEX);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -2288,7 +2377,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_x(s16 *linear_accel_x_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_y(s16 *linear_accel_y_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_linear_accel_y(s16 *linear_accel_y_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2319,10 +2408,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_y(s16 *linear_accel_y_s16)
         {
             /* Read the two byte value
              * of linear accel y data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_LINEAR_ACCEL_DATA_Y_LSB_VALUEY_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_LINEAR_ACCEL_DATA_Y_LSB_VALUEY_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_LINEAR_ACCEL_DATA_Y_LSB_VALUEY);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -2352,7 +2441,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_y(s16 *linear_accel_y_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_z(s16 *linear_accel_z_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_linear_accel_z(s16 *linear_accel_z_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2383,10 +2472,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_z(s16 *linear_accel_z_s16)
         {
             /* Read the two byte value
              * of linear accel z data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_LINEAR_ACCEL_DATA_Z_LSB_VALUEZ_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_LINEAR_ACCEL_DATA_Z_LSB_VALUEZ_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_LINEAR_ACCEL_DATA_Z_LSB_VALUEZ);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -2422,7 +2511,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_z(s16 *linear_accel_z_s16)
  *  @retval 0 -> BNO055_SUCCESS
  *  @retval 1 -> BNO055_ERROR
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_xyz(struct bno055_linear_accel_t *linear_accel)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_linear_accel_xyz(struct bno055_linear_accel_t *linear_accel)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2458,10 +2547,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_xyz(struct bno055_linear_ac
         {
             /* Read the six byte value
              *  of linear accel xyz data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_LINEAR_ACCEL_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_ACCEL_XYZ_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_LINEAR_ACCEL_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_ACCEL_XYZ_DATA_SIZE);
 
             /* Data x*/
             data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB],
@@ -2511,7 +2600,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_linear_accel_xyz(struct bno055_linear_ac
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_x(s16 *gravity_x_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gravity_x(s16 *gravity_x_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2542,10 +2631,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_x(s16 *gravity_x_s16)
         {
             /* Read the two byte value
              * of gravity x data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GRAVITY_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GRAVITY_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_GRAVITY_DATA_X_LSB_VALUEX);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -2575,7 +2664,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_x(s16 *gravity_x_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_y(s16 *gravity_y_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gravity_y(s16 *gravity_y_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2606,10 +2695,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_y(s16 *gravity_y_s16)
         {
             /* Read the two byte value
              * of gravity y data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GRAVITY_DATA_Y_LSB_VALUEY_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GRAVITY_DATA_Y_LSB_VALUEY_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_GRAVITY_DATA_Y_LSB_VALUEY);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -2639,7 +2728,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_y(s16 *gravity_y_s16)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_z(s16 *gravity_z_s16)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gravity_z(s16 *gravity_z_s16)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2670,10 +2759,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_z(s16 *gravity_z_s16)
         {
             /* Read the two byte value
              * of gravity z data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GRAVITY_DATA_Z_LSB_VALUEZ_REG,
-                                                      data_u8,
-                                                      BNO055_LSB_MSB_READ_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GRAVITY_DATA_Z_LSB_VALUEZ_REG,
+                                      data_u8,
+                                      BNO055_LSB_MSB_READ_LENGTH);
             data_u8[BNO055_SENSOR_DATA_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_LSB],
                                                                   BNO055_GRAVITY_DATA_Z_LSB_VALUEZ);
             data_u8[BNO055_SENSOR_DATA_MSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_MSB],
@@ -2710,7 +2799,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_z(s16 *gravity_z_s16)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_xyz(struct bno055_gravity_t *gravity)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gravity_xyz(struct bno055_gravity_t *gravity)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2746,10 +2835,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_xyz(struct bno055_gravity_t *gra
         {
             /* Read the six byte value
              * of gravity xyz data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GRAVITY_DATA_X_LSB_VALUEX_REG,
-                                                      data_u8,
-                                                      BNO055_GRAVITY_XYZ_DATA_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GRAVITY_DATA_X_LSB_VALUEX_REG,
+                                      data_u8,
+                                      BNO055_GRAVITY_XYZ_DATA_SIZE);
 
             /* Data x*/
             data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB] = BNO055_GET_BITSLICE(data_u8[BNO055_SENSOR_DATA_XYZ_X_LSB],
@@ -2799,7 +2888,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gravity_xyz(struct bno055_gravity_t *gra
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_temp_data(s8 *temp_s8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_temp_data(s8 *temp_s8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2824,10 +2913,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_temp_data(s8 *temp_s8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the raw temperature data */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_TEMP_REG,
-                                                      &data_u8,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_TEMP_REG,
+                                      &data_u8,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *temp_s8 = data_u8;
         }
         else
@@ -2854,7 +2943,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_temp_data(s8 *temp_s8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_x_msq(float *accel_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_x_msq(float *accel_x_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2909,7 +2998,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_x_msq(float *accel_x_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_x_mg(float *accel_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_x_mg(float *accel_x_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -2962,7 +3051,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_x_mg(float *accel_x_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_y_msq(float *accel_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_y_msq(float *accel_y_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3014,7 +3103,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_y_msq(float *accel_y_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_y_mg(float *accel_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_y_mg(float *accel_y_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3067,7 +3156,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_y_mg(float *accel_y_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_z_msq(float *accel_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_z_msq(float *accel_z_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3121,7 +3210,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_z_msq(float *accel_z_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_z_mg(float *accel_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_z_mg(float *accel_z_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3178,7 +3267,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_z_mg(float *accel_z_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_xyz_msq(struct bno055_accel_float_t *accel_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_xyz_msq(struct bno055_accel_float_t *accel_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3236,7 +3325,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_xyz_msq(struct bno055_acc
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_xyz_mg(struct bno055_accel_float_t *accel_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_accel_xyz_mg(struct bno055_accel_float_t *accel_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3289,7 +3378,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_accel_xyz_mg(struct bno055_acce
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_x_uT(float *mag_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_mag_x_uT(float *mag_x_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3326,7 +3415,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_x_uT(float *mag_x_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_y_uT(float *mag_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_mag_y_uT(float *mag_y_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3363,7 +3452,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_y_uT(float *mag_y_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_z_uT(float *mag_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_mag_z_uT(float *mag_z_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3405,7 +3494,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_z_uT(float *mag_z_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_xyz_uT(struct bno055_mag_float_t *mag_xyz_data)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_mag_xyz_uT(struct bno055_mag_float_t *mag_xyz_data)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3441,7 +3530,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_mag_xyz_uT(struct bno055_mag_fl
  *  @retval 0 -> BNO055_SUCCESS
  *  @retval 1 -> BNO055_ERROR
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_x_dps(float *gyro_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_x_dps(float *gyro_x_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3493,7 +3582,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_x_dps(float *gyro_x_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_x_rps(float *gyro_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_x_rps(float *gyro_x_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3545,7 +3634,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_x_rps(float *gyro_x_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_y_dps(float *gyro_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_y_dps(float *gyro_y_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3598,7 +3687,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_y_dps(float *gyro_y_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_y_rps(float *gyro_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_y_rps(float *gyro_y_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3650,7 +3739,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_y_rps(float *gyro_y_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_z_dps(float *gyro_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_z_dps(float *gyro_z_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3702,7 +3791,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_z_dps(float *gyro_z_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_z_rps(float *gyro_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_z_rps(float *gyro_z_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3760,7 +3849,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_z_rps(float *gyro_z_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_xyz_dps(struct bno055_gyro_float_t *gyro_xyz_data)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_xyz_dps(struct bno055_gyro_float_t *gyro_xyz_data)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3818,7 +3907,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_xyz_dps(struct bno055_gyro
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_xyz_rps(struct bno055_gyro_float_t *gyro_xyz_data)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gyro_xyz_rps(struct bno055_gyro_float_t *gyro_xyz_data)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3869,7 +3958,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gyro_xyz_rps(struct bno055_gyro
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_h_deg(float *euler_h_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_h_deg(float *euler_h_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -3920,7 +4009,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_h_deg(float *euler_h_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_h_rad(float *euler_h_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_h_rad(float *euler_h_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_h_s16 = BNO055_INIT_VALUE;
@@ -3968,7 +4057,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_h_rad(float *euler_h_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_r_deg(float *euler_r_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_r_deg(float *euler_r_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_r = BNO055_INIT_VALUE;
@@ -4016,7 +4105,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_r_deg(float *euler_r_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_r_rad(float *euler_r_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_r_rad(float *euler_r_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_r_f = BNO055_INIT_VALUE;
@@ -4064,7 +4153,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_r_rad(float *euler_r_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_p_deg(float *euler_p_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_p_deg(float *euler_p_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_p_f = BNO055_INIT_VALUE;
@@ -4113,7 +4202,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_p_deg(float *euler_p_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_p_rad(float *euler_p_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_p_rad(float *euler_p_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_p_f = BNO055_INIT_VALUE;
@@ -4168,7 +4257,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_p_rad(float *euler_p_f)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_hpr_deg(struct bno055_euler_float_t *euler_hpr)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_hpr_deg(struct bno055_euler_float_t *euler_hpr)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4225,7 +4314,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_hpr_deg(struct bno055_eul
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_hpr_rad(struct bno055_euler_float_t *euler_hpr)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_euler_hpr_rad(struct bno055_euler_float_t *euler_hpr)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4274,7 +4363,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_euler_hpr_rad(struct bno055_eul
  *  @retval 0 -> BNO055_SUCCESS
  *  @retval 1 -> BNO055_ERROR
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_x_msq(float *linear_accel_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_linear_accel_x_msq(float *linear_accel_x_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4308,7 +4397,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_x_msq(float *linea
  *  @retval 0 -> BNO055_SUCCESS
  *  @retval 1 -> BNO055_ERROR
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_y_msq(float *linear_accel_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_linear_accel_y_msq(float *linear_accel_y_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_linear_accel_y = BNO055_INIT_VALUE;
@@ -4341,7 +4430,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_y_msq(float *linea
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_z_msq(float *linear_accel_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_linear_accel_z_msq(float *linear_accel_z_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_linear_accel_z = BNO055_INIT_VALUE;
@@ -4382,7 +4471,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_z_msq(float *linea
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_xyz_msq(
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_linear_accel_xyz_msq(
     struct bno055_linear_accel_float_t *linear_accel_xyz)
 {
     /* Variable used to return value of
@@ -4418,7 +4507,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_linear_accel_xyz_msq(
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_float_x_msq(float *gravity_x_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_gravity_float_x_msq(float *gravity_x_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_gravity_x_s16 = BNO055_INIT_VALUE;
@@ -4452,7 +4541,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_float_x_msq(float *gravity_x_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_float_y_msq(float *gravity_y_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_gravity_float_y_msq(float *gravity_y_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_gravity_y_s16 = BNO055_INIT_VALUE;
@@ -4485,7 +4574,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_float_y_msq(float *gravity_y_
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_float_z_msq(float *gravity_z_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_gravity_float_z_msq(float *gravity_z_f)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_gravity_z_s16 = BNO055_INIT_VALUE;
@@ -4526,7 +4615,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_float_z_msq(float *gravity_z_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gravity_xyz_msq(struct bno055_gravity_float_t *gravity_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_gravity_xyz_msq(struct bno055_gravity_float_t *gravity_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4562,7 +4651,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_gravity_xyz_msq(struct bno055_g
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_temp_fahrenheit(float *temp_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_temp_fahrenheit(float *temp_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4614,7 +4703,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_temp_fahrenheit(float *temp_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_temp_celsius(float *temp_f)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_float_temp_celsius(float *temp_f)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4669,7 +4758,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_float_temp_celsius(float *temp_f)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_x_msq(double *accel_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_x_msq(double *accel_x_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4723,7 +4812,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_x_msq(double *accel_x_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_x_mg(double *accel_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_x_mg(double *accel_x_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4777,7 +4866,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_x_mg(double *accel_x_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_y_msq(double *accel_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_y_msq(double *accel_y_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4830,7 +4919,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_y_msq(double *accel_y_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_y_mg(double *accel_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_y_mg(double *accel_y_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4881,7 +4970,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_y_mg(double *accel_y_d)
  *  @retval 0 -> BNO055_SUCCESS
  *  @retval 1 -> BNO055_ERROR
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_z_msq(double *accel_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_z_msq(double *accel_z_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4933,7 +5022,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_z_msq(double *accel_z_d)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_z_mg(double *accel_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_z_mg(double *accel_z_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -4991,7 +5080,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_z_mg(double *accel_z_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_xyz_msq(struct bno055_accel_double_t *accel_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_xyz_msq(struct bno055_accel_double_t *accel_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5048,7 +5137,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_xyz_msq(struct bno055_ac
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_xyz_mg(struct bno055_accel_double_t *accel_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_accel_xyz_mg(struct bno055_accel_double_t *accel_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5102,7 +5191,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_accel_xyz_mg(struct bno055_acc
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_x_uT(double *mag_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_mag_x_uT(double *mag_x_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5140,7 +5229,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_x_uT(double *mag_x_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_y_uT(double *mag_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_mag_y_uT(double *mag_y_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5178,7 +5267,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_y_uT(double *mag_y_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_z_uT(double *mag_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_mag_z_uT(double *mag_z_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5220,7 +5309,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_z_uT(double *mag_z_d)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_xyz_uT(struct bno055_mag_double_t *mag_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_mag_xyz_uT(struct bno055_mag_double_t *mag_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5258,7 +5347,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_mag_xyz_uT(struct bno055_mag_d
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_x_dps(double *gyro_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_x_dps(double *gyro_x_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5311,7 +5400,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_x_dps(double *gyro_x_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_x_rps(double *gyro_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_x_rps(double *gyro_x_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5364,7 +5453,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_x_rps(double *gyro_x_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_y_dps(double *gyro_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_y_dps(double *gyro_y_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5417,7 +5506,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_y_dps(double *gyro_y_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_y_rps(double *gyro_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_y_rps(double *gyro_y_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5470,7 +5559,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_y_rps(double *gyro_y_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_z_dps(double *gyro_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_z_dps(double *gyro_z_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5523,7 +5612,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_z_dps(double *gyro_z_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_z_rps(double *gyro_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_z_rps(double *gyro_z_d)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5580,7 +5669,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_z_rps(double *gyro_z_d)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_xyz_dps(struct bno055_gyro_double_t *gyro_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_xyz_dps(struct bno055_gyro_double_t *gyro_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5637,7 +5726,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_xyz_dps(struct bno055_gyr
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_xyz_rps(struct bno055_gyro_double_t *gyro_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gyro_xyz_rps(struct bno055_gyro_double_t *gyro_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -5688,7 +5777,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gyro_xyz_rps(struct bno055_gyr
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_h_deg(double *euler_h_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_h_deg(double *euler_h_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_h_s16 = BNO055_INIT_VALUE;
@@ -5737,7 +5826,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_h_deg(double *euler_h_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_h_rad(double *euler_h_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_h_rad(double *euler_h_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_h_s16 = BNO055_INIT_VALUE;
@@ -5786,7 +5875,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_h_rad(double *euler_h_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_r_deg(double *euler_r_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_r_deg(double *euler_r_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_r_s16 = BNO055_INIT_VALUE;
@@ -5835,7 +5924,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_r_deg(double *euler_r_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_r_rad(double *euler_r_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_r_rad(double *euler_r_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_r_s16 = BNO055_INIT_VALUE;
@@ -5884,7 +5973,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_r_rad(double *euler_r_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_p_deg(double *euler_p_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_p_deg(double *euler_p_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_p_s16 = BNO055_INIT_VALUE;
@@ -5933,7 +6022,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_p_deg(double *euler_p_d)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_p_rad(double *euler_p_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_p_rad(double *euler_p_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_euler_p_s16 = BNO055_INIT_VALUE;
@@ -5988,7 +6077,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_p_rad(double *euler_p_d)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_hpr_deg(struct bno055_euler_double_t *euler_hpr)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_hpr_deg(struct bno055_euler_double_t *euler_hpr)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6045,7 +6134,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_hpr_deg(struct bno055_eu
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_hpr_rad(struct bno055_euler_double_t *euler_hpr)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_euler_hpr_rad(struct bno055_euler_double_t *euler_hpr)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6097,7 +6186,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_euler_hpr_rad(struct bno055_eu
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_x_msq(double *linear_accel_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_linear_accel_x_msq(double *linear_accel_x_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_linear_accel_x_s16 = BNO055_INIT_VALUE;
@@ -6132,7 +6221,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_x_msq(double *lin
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_y_msq(double *linear_accel_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_linear_accel_y_msq(double *linear_accel_y_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_linear_accel_y_s16 = BNO055_INIT_VALUE;
@@ -6167,7 +6256,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_y_msq(double *lin
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_z_msq(double *linear_accel_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_linear_accel_z_msq(double *linear_accel_z_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_linear_accel_z_s16 = BNO055_INIT_VALUE;
@@ -6207,7 +6296,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_z_msq(double *lin
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_xyz_msq(
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_linear_accel_xyz_msq(
     struct bno055_linear_accel_double_t *linear_accel_xyz)
 {
     /* Variable used to return value of
@@ -6244,7 +6333,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_linear_accel_xyz_msq(
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_double_x_msq(double *gravity_x_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_gravity_double_x_msq(double *gravity_x_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_gravity_x_s16 = BNO055_INIT_VALUE;
@@ -6278,7 +6367,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_double_x_msq(double *gravity_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_double_y_msq(double *gravity_y_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_gravity_double_y_msq(double *gravity_y_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_gravity_y_s16 = BNO055_INIT_VALUE;
@@ -6312,7 +6401,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_double_y_msq(double *gravity_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_double_z_msq(double *gravity_z_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_gravity_double_z_msq(double *gravity_z_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s16 reg_gravity_z_s16 = BNO055_INIT_VALUE;
@@ -6352,7 +6441,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_gravity_double_z_msq(double *gravity_
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gravity_xyz_msq(struct bno055_gravity_double_t *gravity_xyz)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_gravity_xyz_msq(struct bno055_gravity_double_t *gravity_xyz)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6388,7 +6477,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_gravity_xyz_msq(struct bno055_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_temp_fahrenheit(double *temp_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_temp_fahrenheit(double *temp_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s8 reg_temp_s8 = BNO055_INIT_VALUE;
@@ -6437,7 +6526,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_temp_fahrenheit(double *temp_d
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_temp_celsius(double *temp_d)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_convert_double_temp_celsius(double *temp_d)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     s8 reg_temp_s8 = BNO055_INIT_VALUE;
@@ -6487,7 +6576,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_convert_double_temp_celsius(double *temp_d)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_calib_stat(u8 *mag_calib_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_mag_calib_stat(u8 *mag_calib_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6512,10 +6601,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_calib_stat(u8 *mag_calib_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the mag calib stat_s8 */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_CALIB_STAT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_CALIB_STAT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *mag_calib_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_MAG_CALIB_STAT);
         }
         else
@@ -6539,7 +6628,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_calib_stat(u8 *mag_calib_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_calib_stat(u8 *accel_calib_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_calib_stat(u8 *accel_calib_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6564,10 +6653,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_calib_stat(u8 *accel_calib_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel calib stat_s8 */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_CALIB_STAT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_CALIB_STAT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_calib_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_CALIB_STAT);
         }
         else
@@ -6591,7 +6680,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_calib_stat(u8 *accel_calib_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_calib_stat(u8 *gyro_calib_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_calib_stat(u8 *gyro_calib_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6616,10 +6705,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_calib_stat(u8 *gyro_calib_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro calib status */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_CALIB_STAT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_CALIB_STAT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_calib_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_CALIB_STAT);
         }
         else
@@ -6643,7 +6732,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_calib_stat(u8 *gyro_calib_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_calib_stat(u8 *sys_calib_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_sys_calib_stat(u8 *sys_calib_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6668,10 +6757,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_calib_stat(u8 *sys_calib_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the system calib */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SYS_CALIB_STAT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SYS_CALIB_STAT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sys_calib_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SYS_CALIB_STAT);
         }
         else
@@ -6699,7 +6788,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_calib_stat(u8 *sys_calib_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_accel(u8 *selftest_accel_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_selftest_accel(u8 *selftest_accel_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6724,10 +6813,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_accel(u8 *selftest_accel_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel self test */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SELFTEST_ACCEL_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SELFTEST_ACCEL_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *selftest_accel_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SELFTEST_ACCEL);
         }
         else
@@ -6755,7 +6844,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_accel(u8 *selftest_accel_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_mag(u8 *selftest_mag_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_selftest_mag(u8 *selftest_mag_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6780,10 +6869,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_mag(u8 *selftest_mag_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the mag self test */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SELFTEST_MAG_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SELFTEST_MAG_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *selftest_mag_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SELFTEST_MAG);
         }
         else
@@ -6811,7 +6900,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_mag(u8 *selftest_mag_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_gyro(u8 *selftest_gyro_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_selftest_gyro(u8 *selftest_gyro_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6836,10 +6925,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_gyro(u8 *selftest_gyro_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro self test */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SELFTEST_GYRO_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SELFTEST_GYRO_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *selftest_gyro_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SELFTEST_GYRO);
         }
         else
@@ -6867,7 +6956,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_gyro(u8 *selftest_gyro_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_mcu(u8 *selftest_mcu_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_selftest_mcu(u8 *selftest_mcu_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6892,10 +6981,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_mcu(u8 *selftest_mcu_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the self test of micro controller*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SELFTEST_MCU_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SELFTEST_MCU_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *selftest_mcu_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SELFTEST_MCU);
         }
         else
@@ -6930,7 +7019,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest_mcu(u8 *selftest_mcu_u8)
  *  bno055_set_intr_gyro_any_motion()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_gyro_any_motion(u8 *gyro_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_stat_gyro_any_motion(u8 *gyro_any_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -6955,10 +7044,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_gyro_any_motion(u8 *gyro_any_mo
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro anymotion interrupt stat_s8*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_STAT_GYRO_ANY_MOTION_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_STAT_GYRO_ANY_MOTION_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_any_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_INTR_STAT_GYRO_ANY_MOTION);
         }
         else
@@ -6992,7 +7081,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_gyro_any_motion(u8 *gyro_any_mo
  *
  *  bno055_set_intr_gyro_highrate()
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_gyro_highrate(u8 *gyro_highrate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_stat_gyro_highrate(u8 *gyro_highrate_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7017,10 +7106,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_gyro_highrate(u8 *gyro_highrate
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro highrate interrupt stat_s8*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_STAT_GYRO_HIGHRATE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_STAT_GYRO_HIGHRATE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_INTR_STAT_GYRO_HIGHRATE);
         }
         else
@@ -7055,7 +7144,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_gyro_highrate(u8 *gyro_highrate
  *  bno055_set_intr_accel_high_g()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_high_g(u8 *accel_high_g_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_stat_accel_high_g(u8 *accel_high_g_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7080,10 +7169,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_high_g(u8 *accel_high_g_u
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel highg interrupt stat_s8 */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_STAT_ACCEL_HIGH_G_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_STAT_ACCEL_HIGH_G_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_high_g_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_INTR_STAT_ACCEL_HIGH_G);
         }
         else
@@ -7117,7 +7206,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_high_g(u8 *accel_high_g_u
  *
  *  bno055_set_intr_accel_any_motion()
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_any_motion(u8 *accel_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_stat_accel_any_motion(u8 *accel_any_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7142,10 +7231,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_any_motion(u8 *accel_any_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel anymotion interrupt stat_s8 */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_STAT_ACCEL_ANY_MOTION_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_STAT_ACCEL_ANY_MOTION_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_any_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_INTR_STAT_ACCEL_ANY_MOTION);
         }
         else
@@ -7180,7 +7269,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_any_motion(u8 *accel_any_
  *
  *  bno055_set_intr_accel_nomotion()
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_no_motion(u8 *accel_no_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_stat_accel_no_motion(u8 *accel_no_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7207,10 +7296,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_no_motion(u8 *accel_no_mo
         {
             /* Read the stat_s8 of accel
              * nomotion/slowmotion interrupt*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_STAT_ACCEL_NO_MOTION_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_STAT_ACCEL_NO_MOTION_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_no_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_INTR_STAT_ACCEL_NO_MOTION);
         }
         else
@@ -7234,7 +7323,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_stat_accel_no_motion(u8 *accel_no_mo
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_stat_main_clk(u8 *stat_main_clk_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_stat_main_clk(u8 *stat_main_clk_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7259,10 +7348,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_stat_main_clk(u8 *stat_main_clk_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the status of main clk */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SYS_MAIN_CLK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SYS_MAIN_CLK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *stat_main_clk_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SYS_MAIN_CLK);
         }
         else
@@ -7286,7 +7375,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_stat_main_clk(u8 *stat_main_clk_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_stat_code(u8 *sys_stat_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_sys_stat_code(u8 *sys_stat_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7311,10 +7400,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_stat_code(u8 *sys_stat_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the the status of system*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SYS_STAT_CODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SYS_STAT_CODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sys_stat_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SYS_STAT_CODE);
         }
         else
@@ -7339,7 +7428,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_stat_code(u8 *sys_stat_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_error_code(u8 *sys_error_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_sys_error_code(u8 *sys_error_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7364,10 +7453,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_error_code(u8 *sys_error_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the system BNO055_ERROR code*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SYS_ERROR_CODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SYS_ERROR_CODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sys_error_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SYS_ERROR_CODE);
         }
         else
@@ -7395,7 +7484,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_error_code(u8 *sys_error_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_unit(u8 *accel_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_unit(u8 *accel_unit_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7420,10 +7509,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_unit(u8 *accel_unit_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the accel unit */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_UNIT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_UNIT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_unit_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_UNIT);
         }
         else
@@ -7452,7 +7541,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_unit(u8 *accel_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_unit(u8 accel_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_unit(u8 accel_unit_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -7479,17 +7568,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_unit(u8 accel_unit_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the accel unit */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_UNIT_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_UNIT_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_UNIT, accel_unit_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_UNIT_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_UNIT_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -7529,7 +7618,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_unit(u8 accel_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_unit(u8 *gyro_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_unit(u8 *gyro_unit_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7554,10 +7643,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_unit(u8 *gyro_unit_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the gyro unit */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_UNIT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_UNIT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_unit_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_UNIT);
         }
         else
@@ -7586,7 +7675,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_unit(u8 *gyro_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_unit(u8 gyro_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_unit(u8 gyro_unit_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -7613,17 +7702,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_unit(u8 gyro_unit_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the gyro unit */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_UNIT_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_UNIT_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_UNIT, gyro_unit_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_UNIT_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_UNIT_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -7663,7 +7752,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_unit(u8 gyro_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_euler_unit(u8 *euler_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_euler_unit(u8 *euler_unit_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7688,10 +7777,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_euler_unit(u8 *euler_unit_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the Euler unit */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_EULER_UNIT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_EULER_UNIT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *euler_unit_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_EULER_UNIT);
         }
         else
@@ -7720,7 +7809,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_euler_unit(u8 *euler_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_euler_unit(u8 euler_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_euler_unit(u8 euler_unit_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -7747,17 +7836,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_euler_unit(u8 euler_unit_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the Euler unit*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_EULER_UNIT_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_EULER_UNIT_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_EULER_UNIT, euler_unit_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_EULER_UNIT_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_EULER_UNIT_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -7797,7 +7886,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_euler_unit(u8 euler_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_tilt_unit(u8 *tilt_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_tilt_unit(u8 *tilt_unit_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7821,10 +7910,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_tilt_unit(u8 *tilt_unit_u8)
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_TILT_UNIT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_TILT_UNIT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *tilt_unit_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_TILT_UNIT);
         }
         else
@@ -7857,7 +7946,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_tilt_unit(u8 *tilt_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_tilt_unit(u8 tilt_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_tilt_unit(u8 tilt_unit_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -7883,17 +7972,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_tilt_unit(u8 tilt_unit_u8)
             }
             if (stat_s8 == BNO055_SUCCESS)
             {
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_TILT_UNIT_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_TILT_UNIT_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_TILT_UNIT, tilt_unit_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_TILT_UNIT_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_TILT_UNIT_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -7932,7 +8021,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_tilt_unit(u8 tilt_unit_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_temp_unit(u8 *temp_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_temp_unit(u8 *temp_unit_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -7957,10 +8046,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_temp_unit(u8 *temp_unit_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the temperature unit */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_TEMP_UNIT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_TEMP_UNIT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *temp_unit_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_TEMP_UNIT);
         }
         else
@@ -7989,7 +8078,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_temp_unit(u8 *temp_unit_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_temp_unit(u8 temp_unit_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_temp_unit(u8 temp_unit_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8016,17 +8105,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_temp_unit(u8 temp_unit_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the temperature unit */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_TEMP_UNIT_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_TEMP_UNIT_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_TEMP_UNIT, temp_unit_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_TEMP_UNIT_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_TEMP_UNIT_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -8065,7 +8154,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_temp_unit(u8 temp_unit_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_data_output_format(u8 *data_output_format_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_data_output_format(u8 *data_output_format_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8090,10 +8179,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_data_output_format(u8 *data_output_format
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the data output format */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_DATA_OUTPUT_FORMAT_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_DATA_OUTPUT_FORMAT_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *data_output_format_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_DATA_OUTPUT_FORMAT);
         }
         else
@@ -8122,7 +8211,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_data_output_format(u8 *data_output_format
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_data_output_format(u8 data_output_format_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_data_output_format(u8 data_output_format_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8149,17 +8238,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_data_output_format(u8 data_output_format_
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the data output format */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_DATA_OUTPUT_FORMAT_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_DATA_OUTPUT_FORMAT_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_DATA_OUTPUT_FORMAT, data_output_format_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_DATA_OUTPUT_FORMAT_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_DATA_OUTPUT_FORMAT_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -8220,7 +8309,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_data_output_format(u8 data_output_format_
  *  to configure the various settings of the BNO
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_operation_mode(u8 *operation_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_operation_mode(u8 *operation_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8245,10 +8334,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_operation_mode(u8 *operation_mode_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of operation mode*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_OPERATION_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_OPERATION_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *operation_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_OPERATION_MODE);
         }
         else
@@ -8300,7 +8389,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_operation_mode(u8 *operation_mode_u8)
  *  to configure the various settings of the BNO
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_operation_mode(u8 operation_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_operation_mode(u8 operation_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8324,17 +8413,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_operation_mode(u8 operation_mode_u8)
              * directly write the operation mode */
             if (prev_opmode_u8 == BNO055_OPERATION_MODE_CONFIG)
             {
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_OPERATION_MODE_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_OPERATION_MODE_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_OPERATION_MODE, operation_mode_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_OPERATION_MODE_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_OPERATION_MODE_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
 
                     /* Config mode to other
                      * operation mode switching
@@ -8347,10 +8436,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_operation_mode(u8 operation_mode_u8)
                 /* If the previous operation
                  * mode is not config it is
                  * write the config mode */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_OPERATION_MODE_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_OPERATION_MODE_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_OPERATION_MODE, BNO055_OPERATION_MODE_CONFIG);
@@ -8365,17 +8454,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_operation_mode(u8 operation_mode_u8)
                 /* Write the operation mode */
                 if (operation_mode_u8 != BNO055_OPERATION_MODE_CONFIG)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_OPERATION_MODE_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_OPERATION_MODE_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_OPERATION_MODE, operation_mode_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_OPERATION_MODE_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_OPERATION_MODE_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
 
                         /* Config mode to other
                          * operation mode switching
@@ -8420,7 +8509,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_operation_mode(u8 operation_mode_u8)
  *  refer data sheet 3.4.2
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_power_mode(u8 *power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_power_mode(u8 *power_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8445,10 +8534,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_power_mode(u8 *power_mode_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of power mode */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_POWER_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_POWER_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *power_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_POWER_MODE);
         }
         else
@@ -8487,7 +8576,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_power_mode(u8 *power_mode_u8)
  *  refer data sheet 3.4.2
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_power_mode(u8 power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_power_mode(u8 power_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8514,17 +8603,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_power_mode(u8 power_mode_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the value of power mode */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_POWER_MODE_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_POWER_MODE_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_POWER_MODE, power_mode_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_POWER_MODE_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_POWER_MODE_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -8564,7 +8653,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_power_mode(u8 power_mode_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_rst(u8 *intr_rst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_rst(u8 *intr_rst_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8589,10 +8678,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_rst(u8 *intr_rst_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of reset interrupt*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_RST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_RST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *intr_rst_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_INTR_RST);
         }
         else
@@ -8621,7 +8710,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_rst(u8 *intr_rst_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_rst(u8 intr_rst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_rst(u8 intr_rst_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8644,17 +8733,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_rst(u8 intr_rst_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Write the value of reset interrupt */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_INTR_RST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_INTR_RST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_INTR_RST, intr_rst_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_INTR_RST_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_INTR_RST_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -8682,7 +8771,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_rst(u8 intr_rst_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_clk_src(u8 *clk_src_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_clk_src(u8 *clk_src_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8707,10 +8796,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_clk_src(u8 *clk_src_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of clk source */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_CLK_SRC_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_CLK_SRC_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *clk_src_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_CLK_SRC);
         }
         else
@@ -8738,7 +8827,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_clk_src(u8 *clk_src_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_clk_src(u8 clk_src_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_clk_src(u8 clk_src_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8761,17 +8850,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_clk_src(u8 clk_src_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Write the value of clk source */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_CLK_SRC_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_CLK_SRC_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_CLK_SRC, clk_src_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_CLK_SRC_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_CLK_SRC_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -8800,7 +8889,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_clk_src(u8 clk_src_u8)
  *
  *  @note It resets the whole system
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_rst(u8 *sys_rst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_sys_rst(u8 *sys_rst_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8825,10 +8914,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_rst(u8 *sys_rst_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of reset system */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SYS_RST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SYS_RST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sys_rst_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SYS_RST);
         }
         else
@@ -8857,7 +8946,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_sys_rst(u8 *sys_rst_u8)
  *
  *  @note It resets the whole system
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_sys_rst(u8 sys_rst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_sys_rst(u8 sys_rst_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -8880,17 +8969,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_sys_rst(u8 sys_rst_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Write the value of reset system */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SYS_RST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SYS_RST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_SYS_RST, sys_rst_u8);
-                com_rslt = p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SYS_RST_REG,
-                                                           &data_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_write(p_bno055->dev_addr,
+                                           BNO055_SYS_RST_REG,
+                                           &data_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -8919,7 +9008,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_sys_rst(u8 sys_rst_u8)
  *
  *  @note It triggers the self test
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest(u8 *selftest_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_selftest(u8 *selftest_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -8944,10 +9033,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest(u8 *selftest_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of self test */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SELFTEST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SELFTEST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *selftest_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_SELFTEST);
         }
         else
@@ -8978,7 +9067,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_selftest(u8 *selftest_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_selftest(u8 selftest_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_selftest(u8 selftest_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -9005,17 +9094,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_selftest(u8 selftest_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the value of self test */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_SELFTEST_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_SELFTEST_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_SELFTEST, selftest_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SELFTEST_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SELFTEST_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -9055,7 +9144,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_selftest(u8 selftest_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_temp_source(u8 *temp_source_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_temp_source(u8 *temp_source_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -9080,10 +9169,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_temp_source(u8 *temp_source_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of temperature source */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_TEMP_SOURCE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_TEMP_SOURCE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *temp_source_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_TEMP_SOURCE);
         }
         else
@@ -9112,7 +9201,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_temp_source(u8 *temp_source_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_temp_source(u8 temp_source_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_temp_source(u8 temp_source_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -9139,17 +9228,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_temp_source(u8 temp_source_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the value of temperature source*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_TEMP_SOURCE_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_TEMP_SOURCE_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_TEMP_SOURCE, temp_source_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_TEMP_SOURCE_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_TEMP_SOURCE_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -9205,7 +9294,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_temp_source(u8 temp_source_u8)
  *  bno055_set_z_remap_sign()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_axis_remap_value(u8 *remap_axis_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_axis_remap_value(u8 *remap_axis_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -9230,10 +9319,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_axis_remap_value(u8 *remap_axis_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of axis remap*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_REMAP_AXIS_VALUE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_REMAP_AXIS_VALUE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *remap_axis_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_REMAP_AXIS_VALUE);
         }
         else
@@ -9278,7 +9367,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_axis_remap_value(u8 *remap_axis_u8)
  *  bno055_set_z_remap_sign()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_axis_remap_value(u8 remap_axis_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_axis_remap_value(u8 remap_axis_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -9314,33 +9403,33 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_axis_remap_value(u8 remap_axis_u8)
                 case BNO055_REMAP_X_Y_Z_TYPE0:
                 case BNO055_REMAP_X_Y_Z_TYPE1:
                 case BNO055_DEFAULT_AXIS:
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_REMAP_AXIS_VALUE_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_REMAP_AXIS_VALUE_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_REMAP_AXIS_VALUE, remap_axis_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_REMAP_AXIS_VALUE_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_REMAP_AXIS_VALUE_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                     break;
                 default:
 
                     /* Write the default axis remap value */
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_REMAP_AXIS_VALUE_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_REMAP_AXIS_VALUE_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_REMAP_AXIS_VALUE, BNO055_DEFAULT_AXIS);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_REMAP_AXIS_VALUE_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_REMAP_AXIS_VALUE_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                     break;
                 }
@@ -9381,7 +9470,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_axis_remap_value(u8 remap_axis_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_x_sign(u8 *remap_x_sign_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_remap_x_sign(u8 *remap_x_sign_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -9406,10 +9495,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_x_sign(u8 *remap_x_sign_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of x-axis remap sign */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_REMAP_X_SIGN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_REMAP_X_SIGN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *remap_x_sign_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_REMAP_X_SIGN);
         }
         else
@@ -9437,7 +9526,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_x_sign(u8 *remap_x_sign_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_x_sign(u8 remap_x_sign_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_remap_x_sign(u8 remap_x_sign_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -9464,17 +9553,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_x_sign(u8 remap_x_sign_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the value of x-axis remap */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_REMAP_X_SIGN_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_REMAP_X_SIGN_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_REMAP_X_SIGN, remap_x_sign_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_REMAP_X_SIGN_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_REMAP_X_SIGN_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -9513,7 +9602,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_x_sign(u8 remap_x_sign_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_y_sign(u8 *remap_y_sign_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_remap_y_sign(u8 *remap_y_sign_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -9538,10 +9627,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_y_sign(u8 *remap_y_sign_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of y-axis remap sign*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_REMAP_Y_SIGN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_REMAP_Y_SIGN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *remap_y_sign_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_REMAP_Y_SIGN);
         }
         else
@@ -9569,7 +9658,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_y_sign(u8 *remap_y_sign_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_y_sign(u8 remap_y_sign_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_remap_y_sign(u8 remap_y_sign_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -9596,17 +9685,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_y_sign(u8 remap_y_sign_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the value of y-axis remap sign*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_REMAP_Y_SIGN_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_REMAP_Y_SIGN_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_REMAP_Y_SIGN, remap_y_sign_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_REMAP_Y_SIGN_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_REMAP_Y_SIGN_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -9645,7 +9734,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_y_sign(u8 remap_y_sign_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_z_sign(u8 *remap_z_sign_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_remap_z_sign(u8 *remap_z_sign_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -9670,10 +9759,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_z_sign(u8 *remap_z_sign_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read the value of z-axis remap sign*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_REMAP_Z_SIGN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_REMAP_Z_SIGN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *remap_z_sign_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_REMAP_Z_SIGN);
         }
         else
@@ -9701,7 +9790,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_remap_z_sign(u8 *remap_z_sign_u8)
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_z_sign(u8 remap_z_sign_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_remap_z_sign(u8 remap_z_sign_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -9728,17 +9817,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_z_sign(u8 remap_z_sign_u8)
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* Write the value of z-axis remap sign*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_REMAP_Z_SIGN_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_REMAP_Z_SIGN_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_REMAP_Z_SIGN, remap_z_sign_u8);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_REMAP_Z_SIGN_REG,
-                                                                &data_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_REMAP_Z_SIGN_REG,
+                                                &data_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -9786,7 +9875,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_remap_z_sign(u8 remap_z_sign_u8)
  *
  *  @note : Each soft iron calibration matrix range from -32768 to +32767
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_sic_matrix(struct bno055_sic_matrix_t *sic_matrix)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_sic_matrix(struct bno055_sic_matrix_t *sic_matrix)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -9837,10 +9926,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_sic_matrix(struct bno055_sic_matrix_t *s
         {
             /* Read soft iron calibration matrix value
              * it is eighteen bytes of data */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_SIC_MATRIX_0_LSB_REG,
-                                                      data_u8,
-                                                      BNO055_SOFT_IRON_CALIBRATION_MATRIX_SIZE);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_SIC_MATRIX_0_LSB_REG,
+                                      data_u8,
+                                      BNO055_SOFT_IRON_CALIBRATION_MATRIX_SIZE);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /*soft iron calibration matrix zero*/
@@ -9963,7 +10052,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_sic_matrix(struct bno055_sic_matrix_t *s
  *
  *  @note : Each soft iron calibration matrix range from -32768 to +32767
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_write_sic_matrix(struct bno055_sic_matrix_t *sic_matrix)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_write_sic_matrix(struct bno055_sic_matrix_t *sic_matrix)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data1_u8r = BNO055_INIT_VALUE;
@@ -9992,263 +10081,263 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_sic_matrix(struct bno055_sic_matrix_t *
             {
                 /* write soft iron calibration
                  * matrix zero value*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_SIC_MATRIX_0_LSB_REG,
-                                                          &data2_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_SIC_MATRIX_0_LSB_REG,
+                                          &data2_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_0 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_0_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_0_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_0_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_0_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_0_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_0 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_0_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_0_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_0_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix one value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_1_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_1_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_1 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_1_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_1_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_1_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_1_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_1_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_1 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_1_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_1_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_1_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix two value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_2_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_2_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_2 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_2_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_2_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_2_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_2_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_2_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_2 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_2_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_2_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_2_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix three value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_3_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_3_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_3 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_3_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_3_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_3_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_3_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_3_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_3 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_3_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_3_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_3_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix four value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_4_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_4_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_4 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_4_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_4_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_4_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_4_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_4_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_4 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_4_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_4_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_4_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix five value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_5_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_5_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_5 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_5_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_5_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_5_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_5_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_5_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_5 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_5_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_5_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_5_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix six value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_6_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_6_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_6 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_6_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_6_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_6_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_6_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_6_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_6 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_6_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_6_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_6_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix seven value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_7_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_7_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_7 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_7_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_7_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_7_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_7_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_7_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_7 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_7_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_7_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_7_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write soft iron calibration
                  * matrix eight value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_8_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_8_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_8 & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_8_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_8_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_8_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_SIC_MATRIX_8_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_SIC_MATRIX_8_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(sic_matrix->sic_8 >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_SIC_MATRIX_8_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_SIC_MATRIX_8_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_SIC_MATRIX_8_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -10302,7 +10391,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_sic_matrix(struct bno055_sic_matrix_t *
  *  accel G range can be configured by using the
  *  bno055_set_accel_range() API
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_offset(struct bno055_accel_offset_t *accel_offset)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_accel_offset(struct bno055_accel_offset_t *accel_offset)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -10337,10 +10426,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_offset(struct bno055_accel_offset_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read accel offset value it is six bytes of data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_OFFSET_X_LSB_REG,
-                                                      data_u8,
-                                                      BNO055_ACCEL_OFFSET_ARRAY);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_OFFSET_X_LSB_REG,
+                                      data_u8,
+                                      BNO055_ACCEL_OFFSET_ARRAY);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Read accel x offset value*/
@@ -10372,10 +10461,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_offset(struct bno055_accel_offset_
 
                 /* Read accel radius value
                  * it is two bytes of data*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_RADIUS_LSB_REG,
-                                                           data_u8,
-                                                           BNO055_LSB_MSB_READ_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_RADIUS_LSB_REG,
+                                           data_u8,
+                                           BNO055_LSB_MSB_READ_LENGTH);
 
                 /* Array holding the accel radius values
                  * data_u8[BNO055_OFFSET_RADIUS_LSB] - radius->LSB
@@ -10441,7 +10530,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_offset(struct bno055_accel_offset_
  *  accel G range can be configured by using the
  *  bno055_set_accel_range() API
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_write_accel_offset(struct bno055_accel_offset_t *accel_offset)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_write_accel_offset(struct bno055_accel_offset_t *accel_offset)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data1_u8r = BNO055_INIT_VALUE;
@@ -10469,115 +10558,115 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_accel_offset(struct bno055_accel_offset
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* write accel offset x value*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_OFFSET_X_LSB_REG,
-                                                          &data2_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_OFFSET_X_LSB_REG,
+                                          &data2_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->x & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_OFFSET_X_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_OFFSET_X_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_OFFSET_X_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_OFFSET_X_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_OFFSET_X_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->x >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_OFFSET_X_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_OFFSET_X_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_OFFSET_X_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write accel offset y value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_OFFSET_Y_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_OFFSET_Y_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->y & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_OFFSET_Y_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_OFFSET_Y_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_OFFSET_Y_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_OFFSET_Y_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_OFFSET_Y_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->y >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_OFFSET_Y_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_OFFSET_Y_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_OFFSET_Y_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write accel offset z value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_OFFSET_Z_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_OFFSET_Z_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->z & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_OFFSET_Z_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_OFFSET_Z_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_OFFSET_Z_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_OFFSET_Z_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_OFFSET_Z_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->z >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_OFFSET_Z_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_ACCEL_OFFSET_Z_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_ACCEL_OFFSET_Z_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /*write accel radius value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_RADIUS_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_RADIUS_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->r & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_RADIUS_LSB, data1_u8r);
-                    com_rslt = p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                               BNO055_ACCEL_RADIUS_LSB_REG,
-                                                               &data2_u8r,
-                                                               BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_write(p_bno055->dev_addr,
+                                               BNO055_ACCEL_RADIUS_LSB_REG,
+                                               &data2_u8r,
+                                               BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_ACCEL_RADIUS_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_ACCEL_RADIUS_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(accel_offset->r >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_ACCEL_RADIUS_MSB, data1_u8r);
-                    com_rslt = p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                               BNO055_ACCEL_RADIUS_MSB_REG,
-                                                               &data2_u8r,
-                                                               BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_write(p_bno055->dev_addr,
+                                               BNO055_ACCEL_RADIUS_MSB_REG,
+                                               &data2_u8r,
+                                               BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -10620,7 +10709,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_accel_offset(struct bno055_accel_offset
  *
  *  @note  The range of the magnetometer offset is +/-6400 in LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_offset(struct bno055_mag_offset_t *mag_offset)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_mag_offset(struct bno055_mag_offset_t *mag_offset)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -10655,10 +10744,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_offset(struct bno055_mag_offset_t *m
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read mag offset value it the six bytes of data */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_OFFSET_X_LSB_REG,
-                                                      data_u8,
-                                                      BNO055_MAG_OFFSET_ARRAY);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_OFFSET_X_LSB_REG,
+                                      data_u8,
+                                      BNO055_MAG_OFFSET_ARRAY);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Read mag x offset value*/
@@ -10690,10 +10779,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_offset(struct bno055_mag_offset_t *m
 
                 /* Read mag radius value
                  * it the two bytes of data */
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_RADIUS_LSB_REG,
-                                                           data_u8,
-                                                           BNO055_LSB_MSB_READ_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_RADIUS_LSB_REG,
+                                           data_u8,
+                                           BNO055_LSB_MSB_READ_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     /* Array holding the mag radius values
@@ -10749,7 +10838,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_offset(struct bno055_mag_offset_t *m
  *
  *  @note  The range of the magnetometer offset is +/-6400 in LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_write_mag_offset(struct bno055_mag_offset_t *mag_offset)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_write_mag_offset(struct bno055_mag_offset_t *mag_offset)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data1_u8r = BNO055_INIT_VALUE;
@@ -10777,115 +10866,115 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_mag_offset(struct bno055_mag_offset_t *
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* write Mag offset x value*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_MAG_OFFSET_X_LSB_REG,
-                                                          &data2_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_MAG_OFFSET_X_LSB_REG,
+                                          &data2_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->x & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_OFFSET_X_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_OFFSET_X_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_OFFSET_X_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_OFFSET_X_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_OFFSET_X_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->x >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_OFFSET_X_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_OFFSET_X_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_OFFSET_X_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write Mag offset y value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_OFFSET_Y_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_OFFSET_Y_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->y & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_OFFSET_Y_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_OFFSET_Y_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_OFFSET_Y_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_OFFSET_Y_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_OFFSET_Y_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->y >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_OFFSET_Y_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_OFFSET_Y_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_OFFSET_Y_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write Mag offset z value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_OFFSET_Z_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_OFFSET_Z_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->z & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_OFFSET_Z_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_OFFSET_Z_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_OFFSET_Z_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_OFFSET_Z_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_OFFSET_Z_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->z >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_OFFSET_Z_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_OFFSET_Z_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_OFFSET_Z_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write Mag radius value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_RADIUS_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_RADIUS_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->r & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_RADIUS_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_RADIUS_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_RADIUS_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_MAG_RADIUS_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_MAG_RADIUS_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(mag_offset->r >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_MAG_RADIUS_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_MAG_RADIUS_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_MAG_RADIUS_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -10939,7 +11028,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_mag_offset(struct bno055_mag_offset_t *
  *  Gyro range can be configured by using the
  *  bno055_set_gyro_range() API
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_offset(struct bno055_gyro_offset_t *gyro_offset)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_read_gyro_offset(struct bno055_gyro_offset_t *gyro_offset)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -10974,10 +11063,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_offset(struct bno055_gyro_offset_t 
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ZERO))
         {
             /* Read gyro offset value it the six bytes of data*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_OFFSET_X_LSB_REG,
-                                                      data_u8,
-                                                      BNO055_GYRO_OFFSET_ARRAY);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_OFFSET_X_LSB_REG,
+                                      data_u8,
+                                      BNO055_GYRO_OFFSET_ARRAY);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Read gyro x offset value*/
@@ -11052,7 +11141,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_offset(struct bno055_gyro_offset_t 
  *  Gyro range can be configured by using the
  *  bno055_set_gyro_range() API
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_write_gyro_offset(struct bno055_gyro_offset_t *gyro_offset)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_write_gyro_offset(struct bno055_gyro_offset_t *gyro_offset)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data1_u8r = BNO055_INIT_VALUE;
@@ -11080,87 +11169,87 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_gyro_offset(struct bno055_gyro_offset_t
             if (stat_s8 == BNO055_SUCCESS)
             {
                 /* write gryo offset x value*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_OFFSET_X_LSB_REG,
-                                                          &data2_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_OFFSET_X_LSB_REG,
+                                          &data2_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(gyro_offset->x & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_GYRO_OFFSET_X_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_OFFSET_X_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_OFFSET_X_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_GYRO_OFFSET_X_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_GYRO_OFFSET_X_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(gyro_offset->x >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_GYRO_OFFSET_X_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_OFFSET_X_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_OFFSET_X_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write gryo offset y value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_GYRO_OFFSET_Y_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_GYRO_OFFSET_Y_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(gyro_offset->y & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_GYRO_OFFSET_Y_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_OFFSET_Y_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_OFFSET_Y_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_GYRO_OFFSET_Y_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_GYRO_OFFSET_Y_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(gyro_offset->y >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_GYRO_OFFSET_Y_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_OFFSET_Y_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_OFFSET_Y_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
 
                 /* write gryo offset z value*/
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_GYRO_OFFSET_Z_LSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_GYRO_OFFSET_Z_LSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(gyro_offset->z & BNO055_SIC_HEX_0_0_F_F_DATA));
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_GYRO_OFFSET_Z_LSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_OFFSET_Z_LSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_OFFSET_Z_LSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
-                com_rslt += p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                           BNO055_GYRO_OFFSET_Z_MSB_REG,
-                                                           &data2_u8r,
-                                                           BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_read(p_bno055->dev_addr,
+                                           BNO055_GYRO_OFFSET_Z_MSB_REG,
+                                           &data2_u8r,
+                                           BNO055_GEN_READ_WRITE_LENGTH);
                 if (com_rslt == BNO055_SUCCESS)
                 {
                     data1_u8r = ((s8)(gyro_offset->z >> BNO055_SHIFT_EIGHT_BITS) & BNO055_SIC_HEX_0_0_F_F_DATA);
                     data2_u8r = BNO055_SET_BITSLICE(data2_u8r, BNO055_GYRO_OFFSET_Z_MSB, data1_u8r);
-                    com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                BNO055_GYRO_OFFSET_Z_MSB_REG,
-                                                                &data2_u8r,
-                                                                BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                BNO055_GYRO_OFFSET_Z_MSB_REG,
+                                                &data2_u8r,
+                                                BNO055_GEN_READ_WRITE_LENGTH);
                 }
             }
             else
@@ -11205,7 +11294,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_gyro_offset(struct bno055_gyro_offset_t
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_range(u8 *accel_range_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_range(u8 *accel_range_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -11230,10 +11319,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_range(u8 *accel_range_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel g range */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_RANGE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_RANGE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_range_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_RANGE);
         }
         else
@@ -11264,7 +11353,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_range(u8 *accel_range_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_range(u8 accel_range_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_range(u8 accel_range_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -11298,17 +11387,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_range(u8 accel_range_u8)
                     if (accel_range_u8 < BNO055_ACCEL_RANGE)
                     {
                         /* Write the value of accel range*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_RANGE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_RANGE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_RANGE, accel_range_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_RANGE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_RANGE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -11364,7 +11453,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_range(u8 accel_range_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_bw(u8 *accel_bw_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_bw(u8 *accel_bw_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -11389,10 +11478,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_bw(u8 *accel_bw_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel bandwidth */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_BW_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_BW_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_bw_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_BW);
         }
         else
@@ -11427,7 +11516,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_bw(u8 *accel_bw_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_bw(u8 accel_bw_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_bw(u8 accel_bw_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -11461,17 +11550,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_bw(u8 accel_bw_u8)
                     if (accel_bw_u8 < BNO055_ACCEL_GYRO_BW_RANGE)
                     {
                         /* Write the accel */
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_BW_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_BW_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_BW, accel_bw_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_BW_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_BW_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -11524,7 +11613,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_bw(u8 accel_bw_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_power_mode(u8 *accel_power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_power_mode(u8 *accel_power_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -11549,10 +11638,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_power_mode(u8 *accel_power_mode_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel bandwidth */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_POWER_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_POWER_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_power_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_POWER_MODE);
         }
         else
@@ -11584,7 +11673,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_power_mode(u8 *accel_power_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_power_mode(u8 accel_power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_power_mode(u8 accel_power_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -11618,17 +11707,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_power_mode(u8 accel_power_mode_u8)
                     if (accel_power_mode_u8 < BNO055_ACCEL_POWER_MODE_RANGE)
                     {
                         /* Write the value of accel bandwidth*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_POWER_MODE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_POWER_MODE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_POWER_MODE, accel_power_mode_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_POWER_MODE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_POWER_MODE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -11684,7 +11773,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_power_mode(u8 accel_power_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_data_output_rate(u8 *mag_data_output_rate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_mag_data_output_rate(u8 *mag_data_output_rate_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -11709,10 +11798,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_data_output_rate(u8 *mag_data_output_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the mag output data rate*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_DATA_OUTPUT_RATE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_DATA_OUTPUT_RATE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *mag_data_output_rate_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_MAG_DATA_OUTPUT_RATE);
         }
         else
@@ -11747,7 +11836,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_data_output_rate(u8 *mag_data_output_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_data_output_rate(u8 mag_data_output_rate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_mag_data_output_rate(u8 mag_data_output_rate_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -11782,19 +11871,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_data_output_rate(u8 mag_data_output_r
                     {
                         /* Write the value of
                          * mag output data rate*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_MAG_DATA_OUTPUT_RATE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_MAG_DATA_OUTPUT_RATE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                            BNO055_MAG_DATA_OUTPUT_RATE,
                                                            mag_data_output_rate_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_MAG_DATA_OUTPUT_RATE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_MAG_DATA_OUTPUT_RATE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -11846,7 +11935,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_data_output_rate(u8 mag_data_output_r
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_operation_mode(u8 *mag_operation_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_mag_operation_mode(u8 *mag_operation_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -11871,10 +11960,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_operation_mode(u8 *mag_operation_mode
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of mag operation mode*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_OPERATION_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_OPERATION_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *mag_operation_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_MAG_OPERATION_MODE);
         }
         else
@@ -11905,7 +11994,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_operation_mode(u8 *mag_operation_mode
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_operation_mode(u8 mag_operation_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_mag_operation_mode(u8 mag_operation_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -11940,17 +12029,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_operation_mode(u8 mag_operation_mode_
                     {
                         /* Write the value
                          * of mag operation mode*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_MAG_OPERATION_MODE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_MAG_OPERATION_MODE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_MAG_OPERATION_MODE, mag_operation_mode_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_MAG_OPERATION_MODE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_MAG_OPERATION_MODE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -12002,7 +12091,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_operation_mode(u8 mag_operation_mode_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_power_mode(u8 *mag_power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_mag_power_mode(u8 *mag_power_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -12027,10 +12116,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_power_mode(u8 *mag_power_mode_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of mag power mode */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_POWER_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_POWER_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *mag_power_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_MAG_POWER_MODE);
         }
         else
@@ -12061,7 +12150,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_power_mode(u8 *mag_power_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_power_mode(u8 mag_power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_mag_power_mode(u8 mag_power_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -12095,17 +12184,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_power_mode(u8 mag_power_mode_u8)
                     if (mag_power_mode_u8 < BNO055_MAG_POWER_MODE_RANGE)
                     {
                         /* Write the value of mag power mode*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_MAG_POWER_MODE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_MAG_POWER_MODE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_MAG_POWER_MODE, mag_power_mode_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_MAG_POWER_MODE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_MAG_POWER_MODE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -12158,7 +12247,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_power_mode(u8 mag_power_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_range(u8 *gyro_range_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_range(u8 *gyro_range_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -12183,10 +12272,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_range(u8 *gyro_range_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro range */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_RANGE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_RANGE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_range_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_RANGE);
         }
         else
@@ -12218,7 +12307,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_range(u8 *gyro_range_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_range(u8 gyro_range_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_range(u8 gyro_range_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -12252,17 +12341,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_range(u8 gyro_range_u8)
                     if (gyro_range_u8 < BNO055_GYRO_RANGE)
                     {
                         /* Write the value of gyro range*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_RANGE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_RANGE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_RANGE, gyro_range_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_RANGE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_RANGE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -12318,7 +12407,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_range(u8 gyro_range_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_bw(u8 *gyro_bw_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_bw(u8 *gyro_bw_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -12342,10 +12431,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_bw(u8 *gyro_bw_u8)
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_BW_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_BW_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_bw_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_BW);
         }
         else
@@ -12380,7 +12469,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_bw(u8 *gyro_bw_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_bw(u8 gyro_bw_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_bw(u8 gyro_bw_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -12446,17 +12535,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_bw(u8 gyro_bw_u8)
                         default:
                             break;
                         }
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_BW_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_BW_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_BW, gyro_bw_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_BW_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_BW_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         com_rslt = bno055_get_gyro_power_mode(&gyro_opmode);
                         if (com_rslt == BNO055_SUCCESS)
@@ -12521,7 +12610,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_bw(u8 gyro_bw_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_power_mode(u8 *gyro_power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_power_mode(u8 *gyro_power_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -12546,10 +12635,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_power_mode(u8 *gyro_power_mode_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Write the value of gyro power mode*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_POWER_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_POWER_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_power_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_POWER_MODE);
         }
         else
@@ -12581,7 +12670,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_power_mode(u8 *gyro_power_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_power_mode(u8 gyro_power_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_power_mode(u8 gyro_power_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -12645,17 +12734,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_power_mode(u8 gyro_power_mode_u8)
                         default:
                             break;
                         }
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_POWER_MODE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_POWER_MODE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_POWER_MODE, gyro_power_mode_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_POWER_MODE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_POWER_MODE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -12705,7 +12794,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_power_mode(u8 gyro_power_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_sleep_tmr_mode(u8 *sleep_tmr_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_sleep_tmr_mode(u8 *sleep_tmr_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -12730,10 +12819,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_sleep_tmr_mode(u8 *sleep_tmr_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* read the value of accel sleep mode */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_SLEEP_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_SLEEP_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sleep_tmr_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_SLEEP_MODE);
         }
         else
@@ -12762,7 +12851,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_sleep_tmr_mode(u8 *sleep_tmr_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_sleep_tmr_mode(u8 sleep_tmr_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_sleep_tmr_mode(u8 sleep_tmr_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -12797,17 +12886,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_sleep_tmr_mode(u8 sleep_tmr_u8)
                     {
                         /*Write the value
                          * of accel sleep mode*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_SLEEP_MODE_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_SLEEP_MODE_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_SLEEP_MODE, sleep_tmr_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_SLEEP_MODE_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_SLEEP_MODE_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -12866,7 +12955,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_sleep_tmr_mode(u8 sleep_tmr_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_sleep_durn(u8 *sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_sleep_durn(u8 *sleep_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -12891,10 +12980,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_sleep_durn(u8 *sleep_durn_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel sleep duration */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_SLEEP_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_SLEEP_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sleep_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_SLEEP_DURN);
         }
         else
@@ -12932,7 +13021,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_sleep_durn(u8 *sleep_durn_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_sleep_durn(u8 sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_sleep_durn(u8 sleep_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -12967,17 +13056,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_sleep_durn(u8 sleep_durn_u8)
                     {
                         /* Write the accel
                          * sleep duration*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_SLEEP_DURN_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_SLEEP_DURN_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_SLEEP_DURN, sleep_durn_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_SLEEP_DURN_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_SLEEP_DURN_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -13022,7 +13111,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_sleep_durn(u8 sleep_durn_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_sleep_durn(u8 *sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_sleep_durn(u8 *sleep_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -13047,10 +13136,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_sleep_durn(u8 *sleep_durn_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the gyro sleep duration */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_SLEEP_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_SLEEP_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sleep_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_SLEEP_DURN);
         }
         else
@@ -13074,7 +13163,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_sleep_durn(u8 *sleep_durn_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_sleep_durn(u8 sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_sleep_durn(u8 sleep_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -13107,19 +13196,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_sleep_durn(u8 sleep_durn_u8)
                 {
                     if (sleep_durn_u8 < BNO055_GYRO_AUTO_SLEEP_DURATION_RANGE)
                     {
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_SLEEP_DURN_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_SLEEP_DURN_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             /* Write the gyro
                              *  sleep duration */
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_SLEEP_DURN, sleep_durn_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_SLEEP_DURN_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_SLEEP_DURN_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -13164,7 +13253,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_sleep_durn(u8 sleep_durn_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_auto_sleep_durn(u8 *auto_sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_auto_sleep_durn(u8 *auto_sleep_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -13189,10 +13278,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_auto_sleep_durn(u8 *auto_sleep_durn_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro auto sleep duration */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_AUTO_SLEEP_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_AUTO_SLEEP_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *auto_sleep_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_AUTO_SLEEP_DURN);
         }
         else
@@ -13217,7 +13306,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_auto_sleep_durn(u8 *auto_sleep_durn_
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_gyro_set_auto_sleep_durn(u8 auto_sleep_durn_u8, u8 bw)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_gyro_set_auto_sleep_durn(u8 auto_sleep_durn_u8, u8 bw)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -13250,10 +13339,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_gyro_set_auto_sleep_durn(u8 auto_sleep_durn_u
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
                     /* Write the value of gyro sleep duration */
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_AUTO_SLEEP_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_AUTO_SLEEP_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (auto_sleep_durn_u8 < BNO055_GYRO_AUTO_SLEEP_DURATION_RANGE)
                     {
                         switch (bw)
@@ -13352,10 +13441,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_gyro_set_auto_sleep_durn(u8 auto_sleep_durn_u
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_AUTO_SLEEP_DURN, auto_sleep_durn_u8r);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_AUTO_SLEEP_DURN_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_AUTO_SLEEP_DURN_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                     }
                     else
@@ -13400,7 +13489,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_gyro_set_auto_sleep_durn(u8 auto_sleep_durn_u
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_sleep_mode(u8 *sleep_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_mag_sleep_mode(u8 *sleep_mode_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -13425,10 +13514,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_sleep_mode(u8 *sleep_mode_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of mag sleep mode*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_SLEEP_MODE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_SLEEP_MODE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sleep_mode_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_MAG_SLEEP_MODE);
         }
         else
@@ -13452,7 +13541,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_sleep_mode(u8 *sleep_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_sleep_mode(u8 sleep_mode_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_mag_sleep_mode(u8 sleep_mode_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -13483,19 +13572,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_sleep_mode(u8 sleep_mode_u8)
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_MAG_SLEEP_MODE_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_MAG_SLEEP_MODE_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Write the value
                          * of mag sleep mode*/
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_MAG_SLEEP_MODE, sleep_mode_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_MAG_SLEEP_MODE_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_MAG_SLEEP_MODE_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -13535,7 +13624,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_sleep_mode(u8 sleep_mode_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_sleep_durn(u8 *sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_mag_sleep_durn(u8 *sleep_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -13560,10 +13649,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_sleep_durn(u8 *sleep_durn_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of mag sleep duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_MAG_SLEEP_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_MAG_SLEEP_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *sleep_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_MAG_SLEEP_DURN);
         }
         else
@@ -13587,7 +13676,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_mag_sleep_durn(u8 *sleep_durn_u8)
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_sleep_durn(u8 sleep_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_mag_sleep_durn(u8 sleep_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -13618,19 +13707,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_sleep_durn(u8 sleep_durn_u8)
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_MAG_SLEEP_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_MAG_SLEEP_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Write the value of
                          *  mag sleep duration */
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_MAG_SLEEP_DURN, sleep_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_MAG_SLEEP_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_MAG_SLEEP_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -13694,7 +13783,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_mag_sleep_durn(u8 sleep_durn_u8)
  *  bno055_set_gyro_any_motion_awake_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_gyro_any_motion(u8 *gyro_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_mask_gyro_any_motion(u8 *gyro_any_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -13719,10 +13808,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_gyro_any_motion(u8 *gyro_any_mo
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro anymotion interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_ANY_MOTION_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_ANY_MOTION_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_any_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_INTR_MASK);
         }
         else
@@ -13770,7 +13859,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_gyro_any_motion(u8 *gyro_any_mo
  *  bno055_set_gyro_any_motion_awake_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_gyro_any_motion(u8 gyro_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_mask_gyro_any_motion(u8 gyro_any_motion_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -13793,17 +13882,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_gyro_any_motion(u8 gyro_any_mot
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Write the value of gyro anymotion interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_ANY_MOTION_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_ANY_MOTION_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_INTR_MASK, gyro_any_motion_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_GYRO_ANY_MOTION_INTR_MASK_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_GYRO_ANY_MOTION_INTR_MASK_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -13866,7 +13955,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_gyro_any_motion(u8 gyro_any_mot
  *  bno055_set_gyro_highrate_z_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_gyro_highrate(u8 *gyro_highrate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_mask_gyro_highrate(u8 *gyro_highrate_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -13891,10 +13980,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_gyro_highrate(u8 *gyro_highrate
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_INTR_MASK);
         }
         else
@@ -13957,7 +14046,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_gyro_highrate(u8 *gyro_highrate
  *  bno055_set_gyro_highrate_z_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_gyro_highrate(u8 gyro_highrate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_mask_gyro_highrate(u8 gyro_highrate_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -13979,19 +14068,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_gyro_highrate(u8 gyro_highrate_
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Write the value of gyro
                  * highrate interrupt mask*/
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_INTR_MASK, gyro_highrate_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_GYRO_HIGHRATE_INTR_MASK_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_GYRO_HIGHRATE_INTR_MASK_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14034,7 +14123,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_gyro_highrate(u8 gyro_highrate_
  *  bno055_set_accel_high_g_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_high_g(u8 *accel_high_g_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_mask_accel_high_g(u8 *accel_high_g_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14059,10 +14148,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_high_g(u8 *accel_high_g_u
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel highg interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_HIGH_G_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_HIGH_G_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_high_g_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_INTR_MASK);
         }
         else
@@ -14105,7 +14194,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_high_g(u8 *accel_high_g_u
  *  bno055_set_accel_high_g_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_high_g(u8 accel_high_g_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_mask_accel_high_g(u8 accel_high_g_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -14127,19 +14216,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_high_g(u8 accel_high_g_u8
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_HIGH_G_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_HIGH_G_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Write the value of accel
                  * highg interrupt mask*/
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_INTR_MASK, accel_high_g_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_ACCEL_HIGH_G_INTR_MASK_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_ACCEL_HIGH_G_INTR_MASK_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14182,7 +14271,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_high_g(u8 accel_high_g_u8
  *  bno055_set_accel_high_g_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_any_motion(u8 *accel_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_mask_accel_any_motion(u8 *accel_any_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14207,10 +14296,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_any_motion(u8 *accel_any_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* The value of accel anymotion interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_ANY_MOTION_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_ANY_MOTION_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_any_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_INTR_MASK);
         }
         else
@@ -14252,7 +14341,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_any_motion(u8 *accel_any_
  *  bno055_set_accel_any_motion_thres()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_any_motion(u8 accel_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_mask_accel_any_motion(u8 accel_any_motion_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -14275,17 +14364,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_any_motion(u8 accel_any_m
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Write the value of accel anymotion interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_ANY_MOTION_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_ANY_MOTION_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_INTR_MASK, accel_any_motion_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_ACCEL_ANY_MOTION_INTR_MASK_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_ACCEL_ANY_MOTION_INTR_MASK_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14326,7 +14415,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_any_motion(u8 accel_any_m
  *  bno055_set_accel_any_motion_thres())
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_no_motion(u8 *accel_nomotion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_mask_accel_no_motion(u8 *accel_nomotion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14351,10 +14440,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_no_motion(u8 *accel_nomot
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel nomotion interrupt mask*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_NO_MOTION_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_NO_MOTION_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_nomotion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_NO_MOTION_INTR_MASK);
         }
         else
@@ -14400,7 +14489,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_mask_accel_no_motion(u8 *accel_nomot
  *  bno055_set_accel_slow_no_motion_enable()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_no_motion(u8 accel_nomotion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_mask_accel_no_motion(u8 accel_nomotion_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -14423,19 +14512,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_no_motion(u8 accel_nomoti
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_NO_MOTION_INTR_MASK_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_NO_MOTION_INTR_MASK_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Write the value of accel
                  * nomotion interrupt mask*/
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_NO_MOTION_INTR_MASK, accel_nomotion_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_ACCEL_NO_MOTION_INTR_MASK_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_ACCEL_NO_MOTION_INTR_MASK_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14482,7 +14571,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_mask_accel_no_motion(u8 accel_nomoti
  *
  *  bno055_set_gyro_any_motion_awake_durn()
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_gyro_any_motion(u8 *gyro_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_gyro_any_motion(u8 *gyro_any_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14507,10 +14596,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_gyro_any_motion(u8 *gyro_any_motion_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro anymotion interrupt */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_ANY_MOTION_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_ANY_MOTION_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_any_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_INTR);
         }
         else
@@ -14557,7 +14646,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_gyro_any_motion(u8 *gyro_any_motion_
  *
  *  bno055_set_gyro_any_motion_awake_durn()
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_gyro_any_motion(u8 gyro_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_gyro_any_motion(u8 gyro_any_motion_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -14580,17 +14669,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_gyro_any_motion(u8 gyro_any_motion_u
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Write the value of gyro anymotion interrupt */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_ANY_MOTION_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_ANY_MOTION_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_INTR, gyro_any_motion_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_GYRO_ANY_MOTION_INTR_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_GYRO_ANY_MOTION_INTR_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14653,7 +14742,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_gyro_any_motion(u8 gyro_any_motion_u
  *  bno055_set_gyro_highrate_z_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_gyro_highrate(u8 *gyro_highrate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_gyro_highrate(u8 *gyro_highrate_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14678,10 +14767,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_gyro_highrate(u8 *gyro_highrate_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate interrupt */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_INTR);
         }
         else
@@ -14744,7 +14833,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_gyro_highrate(u8 *gyro_highrate_u8)
  *  bno055_set_gyro_highrate_z_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_gyro_highrate(u8 gyro_highrate_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_gyro_highrate(u8 gyro_highrate_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -14766,18 +14855,18 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_gyro_highrate(u8 gyro_highrate_u8)
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Write the value of gyro highrate interrupt */
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_INTR, gyro_highrate_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_GYRO_HIGHRATE_INTR_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_GYRO_HIGHRATE_INTR_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14820,7 +14909,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_gyro_highrate(u8 gyro_highrate_u8)
  *  bno055_set_accel_high_g_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_high_g(u8 *accel_high_g_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_accel_high_g(u8 *accel_high_g_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14845,10 +14934,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_high_g(u8 *accel_high_g_u8)
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel highg interrupt*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_HIGH_G_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_HIGH_G_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_high_g_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_INTR);
         }
         else
@@ -14891,7 +14980,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_high_g(u8 *accel_high_g_u8)
  *  bno055_set_accel_high_g_durn()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_high_g(u8 accel_high_g_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_accel_high_g(u8 accel_high_g_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -14913,18 +15002,18 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_high_g(u8 accel_high_g_u8)
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_HIGH_G_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_HIGH_G_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Write the value of accel highg interrupt*/
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_INTR, accel_high_g_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_ACCEL_HIGH_G_INTR_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_ACCEL_HIGH_G_INTR_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -14966,7 +15055,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_high_g(u8 accel_high_g_u8)
  *  bno055_set_accel_any_motion_thres()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_any_motion(u8 *accel_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_accel_any_motion(u8 *accel_any_motion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -14991,10 +15080,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_any_motion(u8 *accel_any_motio
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel anymotion interrupt */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_ANY_MOTION_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_ANY_MOTION_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_any_motion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_INTR);
         }
         else
@@ -15036,7 +15125,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_any_motion(u8 *accel_any_motio
  *  bno055_set_accel_any_motion_thres()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_any_motion(u8 accel_any_motion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_accel_any_motion(u8 accel_any_motion_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -15059,17 +15148,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_any_motion(u8 accel_any_motion
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Write the value of accel anymotion interrupt */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_ANY_MOTION_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_ANY_MOTION_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_INTR, accel_any_motion_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_ACCEL_ANY_MOTION_INTR_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_ACCEL_ANY_MOTION_INTR_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -15115,7 +15204,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_any_motion(u8 accel_any_motion
  *  bno055_set_accel_slow_no_motion_enable()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_no_motion(u8 *accel_nomotion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_intr_accel_no_motion(u8 *accel_nomotion_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -15140,10 +15229,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_no_motion(u8 *accel_nomotion_u
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel nomotion interrupt*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_NO_MOTION_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_NO_MOTION_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_nomotion_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_NO_MOTION_INTR);
         }
         else
@@ -15189,7 +15278,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_intr_accel_no_motion(u8 *accel_nomotion_u
  *  bno055_set_accel_slow_no_motion_enable()
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_no_motion(u8 accel_nomotion_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_intr_accel_no_motion(u8 accel_nomotion_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -15212,19 +15301,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_no_motion(u8 accel_nomotion_u8
         }
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_NO_MOTION_INTR_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_NO_MOTION_INTR_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             if (com_rslt == BNO055_SUCCESS)
             {
                 /* Write the value of
                  * accel nomotion interrupt */
                 data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_NO_MOTION_INTR, accel_nomotion_u8);
-                com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                            BNO055_ACCEL_NO_MOTION_INTR_REG,
-                                                            &data_u8r,
-                                                            BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt += this->bus_write(p_bno055->dev_addr,
+                                            BNO055_ACCEL_NO_MOTION_INTR_REG,
+                                            &data_u8r,
+                                            BNO055_GEN_READ_WRITE_LENGTH);
             }
         }
         else
@@ -15261,7 +15350,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_accel_no_motion(u8 accel_nomotion_u8
  *     16g       |    31.25mg    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_thres(u8 *accel_any_motion_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_any_motion_thres(u8 *accel_any_motion_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -15286,10 +15375,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_thres(u8 *accel_any_moti
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel any motion threshold */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_ANY_MOTION_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_ANY_MOTION_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_any_motion_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_THRES);
         }
         else
@@ -15326,7 +15415,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_thres(u8 *accel_any_moti
  *     16g       |    31.25mg    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_thres(u8 accel_any_motion_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_any_motion_thres(u8 accel_any_motion_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -15357,10 +15446,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_thres(u8 accel_any_motio
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_ANY_MOTION_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_ANY_MOTION_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Write the value of
@@ -15368,10 +15457,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_thres(u8 accel_any_motio
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_ACCEL_ANY_MOTION_THRES,
                                                        accel_any_motion_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_ANY_MOTION_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_ANY_MOTION_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -15415,7 +15504,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_thres(u8 accel_any_motio
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_durn(u8 *accel_any_motion_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_any_motion_durn(u8 *accel_any_motion_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -15440,10 +15529,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_durn(u8 *accel_any_motio
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel anymotion duration */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_ANY_MOTION_DURN_SET_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_ANY_MOTION_DURN_SET_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_any_motion_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_DURN_SET);
         }
         else
@@ -15472,7 +15561,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_durn(u8 *accel_any_motio
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_durn(u8 accel_any_motion_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_any_motion_durn(u8 accel_any_motion_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -15503,10 +15592,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_durn(u8 accel_any_motion
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_ANY_MOTION_DURN_SET_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_ANY_MOTION_DURN_SET_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Write the value of
@@ -15514,10 +15603,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_durn(u8 accel_any_motion
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_ACCEL_ANY_MOTION_DURN_SET,
                                                        accel_any_motion_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_ANY_MOTION_DURN_SET_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_ANY_MOTION_DURN_SET_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -15567,7 +15656,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_durn(u8 accel_any_motion
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_no_motion_axis_enable(u8 channel_u8, u8 *data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_any_motion_no_motion_axis_enable(u8 channel_u8, u8 *data_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -15596,28 +15685,28 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_no_motion_axis_enable(u8
             case BNO055_ACCEL_ANY_MOTION_NO_MOTION_X_AXIS:
 
                 /* Read the value of accel anymotion x enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_ANY_MOTION_X_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_ANY_MOTION_X_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_X_AXIS);
                 break;
             case BNO055_ACCEL_ANY_MOTION_NO_MOTION_Y_AXIS:
 
                 /* Read the value of accel anymotion y enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_ANY_MOTION_Y_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_ANY_MOTION_Y_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_Y_AXIS);
                 break;
             case BNO055_ACCEL_ANY_MOTION_NO_MOTION_Z_AXIS:
 
                 /* Read the value of accel anymotion z enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_ANY_MOTION_Z_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_ANY_MOTION_Z_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_Z_AXIS);
                 break;
             default:
@@ -15656,7 +15745,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_any_motion_no_motion_axis_enable(u8
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_no_motion_axis_enable(u8 channel_u8, u8 data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_any_motion_no_motion_axis_enable(u8 channel_u8, u8 data_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -15693,51 +15782,51 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_no_motion_axis_enable(u8
 
                         /* Write the value of
                          * accel anymotion x enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_ANY_MOTION_X_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_ANY_MOTION_X_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_X_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_ANY_MOTION_X_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_ANY_MOTION_X_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_ACCEL_ANY_MOTION_NO_MOTION_Y_AXIS:
 
                         /* Write the value of
                          * accel anymotion y enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_ANY_MOTION_Y_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_ANY_MOTION_Y_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_Y_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_ANY_MOTION_Y_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_ANY_MOTION_Y_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_ACCEL_ANY_MOTION_NO_MOTION_Z_AXIS:
 
                         /* Write the value of
                          * accel anymotion z enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_ANY_MOTION_Z_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_ANY_MOTION_Z_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_ANY_MOTION_Z_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_ANY_MOTION_Z_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_ANY_MOTION_Z_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     default:
@@ -15792,7 +15881,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_any_motion_no_motion_axis_enable(u8
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_axis_enable(u8 channel_u8, u8 *data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_high_g_axis_enable(u8 channel_u8, u8 *data_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -15821,28 +15910,28 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_axis_enable(u8 channel_u8, u
             case BNO055_ACCEL_HIGH_G_X_AXIS:
 
                 /* Read the value of accel x highg enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_HIGH_G_X_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_HIGH_G_X_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_X_AXIS);
                 break;
             case BNO055_ACCEL_HIGH_G_Y_AXIS:
 
                 /* Read the value of accel y highg enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_HIGH_G_Y_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_HIGH_G_Y_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_Y_AXIS);
                 break;
             case BNO055_ACCEL_HIGH_G_Z_AXIS:
 
                 /* Read the value of accel z highg enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_ACCEL_HIGH_G_Z_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_ACCEL_HIGH_G_Z_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_Z_AXIS);
                 break;
             default:
@@ -15881,7 +15970,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_axis_enable(u8 channel_u8, u
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_axis_enable(u8 channel_u8, u8 data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_high_g_axis_enable(u8 channel_u8, u8 data_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -15918,51 +16007,51 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_axis_enable(u8 channel_u8, u
 
                         /* Write the value of
                          * accel x highg enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_HIGH_G_X_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_HIGH_G_X_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_X_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_HIGH_G_X_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_HIGH_G_X_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_ACCEL_HIGH_G_Y_AXIS:
 
                         /* Write the value of
                          * accel y highg enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_HIGH_G_Y_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_HIGH_G_Y_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_Y_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_HIGH_G_Y_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_HIGH_G_Y_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_ACCEL_HIGH_G_Z_AXIS:
 
                         /* Write the value of
                          * accel z highg enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_ACCEL_HIGH_G_Z_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_ACCEL_HIGH_G_Z_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_Z_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_ACCEL_HIGH_G_Z_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_ACCEL_HIGH_G_Z_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     default:
@@ -16011,7 +16100,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_axis_enable(u8 channel_u8, u
  *  in a range from 2 ms to 512 ms
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_durn(u8 *accel_high_g_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_high_g_durn(u8 *accel_high_g_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -16036,10 +16125,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_durn(u8 *accel_high_g_durn_u
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel highg duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_HIGH_G_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_HIGH_G_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_high_g_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_DURN);
         }
         else
@@ -16067,7 +16156,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_durn(u8 *accel_high_g_durn_u
  *  in a range from 2 ms to 512 ms
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_durn(u8 accel_high_g_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_high_g_durn(u8 accel_high_g_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -16098,19 +16187,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_durn(u8 accel_high_g_durn_u8
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_HIGH_G_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_HIGH_G_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Write the value of
                          * accel highg duration*/
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_DURN, accel_high_g_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_HIGH_G_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_HIGH_G_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -16159,7 +16248,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_durn(u8 accel_high_g_durn_u8
  *     16g       |    62.5mg     |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_thres(u8 *accel_high_g_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_high_g_thres(u8 *accel_high_g_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -16184,10 +16273,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_thres(u8 *accel_high_g_thres
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of highg threshold */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_HIGH_G_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_HIGH_G_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_high_g_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_THRES);
         }
         else
@@ -16220,7 +16309,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_high_g_thres(u8 *accel_high_g_thres
  *     16g       |    62.5mg     |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_thres(u8 accel_high_g_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_high_g_thres(u8 accel_high_g_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -16251,19 +16340,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_thres(u8 accel_high_g_thres_
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_HIGH_G_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_HIGH_G_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Write the value of
                          * accel highg threshold */
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_ACCEL_HIGH_G_THRES, accel_high_g_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_HIGH_G_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_HIGH_G_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -16312,7 +16401,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_high_g_thres(u8 accel_high_g_thres_
  *     8g        |    15.63mg    |   1LSB
  *     16g       |    31.25mg    |   1LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_thres(u8 *accel_slow_no_motion_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_slow_no_motion_thres(u8 *accel_slow_no_motion_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -16337,10 +16426,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_thres(u8 *accel_slow
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of slownomotion threshold */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_SLOW_NO_MOTION_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_SLOW_NO_MOTION_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_slow_no_motion_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_SLOW_NO_MOTION_THRES);
         }
         else
@@ -16373,7 +16462,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_thres(u8 *accel_slow
  *     8g        |    15.63mg    |   1LSB
  *     16g       |    31.25mg    |   1LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_thres(u8 accel_slow_no_motion_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_slow_no_motion_thres(u8 accel_slow_no_motion_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -16406,19 +16495,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_thres(u8 accel_slow_
                 {
                     /* Write the value of
                      * slownomotion threshold */
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_SLOW_NO_MOTION_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_SLOW_NO_MOTION_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_ACCEL_SLOW_NO_MOTION_THRES,
                                                        accel_slow_no_motion_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_SLOW_NO_MOTION_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_SLOW_NO_MOTION_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -16461,7 +16550,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_thres(u8 accel_slow_
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_enable(u8 *accel_slow_no_motion_en_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_slow_no_motion_enable(u8 *accel_slow_no_motion_en_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -16486,10 +16575,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_enable(u8 *accel_slo
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of accel slownomotion enable */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_SLOW_NO_MOTION_ENABLE_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_SLOW_NO_MOTION_ENABLE_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_slow_no_motion_en_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_SLOW_NO_MOTION_ENABLE);
         }
         else
@@ -16516,7 +16605,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_enable(u8 *accel_slo
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_enable(u8 accel_slow_no_motion_en_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_slow_no_motion_enable(u8 accel_slow_no_motion_en_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -16547,10 +16636,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_enable(u8 accel_slow
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_SLOW_NO_MOTION_ENABLE_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_SLOW_NO_MOTION_ENABLE_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /* Read the value of
@@ -16558,10 +16647,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_enable(u8 accel_slow
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_ACCEL_SLOW_NO_MOTION_ENABLE,
                                                        accel_slow_no_motion_en_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_SLOW_NO_MOTION_ENABLE_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_SLOW_NO_MOTION_ENABLE_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -16601,7 +16690,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_enable(u8 accel_slow
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_durn(u8 *accel_slow_no_motion_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_accel_slow_no_motion_durn(u8 *accel_slow_no_motion_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -16626,10 +16715,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_durn(u8 *accel_slow_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /*read value of accel slownomotion duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_ACCEL_SLOW_NO_MOTION_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_ACCEL_SLOW_NO_MOTION_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *accel_slow_no_motion_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_ACCEL_SLOW_NO_MOTION_DURN);
         }
         else
@@ -16653,7 +16742,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_accel_slow_no_motion_durn(u8 *accel_slow_
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_durn(u8 accel_slow_no_motion_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_accel_slow_no_motion_durn(u8 accel_slow_no_motion_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -16684,10 +16773,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_durn(u8 accel_slow_n
                 pg_stat_s8 = bno055_write_page_id(BNO055_PAGE_ONE);
                 if (pg_stat_s8 == BNO055_SUCCESS)
                 {
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_ACCEL_SLOW_NO_MOTION_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_ACCEL_SLOW_NO_MOTION_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         /*Write the value of accel
@@ -16695,10 +16784,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_durn(u8 accel_slow_n
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_ACCEL_SLOW_NO_MOTION_DURN,
                                                        accel_slow_no_motion_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_ACCEL_SLOW_NO_MOTION_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_ACCEL_SLOW_NO_MOTION_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -16749,7 +16838,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_accel_slow_no_motion_durn(u8 accel_slow_n
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_axis_enable(u8 channel_u8, u8 *data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_any_motion_axis_enable(u8 channel_u8, u8 *data_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -16778,28 +16867,28 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_axis_enable(u8 channel_u8
             case BNO055_GYRO_ANY_MOTION_X_AXIS:
 
                 /* Read the gyro anymotion x enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_ANY_MOTION_X_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_ANY_MOTION_X_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_X_AXIS);
                 break;
             case BNO055_GYRO_ANY_MOTION_Y_AXIS:
 
                 /* Read the gyro anymotion y enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_ANY_MOTION_Y_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_ANY_MOTION_Y_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_Y_AXIS);
                 break;
             case BNO055_GYRO_ANY_MOTION_Z_AXIS:
 
                 /* Read the gyro anymotion z enable*/
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_ANY_MOTION_Z_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_ANY_MOTION_Z_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_Z_AXIS);
                 break;
             default:
@@ -16838,7 +16927,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_axis_enable(u8 channel_u8
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_axis_enable(u8 channel_u8, u8 data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_any_motion_axis_enable(u8 channel_u8, u8 data_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -16875,51 +16964,51 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_axis_enable(u8 channel_u8
 
                         /* Write the gyro
                          * anymotion x enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_ANY_MOTION_X_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_ANY_MOTION_X_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_X_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_ANY_MOTION_X_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_ANY_MOTION_X_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_GYRO_ANY_MOTION_Y_AXIS:
 
                         /* Write the gyro
                          * anymotion y enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_ANY_MOTION_Y_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_ANY_MOTION_Y_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_Y_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_ANY_MOTION_Y_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_ANY_MOTION_Y_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_GYRO_ANY_MOTION_Z_AXIS:
 
                         /* Write the gyro
                          * anymotion z enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_ANY_MOTION_Z_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_ANY_MOTION_Z_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_Z_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_ANY_MOTION_Z_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_ANY_MOTION_Z_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     default:
@@ -16975,7 +17064,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_axis_enable(u8 channel_u8
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_axis_enable(u8 channel_u8, u8 *data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_axis_enable(u8 channel_u8, u8 *data_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17004,28 +17093,28 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_axis_enable(u8 channel_u8, 
             case BNO055_GYRO_HIGHRATE_X_AXIS:
 
                 /* Read the gyro highrate x enable */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_HIGHRATE_X_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_HIGHRATE_X_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_AXIS);
                 break;
             case BNO055_GYRO_HIGHRATE_Y_AXIS:
 
                 /* Read the gyro highrate y enable */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_HIGHRATE_Y_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_HIGHRATE_Y_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_AXIS);
                 break;
             case BNO055_GYRO_HIGHRATE_Z_AXIS:
 
                 /* Read the gyro highrate z enable */
-                com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                          BNO055_GYRO_HIGHRATE_Z_AXIS_REG,
-                                                          &data_u8r,
-                                                          BNO055_GEN_READ_WRITE_LENGTH);
+                com_rslt = this->bus_read(p_bno055->dev_addr,
+                                          BNO055_GYRO_HIGHRATE_Z_AXIS_REG,
+                                          &data_u8r,
+                                          BNO055_GEN_READ_WRITE_LENGTH);
                 *data_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_AXIS);
                 break;
             default:
@@ -17064,7 +17153,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_axis_enable(u8 channel_u8, 
  *
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_axis_enable(u8 channel_u8, u8 data_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_axis_enable(u8 channel_u8, u8 data_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -17101,51 +17190,51 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_axis_enable(u8 channel_u8, 
 
                         /* Write the value of
                          * gyro highrate x enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_HIGHRATE_X_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_HIGHRATE_X_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_HIGHRATE_X_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_HIGHRATE_X_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_GYRO_HIGHRATE_Y_AXIS:
 
                         /* Write the value of
                          * gyro highrate y enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_HIGHRATE_Y_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_HIGHRATE_Y_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_HIGHRATE_Y_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_HIGHRATE_Y_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     case BNO055_GYRO_HIGHRATE_Z_AXIS:
 
                         /* Write the value of
                          * gyro highrate z enable*/
-                        com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                                  BNO055_GYRO_HIGHRATE_Z_AXIS_REG,
-                                                                  &data_u8r,
-                                                                  BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt = this->bus_read(p_bno055->dev_addr,
+                                                  BNO055_GYRO_HIGHRATE_Z_AXIS_REG,
+                                                  &data_u8r,
+                                                  BNO055_GEN_READ_WRITE_LENGTH);
                         if (com_rslt == BNO055_SUCCESS)
                         {
                             data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_AXIS, data_u8);
-                            com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                        BNO055_GYRO_HIGHRATE_Z_AXIS_REG,
-                                                                        &data_u8r,
-                                                                        BNO055_GEN_READ_WRITE_LENGTH);
+                            com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                        BNO055_GYRO_HIGHRATE_Z_AXIS_REG,
+                                                        &data_u8r,
+                                                        BNO055_GEN_READ_WRITE_LENGTH);
                         }
                         break;
                     default:
@@ -17193,7 +17282,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_axis_enable(u8 channel_u8, 
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_filter(u8 *gyro_any_motion_filter_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_any_motion_filter(u8 *gyro_any_motion_filter_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17218,10 +17307,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_filter(u8 *gyro_any_motio
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro anymotion filter*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_ANY_MOTION_FILTER_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_ANY_MOTION_FILTER_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_any_motion_filter_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_FILTER);
         }
         else
@@ -17248,7 +17337,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_filter(u8 *gyro_any_motio
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_filter(u8 gyro_any_motion_filter_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_any_motion_filter(u8 gyro_any_motion_filter_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -17281,19 +17370,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_filter(u8 gyro_any_motion
                 {
                     /* Write the value of
                      * gyro anymotion filter*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_ANY_MOTION_FILTER_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_ANY_MOTION_FILTER_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_GYRO_ANY_MOTION_FILTER,
                                                        gyro_any_motion_filter_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_ANY_MOTION_FILTER_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_ANY_MOTION_FILTER_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -17336,7 +17425,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_filter(u8 gyro_any_motion
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_filter(u8 *gyro_highrate_filter_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_filter(u8 *gyro_highrate_filter_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17361,10 +17450,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_filter(u8 *gyro_highrate_fi
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate filter */
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_FILTER_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_FILTER_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_filter_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_FILTER);
         }
         else
@@ -17391,7 +17480,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_filter(u8 *gyro_highrate_fi
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_filter(u8 gyro_highrate_filter_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_filter(u8 gyro_highrate_filter_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -17424,17 +17513,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_filter(u8 gyro_highrate_fil
                 {
                     /* Write the value of
                      * gyro highrate filter*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_FILTER_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_FILTER_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_FILTER, gyro_highrate_filter_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_FILTER_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_FILTER_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -17483,7 +17572,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_filter(u8 gyro_highrate_fil
  *     125            |    7.8125dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_thres(u8 *gyro_highrate_x_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_x_thres(u8 *gyro_highrate_x_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17508,10 +17597,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_thres(u8 *gyro_highrate_x
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate threshold*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_X_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_X_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_x_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_THRES);
         }
         else
@@ -17544,7 +17633,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_thres(u8 *gyro_highrate_x
  *     125            |    7.8125dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_thres(u8 gyro_highrate_x_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_x_thres(u8 gyro_highrate_x_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -17577,18 +17666,18 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_thres(u8 gyro_highrate_x_
                 {
                     /* Write the value of
                      * gyro highrate x threshold*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_X_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_X_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r =
                             BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_THRES, gyro_highrate_x_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_X_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_X_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -17639,7 +17728,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_thres(u8 gyro_highrate_x_
  *     500            |    15.56dps     |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_hyst(u8 *gyro_highrate_x_hyst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_x_hyst(u8 *gyro_highrate_x_hyst_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17664,10 +17753,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_hyst(u8 *gyro_highrate_x_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate x hysteresis*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_X_HYST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_X_HYST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_x_hyst_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_HYST);
         }
         else
@@ -17702,7 +17791,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_hyst(u8 *gyro_highrate_x_
  *     500            |    15.56dps     |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_hyst(u8 gyro_highrate_x_hyst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_x_hyst(u8 gyro_highrate_x_hyst_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -17735,17 +17824,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_hyst(u8 gyro_highrate_x_h
                 {
                     /*Write the value of
                      * gyro highrate x hysteresis*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_X_HYST_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_X_HYST_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_HYST, gyro_highrate_x_hyst_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_X_HYST_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_X_HYST_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -17788,7 +17877,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_hyst(u8 gyro_highrate_x_h
  *  (1 + gyro_highrate_x_durn_u8)*2.5ms
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_durn(u8 *gyro_highrate_x_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_x_durn(u8 *gyro_highrate_x_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17813,10 +17902,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_durn(u8 *gyro_highrate_x_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate x duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_X_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_X_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_x_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_DURN);
         }
         else
@@ -17842,7 +17931,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_x_durn(u8 *gyro_highrate_x_
  *
  *  (1 + gyro_highrate_x_durn_u8)*2.5ms
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_durn(u8 gyro_highrate_x_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_x_durn(u8 gyro_highrate_x_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -17875,17 +17964,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_durn(u8 gyro_highrate_x_d
                 {
                     /* Write the value
                      * of gyro highrate x duration*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_X_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_X_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_X_DURN, gyro_highrate_x_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_X_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_X_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -17934,7 +18023,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_x_durn(u8 gyro_highrate_x_d
  *     125            |    7.8125dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_thres(u8 *gyro_highrate_y_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_y_thres(u8 *gyro_highrate_y_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -17959,10 +18048,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_thres(u8 *gyro_highrate_y
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate y threshold*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_Y_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_Y_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_y_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_THRES);
         }
         else
@@ -17995,7 +18084,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_thres(u8 *gyro_highrate_y
  *     125            |    7.8125dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_thres(u8 gyro_highrate_y_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_y_thres(u8 gyro_highrate_y_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18028,18 +18117,18 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_thres(u8 gyro_highrate_y_
                 {
                     /* Write the value
                      * of gyro highrate y threshold*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_Y_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_Y_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r =
                             BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_THRES, gyro_highrate_y_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_Y_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_Y_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18089,7 +18178,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_thres(u8 gyro_highrate_y_
  *     1000           |    31.13dps     |   1LSB
  *     500            |    15.56dps     |   1LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_hyst(u8 *gyro_highrate_y_hyst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_y_hyst(u8 *gyro_highrate_y_hyst_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -18114,10 +18203,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_hyst(u8 *gyro_highrate_y_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate y hysteresis*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_Y_HYST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_Y_HYST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_y_hyst_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_HYST);
         }
         else
@@ -18151,7 +18240,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_hyst(u8 *gyro_highrate_y_
  *     1000           |    31.13dps     |   1LSB
  *     500            |    15.56dps     |   1LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_hyst(u8 gyro_highrate_y_hyst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_y_hyst(u8 gyro_highrate_y_hyst_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18184,17 +18273,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_hyst(u8 gyro_highrate_y_h
                 {
                     /* Write the value of
                      * gyro highrate y hysteresis*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_Y_HYST_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_Y_HYST_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_HYST, gyro_highrate_y_hyst_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_Y_HYST_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_Y_HYST_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18236,7 +18325,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_hyst(u8 gyro_highrate_y_h
  *
  *  (1 + gyro_highrate_y_durn_u8)*2.5ms
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_durn(u8 *gyro_highrate_y_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_y_durn(u8 *gyro_highrate_y_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -18261,10 +18350,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_durn(u8 *gyro_highrate_y_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate y duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_Y_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_Y_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_y_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_DURN);
         }
         else
@@ -18290,7 +18379,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_y_durn(u8 *gyro_highrate_y_
  *
  *  (1 + gyro_highrate_y_durn_u8)*2.5ms
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_durn(u8 gyro_highrate_y_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_y_durn(u8 gyro_highrate_y_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18323,17 +18412,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_durn(u8 gyro_highrate_y_d
                 {
                     /* Write the value
                      * of gyro highrate y duration*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_Y_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_Y_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Y_DURN, gyro_highrate_y_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_Y_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_Y_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18382,7 +18471,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_y_durn(u8 gyro_highrate_y_d
  *     125            |    7.8125dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_thres(u8 *gyro_highrate_z_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_z_thres(u8 *gyro_highrate_z_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -18407,10 +18496,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_thres(u8 *gyro_highrate_z
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate z threshold*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_Z_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_Z_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_z_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_THRES);
         }
         else
@@ -18443,7 +18532,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_thres(u8 *gyro_highrate_z
  *     125            |    7.8125dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_thres(u8 gyro_highrate_z_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_z_thres(u8 gyro_highrate_z_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18476,18 +18565,18 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_thres(u8 gyro_highrate_z_
                 {
                     /* Write the value
                      * of gyro highrate z threshold*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_Z_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_Z_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r =
                             BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_THRES, gyro_highrate_z_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_Z_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_Z_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18537,7 +18626,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_thres(u8 gyro_highrate_z_
  *     1000           |    31.13dps     |   1LSB
  *     500            |    15.56dps     |   1LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_hyst(u8 *gyro_highrate_z_hyst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_z_hyst(u8 *gyro_highrate_z_hyst_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -18562,10 +18651,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_hyst(u8 *gyro_highrate_z_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate z hysteresis*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_Z_HYST_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_Z_HYST_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_z_hyst_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_HYST);
         }
         else
@@ -18599,7 +18688,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_hyst(u8 *gyro_highrate_z_
  *     1000           |    31.13dps     |   1LSB
  *     500            |    15.56dps     |   1LSB
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_hyst(u8 gyro_highrate_z_hyst_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_z_hyst(u8 gyro_highrate_z_hyst_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18632,17 +18721,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_hyst(u8 gyro_highrate_z_h
                 {
                     /* Write the value
                      * of gyro highrate z hysteresis*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_Z_HYST_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_Z_HYST_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_HYST, gyro_highrate_z_hyst_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_Z_HYST_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_Z_HYST_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18684,7 +18773,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_hyst(u8 gyro_highrate_z_h
  *
  *  (1 + gyro_highrate_z_durn_u8)*2.5ms
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_durn(u8 *gyro_highrate_z_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_highrate_z_durn(u8 *gyro_highrate_z_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -18709,10 +18798,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_durn(u8 *gyro_highrate_z_
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro highrate z duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_HIGHRATE_Z_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_HIGHRATE_Z_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_highrate_z_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_DURN);
         }
         else
@@ -18738,7 +18827,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_highrate_z_durn(u8 *gyro_highrate_z_
  *
  *  (1 + gyro_highrate_z_durn_u8)*2.5ms
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_durn(u8 gyro_highrate_z_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_highrate_z_durn(u8 gyro_highrate_z_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18771,17 +18860,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_durn(u8 gyro_highrate_z_d
                 {
                     /* Write the value of
                      * gyro highrate z duration*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_HIGHRATE_Z_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_HIGHRATE_Z_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_HIGHRATE_Z_DURN, gyro_highrate_z_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_HIGHRATE_Z_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_HIGHRATE_Z_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18829,7 +18918,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_highrate_z_durn(u8 gyro_highrate_z_d
  *     500            |    0.25dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_thres(u8 *gyro_any_motion_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_any_motion_thres(u8 *gyro_any_motion_thres_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -18854,10 +18943,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_thres(u8 *gyro_any_motion
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro anymotion threshold*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_ANY_MOTION_THRES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_ANY_MOTION_THRES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_any_motion_thres_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_THRES);
         }
         else
@@ -18889,7 +18978,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_thres(u8 *gyro_any_motion
  *     500            |    0.25dps    |   1LSB
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_thres(u8 gyro_any_motion_thres_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_any_motion_thres(u8 gyro_any_motion_thres_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -18922,18 +19011,18 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_thres(u8 gyro_any_motion_
                 {
                     /* Write the value
                      * of gyro anymotion threshold*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_ANY_MOTION_THRES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_ANY_MOTION_THRES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r =
                             BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_ANY_MOTION_THRES, gyro_any_motion_thres_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_ANY_MOTION_THRES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_ANY_MOTION_THRES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -18979,7 +19068,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_thres(u8 gyro_any_motion_
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_slope_samples(u8 *gyro_any_motion_slope_samples_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_any_motion_slope_samples(u8 *gyro_any_motion_slope_samples_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -19004,10 +19093,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_slope_samples(u8 *gyro_an
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /*Read the value of gyro anymotion slope samples*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_SLOPE_SAMPLES_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_SLOPE_SAMPLES_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_any_motion_slope_samples_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_SLOPE_SAMPLES);
         }
         else
@@ -19037,7 +19126,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_slope_samples(u8 *gyro_an
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_slope_samples(u8 gyro_any_motion_slope_samples_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_any_motion_slope_samples(u8 gyro_any_motion_slope_samples_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -19070,19 +19159,19 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_slope_samples(u8 gyro_any
                 {
                     /* Write the value of
                      * gyro anymotion slope samples*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_SLOPE_SAMPLES_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_SLOPE_SAMPLES_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r,
                                                        BNO055_GYRO_SLOPE_SAMPLES,
                                                        gyro_any_motion_slope_samples_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_SLOPE_SAMPLES_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_SLOPE_SAMPLES_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -19121,7 +19210,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_slope_samples(u8 gyro_any
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_awake_durn(u8 *gyro_awake_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_get_gyro_any_motion_awake_durn(u8 *gyro_awake_durn_u8)
 {
     /* Variable used to return value of
      * communication routine*/
@@ -19146,10 +19235,10 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_awake_durn(u8 *gyro_awake
         if ((stat_s8 == BNO055_SUCCESS) || (p_bno055->page_id == BNO055_PAGE_ONE))
         {
             /* Read the value of gyro anymotion awake duration*/
-            com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                      BNO055_GYRO_AWAKE_DURN_REG,
-                                                      &data_u8r,
-                                                      BNO055_GEN_READ_WRITE_LENGTH);
+            com_rslt = this->bus_read(p_bno055->dev_addr,
+                                      BNO055_GYRO_AWAKE_DURN_REG,
+                                      &data_u8r,
+                                      BNO055_GEN_READ_WRITE_LENGTH);
             *gyro_awake_durn_u8 = BNO055_GET_BITSLICE(data_u8r, BNO055_GYRO_AWAKE_DURN);
         }
         else
@@ -19172,7 +19261,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_any_motion_awake_durn(u8 *gyro_awake
  *  @retval 1 -> BNO055_ERROR
  *
  */
-BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_awake_durn(u8 gyro_awake_durn_u8)
+BNO055_RETURN_FUNCTION_TYPE BNO055::bno055_set_gyro_any_motion_awake_durn(u8 gyro_awake_durn_u8)
 {
     BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
     u8 data_u8r = BNO055_INIT_VALUE;
@@ -19205,17 +19294,17 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_awake_durn(u8 gyro_awake_
                 {
                     /* Write the value of gyro
                      *  anymotion awake duration*/
-                    com_rslt = p_bno055->BNO055_BUS_READ_FUNC(p_bno055->dev_addr,
-                                                              BNO055_GYRO_AWAKE_DURN_REG,
-                                                              &data_u8r,
-                                                              BNO055_GEN_READ_WRITE_LENGTH);
+                    com_rslt = this->bus_read(p_bno055->dev_addr,
+                                              BNO055_GYRO_AWAKE_DURN_REG,
+                                              &data_u8r,
+                                              BNO055_GEN_READ_WRITE_LENGTH);
                     if (com_rslt == BNO055_SUCCESS)
                     {
                         data_u8r = BNO055_SET_BITSLICE(data_u8r, BNO055_GYRO_AWAKE_DURN, gyro_awake_durn_u8);
-                        com_rslt += p_bno055->BNO055_BUS_WRITE_FUNC(p_bno055->dev_addr,
-                                                                    BNO055_GYRO_AWAKE_DURN_REG,
-                                                                    &data_u8r,
-                                                                    BNO055_GEN_READ_WRITE_LENGTH);
+                        com_rslt += this->bus_write(p_bno055->dev_addr,
+                                                    BNO055_GYRO_AWAKE_DURN_REG,
+                                                    &data_u8r,
+                                                    BNO055_GEN_READ_WRITE_LENGTH);
                     }
                 }
                 else
@@ -19241,4 +19330,314 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_gyro_any_motion_awake_durn(u8 gyro_awake_
     }
 
     return com_rslt;
+}
+
+/**
+ * @brief   This function perform a read on the target device.
+ *
+ * @param   dev_addr    I2C device address. Since we're using UART, this parameter is ignored.
+ * @param   reg_addr    read register address
+ * @param   reg_data    pointer to an empty data target to be filled
+ * @param   r_len       number of registers to be read-out.
+ *
+ * @return  status code
+ * @retval  0 (BNO_SUCESS) : OK
+ * @retval  1 (BNO_FAIL) : NOK
+ */
+BNO055_RETURN_FUNCTION_TYPE BNO055::bus_read(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 r_len)
+{
+    // First, allocate buffer for memory output
+    uint8_t *buf = (uint8_t *)k_malloc(4);
+    if (buf == nullptr)
+    {
+        LOG_ERR("Failed to allocate enough memory the UART IO buffer !");
+        return BNO055_ERROR;
+    }
+
+    // Then, fill the buffer :
+    memset(buf, 0, r_len + 4);
+
+    // Standard read header
+    buf[0] = 0xAA;
+    buf[1] = 0x01;
+    // Starting address
+    buf[2] = (uint8_t)reg_addr & 0xFF;
+    // Write len
+    buf[3] = (uint8_t)r_len & 0xFF;
+
+    // Launching write command
+    int ret = uart_tx(this->bus, buf, 4, 100); // 100 us delay
+    if (ret != 0)
+    {
+        LOG_ERR("Failed to send the read command ! Error : %d", ret);
+        goto read_exit_failure;
+    }
+
+    // Wait for the data to be ready by yielding the data (= exiting the task to let the remaining run...)
+    // This variable shall be configured to true by the ISR !
+    while (this->IO_DataReady == false)
+    {
+        k_yield();
+    }
+
+    // Then, take the data :
+    this->IO_DataReady = false;
+
+    // Then, check that the write has not returned an error :
+    if (this->IO_buf[0] == 0xEE)
+    {
+
+        switch (this->IO_buf[1])
+        {
+        case 0x01: // WRITE_SUCESSFULL
+        {
+            LOG_DBG("BNO055 Write sucessfull !");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x03: // WRITE FAIL
+        {
+            LOG_ERR("Write failed with 0x03 error code : WRITE_FAIL");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x04: // REGMAP INVALID ADDRESS
+        {
+            LOG_ERR("Write failed with 0x04 error code : REGMAP_INVALID_ADDRESS");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x05: // REGMAP WRITE DISABLED
+        {
+            LOG_ERR("Write failed with 0x05 error code : REGMAP_INVALID_ADDRESS");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x06: // WRONT START BYTE
+        {
+            LOG_ERR("Write failed with 0x06 error code : WRONG_START_BYTE");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x07: // BUS_OVER_RUN_ERROR
+        {
+            LOG_ERR("Write failed with 0x07 error code : BUS_OVER_RUN_ERROR");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x08: // MAX_LENGTH_ERROR
+        {
+            LOG_ERR("Write failed with 0x08 error code : MAX_LENGTH_ERROR");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x09: // MIN_LENGTH_ERROR
+        {
+            LOG_ERR("Write failed with 0x09 error code : MIN_LENGTH_ERROR");
+            goto read_exit_failure;
+            break;
+        }
+        case 0x0A: // RECEIVE_CHARACTER_TIMEOUT
+        {
+            LOG_ERR("Write failed with 0x0A error code : RECEIVE_CHARACTER_TIMEOUT");
+            goto read_exit_failure;
+            break;
+        }
+        default:
+        {
+            LOG_ERR("Unknown error code : %d", this->IO_buf[1]);
+            goto read_exit_failure;
+        }
+        }
+    }
+    else if (this->IO_buf[0] == 0xBB) // DATA is valid !
+    {
+        // Response is like : 0xBB len payload, we only copy the payload.
+        memcpy((void *)(this->IO_buf + 2), reg_data, this->IO_buf[1]);
+        k_free((void *)buf);
+        return BNO055_SUCCESS;
+    }
+    else
+    {
+        LOG_ERR("Unknown header byte !");
+        goto read_exit_failure;
+    }
+
+read_exit_failure:
+    k_free((void *)buf);
+    return BNO055_ERROR;
+}
+
+/**
+ * @brief   This function perform a write on the target device
+ *
+ * @param   dev_addr    I2C device address. Since we're using UART, this parameter is ignored.
+ * @param   reg_addr    read register address
+ * @param   reg_data    pointer to the data to be written
+ * @param   r_len       number of registers to be wrote.
+ *
+ * @return  status code
+ * @retval  0 (BNO_SUCESS) : OK
+ * @retval  1 (BNO_FAIL) : NOK
+ */
+BNO055_RETURN_FUNCTION_TYPE BNO055::bus_write(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 wr_len)
+{
+    // First, allocate buffer for memory output
+    uint8_t *buf = (uint8_t *)k_malloc(wr_len + 4);
+    if (buf == nullptr)
+    {
+        LOG_ERR("Failed to allocate enough memory the UART IO buffer !");
+        return BNO055_ERROR;
+    }
+
+    // Then, fill the buffer :
+    memset(buf, 0, wr_len + 4);
+
+    // Standard write header
+    buf[0] = 0xAA;
+    buf[1] = 0x00;
+    // Starting address
+    buf[2] = (uint8_t)reg_addr & 0xFF;
+    // Write len
+    buf[3] = (uint8_t)wr_len & 0xFF;
+    // Copying data
+    for (uint8_t k = 0; k < wr_len; k++)
+    {
+        buf[k + 4] = (uint8_t)reg_data[k] & 0xFF;
+    }
+
+    // Launching write command
+    int ret = uart_tx(this->bus, buf, wr_len + 4, 100); // 100 us delay
+    if (ret != 0)
+    {
+        LOG_ERR("Failed to send the command ! Error : %d", ret);
+        return BNO055_ERROR;
+    }
+
+    // Wait for the data to be ready by yielding the data (= exiting the task to let the remaining run...)
+    // This variable shall be configured to true by the ISR !
+    while (this->IO_DataReady == false)
+    {
+        k_yield();
+    }
+    // Then, take the data :
+    this->IO_DataReady = false;
+
+    // Then, check that the write cas sucessfull :
+    if (this->IO_buf[0] != 0xEE)
+    {
+        LOG_ERR("Unknown response header byte !");
+    }
+
+    switch (this->IO_buf[1])
+    {
+    case 0x01: // WRITE_SUCESSFULL
+    {
+        LOG_DBG("BNO055 Write sucessfull !");
+        k_free((void *)buf);
+        return BNO055_SUCCESS;
+        break;
+    }
+    case 0x03: // WRITE FAIL
+    {
+        LOG_ERR("Write failed with 0x03 error code : WRITE_FAIL");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x04: // REGMAP INVALID ADDRESS
+    {
+        LOG_ERR("Write failed with 0x04 error code : REGMAP_INVALID_ADDRESS");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x05: // REGMAP WRITE DISABLED
+    {
+        LOG_ERR("Write failed with 0x05 error code : REGMAP_INVALID_ADDRESS");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x06: // WRONT START BYTE
+    {
+        LOG_ERR("Write failed with 0x06 error code : WRONG_START_BYTE");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x07: // BUS_OVER_RUN_ERROR
+    {
+        LOG_ERR("Write failed with 0x07 error code : BUS_OVER_RUN_ERROR");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x08: // MAX_LENGTH_ERROR
+    {
+        LOG_ERR("Write failed with 0x08 error code : MAX_LENGTH_ERROR");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x09: // MIN_LENGTH_ERROR
+    {
+        LOG_ERR("Write failed with 0x09 error code : MIN_LENGTH_ERROR");
+        goto write_exit_failure;
+        break;
+    }
+    case 0x0A: // RECEIVE_CHARACTER_TIMEOUT
+    {
+        LOG_ERR("Write failed with 0x0A error code : RECEIVE_CHARACTER_TIMEOUT");
+        goto write_exit_failure;
+        break;
+    }
+    default:
+    {
+        LOG_ERR("Unknown error code : %d", this->IO_buf[1]);
+        goto write_exit_failure;
+    }
+    }
+
+    // Using goto in case of error to ensure that the buffer has been freed when exiting the function !
+write_exit_failure:
+    k_free((void *)buf);
+    return BNO055_ERROR;
+}
+
+/**
+ * @brief   This function delay the system.
+ *
+ * @warning Due to the usage of zepyr, this function is actually an alias to the k_msleep function.
+ *
+ * @param   delay_in_msec The value in msec to be delayed.
+ *
+ * @return  Nothing
+ */
+void delay_func(int delay_in_msec)
+{
+    k_msleep(delay_in_msec);
+    return;
+}
+
+void BNO055::ISR_RX(const struct device *dev, struct uart_event *evt, void *user_data)
+{
+    switch (evt->type)
+    {
+    case UART_RX_RDY:
+    {
+        // Configure the variable to be ready !
+        bool *DataReady = (bool *)user_data;
+        *DataReady = true;
+        break;
+
+        /*
+         * This variable may be triggered by any error while receiving, for example a cable breakdown.
+         * Make sure that the link is reliable enough before attempting any operations on it, or the
+         * data may be corrupted.
+         *
+         */
+    }
+
+    default:
+    {
+        LOG_WRN("Unhandled UART RX Event %d", evt->type);
+    }
+    }
+
+    return;
 }

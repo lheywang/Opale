@@ -26,9 +26,9 @@
 #include <nrfx_pwm.h>
 
 // Local libs
-#include "servo.h"
-#include "../../config.h"
-#include "../../init/init.h"
+#include "devices/servo.h"
+#include "config.h"
+#include "init/init.h"
 
 // STD
 #include <math.h>

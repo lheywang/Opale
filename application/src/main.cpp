@@ -25,6 +25,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/drivers/i2c.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
@@ -33,12 +34,25 @@
 #include "init/init.h"
 #include "config.h"
 
-#include "devices/servo/servo.h"
-#include "devices/rgb/rgb.h"
-#include "devices/eeprom/eeprom.h"
+#include "devices/servo.h"
+#include "devices/rgb.h"
+#include "devices/eeprom.h"
 
-#include "peripherals/gpio/gpio.h"
-#include "peripherals/saadc/saadc.h"
+#include "peripherals/gpio.h"
+#include "peripherals/saadc.h"
+
+// Devices drivers
+#include "drivers/MS5611.h"
+#include "drivers/mcp23008.h"
+#include "drivers/bno055.h"
+#include "drivers/iis2dlpc_reg.h"
+#include "drivers/teseo.h"
+
+// Threads
+#include "threads/controller.h"
+#include "threads/logger.h"
+#include "threads/safety.h"
+#include "threads/threads.h"
 
 /* -----------------------------------------------------------------
  * LOGGER CONFIG
@@ -46,6 +60,12 @@
  */
 // Identify the module on the LOG Output
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
+
+#define I2C_NODE DT_NODELABEL(barometer0)
+
+K_THREAD_STACK_DEFINE(controller_stack, THREAD_STACKSIZE);
+K_THREAD_STACK_DEFINE(logger_stack, THREAD_STACKSIZE);
+K_THREAD_STACK_DEFINE(safety_stack, THREAD_STACKSIZE);
 
 /* -----------------------------------------------------------------
  * MAIN LOOP
@@ -66,20 +86,89 @@ int main(void)
 
     int ret = GPIO_SetAsOutput(peripheral_reset, 1);
 
-    ret -= SAADC_Configure(&saadc_timer);
+    ret -= SAADC_Configure();
 
     if (ret < 0)
         return 0;
 
+    // // This is working ! --> Due to the zephyr thread management, some task are executed way after !
+    // MS5611 TempSensor = MS5611();
+    // double *val = TempSensor.getPressure();
+    // LOG_WRN("Vals %f %f", val[0], val[1]);
+
+    // // This is working, we use the GPIO0. The second call always get an error, since it can't be used twice !
+    // MCP23008 ExternalStart = MCP23008(MCP23008_GPIOS::GPIO0);
+    // MCP23008 ExternalStart2 = MCP23008(MCP23008_GPIOS::GPIO0);
+    // ExternalStart.readPin();
+    // ExternalStart2.readPin();
+
+    // Creating threads
+    struct k_fifo toto;
+    k_fifo_init(&toto);
+
+    struct safety_p1 tmp1 = {.barom_data = toto,
+                            .adc_data = toto,
+                            .imu_data = toto,
+                            .gps_data = toto,
+                            .gpio_data = toto};
+
+    struct logger_p1 tmp2 = {.barom_data = toto,
+                            .adc_data = toto,
+                            .imu_data = toto,
+                            .gps_data = toto};
+
+    struct controller_p1 tmp3 = {.barom_data = toto,
+                                .adc_data = toto,
+                                .imu_data = toto};
+
+    struct k_thread controller_data;
+    struct k_thread logger_data;
+    struct k_thread safety_data;
+
+    k_thread_create(&controller_data, 
+                    controller_stack, 
+                    K_THREAD_STACK_SIZEOF(controller_stack),
+                    thread_controller,
+                    (void *)&tmp3,
+                    nullptr,
+                    nullptr,
+                    CONTROLLER_PRIORITY,
+                    0,
+                    K_NO_WAIT);
+
+    k_thread_create(&logger_data,
+                    logger_stack,
+                    K_THREAD_STACK_SIZEOF(logger_stack),
+                    thread_logger,
+                    (void *)&tmp2,
+                    nullptr,
+                    nullptr,
+                    LOGGER_PRIORITY,
+                    0,
+                    K_NO_WAIT);
+
+    k_thread_create(&safety_data,
+                    safety_stack,
+                    K_THREAD_STACK_SIZEOF(safety_stack),
+                    thread_safety,
+                    (void *)&tmp1,
+                    nullptr,
+                    nullptr,
+                    SAFETY_PRIORITY,
+                    0,
+                    K_NO_WAIT);
+
+    // This works fine !
+
     /* -----------------------------------------------------------------
-     * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
-     * -----------------------------------------------------------------
-     */
+        * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
+        * -----------------------------------------------------------------
+        */
 
     ServoAngles Command = {.north = 90,
-                           .south = 0,
-                           .east = -90,
-                           .west = 0};
+                            .south = 0,
+                            .east = -90,
+                            .west = 0};
 
     ret += SERVO_SetPosition(pwm_wings, &Command);
 
@@ -89,6 +178,21 @@ int main(void)
                       .alpha = 50};
 
     ret += RGB_SetColor(pwm_rgb, &Command2);
+
+    while (1)
+    {
+        Command.west = 1.5;
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : -17.5 deg \n- West  : 0.5 deg \n\n");
+        k_msleep(500);
+        GPIO_Toggle(peripheral_reset);
+
+        Command.west = 0;
+        ret += SERVO_SetPosition(pwm_wings, &Command);
+        LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : -17.5 deg \n- West  : 0 deg \n\n");
+        k_msleep(500);
+        GPIO_Toggle(peripheral_reset);
+    }
 
     /* -----------------------------------------------------------------
      * MAIN LOOP

@@ -23,10 +23,10 @@
  */
 
 // Libs
-#include "../../init/init.h"
+#include "init/init.h"
 
 // Local lib
-#include "iis2dlpc_reg.h"
+#include "drivers/iis2dlpc_reg.h"
 
 /* -----------------------------------------------------------------
  * FETCHING NODE PARAMETERS

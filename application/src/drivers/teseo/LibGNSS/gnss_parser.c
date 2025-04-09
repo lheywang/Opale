@@ -17,7 +17,7 @@
  */
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
-#include "gnss_parser.h"
+#include "drivers/teseo/teseo_gnss_structs.h"
 
 /* Exported functions --------------------------------------------------------*/
 

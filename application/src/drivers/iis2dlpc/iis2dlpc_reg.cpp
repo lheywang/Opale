@@ -17,7 +17,7 @@
  ******************************************************************************
  */
 
-#include "iis2dlpc_reg.h"
+#include "drivers/iis2dlpc_reg.h"
 
 /*
  *  Note :  To ensure a compatibility with the host platorm, IO operations need

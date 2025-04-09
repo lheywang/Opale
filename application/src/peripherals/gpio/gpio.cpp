@@ -22,7 +22,7 @@
 #include <zephyr/drivers/gpio.h>
 
 // Local libs
-#include "gpio.h"
+#include "peripherals/gpio.h"
 
 /* -----------------------------------------------------------------
  * FUNCTIONS TO COMMAND A SERVO

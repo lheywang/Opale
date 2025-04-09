@@ -19,14 +19,14 @@
 #include <math.h>
 #include <string.h>
 
-#include "gnss_data.h"
+#include "drivers/teseo/gnss_data.h"
 #ifdef ASSISTED_GNSS
 #include "assisted_gnss.h"
 #endif /* ASSISTED_GNSS */
-#include "gnss_geofence.h"
-#include "gnss_lib_config.h"
+#include "drivers/teseo/gnss_geofence.h"
+#include "drivers/teseo/gnss_lib_config.h"
 
-#include "teseo_liv3f_conf.h"
+#include "drivers/teseo/teseo_liv3f_conf.h"
 
 /* Private defines -----------------------------------------------------------*/
 #define MSG_SZ (256)
@@ -42,15 +42,15 @@ static uint8_t gnssCmd[CMD_SZ];
 /* Private functions ---------------------------------------------------------*/
 
 /* Public functions ----------------------------------------------------------*/
-int16_t minute_part(float64_t mod)
+int16_t minute_part(double mod)
 {
     int16_t minute_whole_part;
     minute_whole_part = (int16_t)mod;
     return minute_whole_part;
 }
-float64_t seconds(float64_t mod, int16_t minute)
+double seconds(double mod, int16_t minute)
 {
-    float64_t seconds;
+    double seconds;
     seconds = (mod - minute) * 60.0;
     return seconds;
 }
@@ -79,8 +79,8 @@ void GNSS_DATA_GetValidInfo(GNSSParser_Data_t *pGNSSParser_Data)
 
     if (pGNSSParser_Data->gpgga_data.valid > INVALID)
     {
-        float64_t lat_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lat, 100.0);
-        float64_t lon_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lon, 100.0);
+        double lat_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lat, 100.0);
+        double lon_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lon, 100.0);
 
         (void)snprintf((char *)msg, MSG_SZ, "UTC:\t\t\t[ %02d:%02d:%02d ]\n\r",
                        pGNSSParser_Data->gpgga_data.utc.hh,
@@ -151,8 +151,8 @@ int32_t GNSS_DATA_TrackGotPos(GNSSParser_Data_t *pGNSSParser_Data, uint32_t how_
         PRINT_INFO((char *)msg);
         if (pGNSSParser_Data->debug == DEBUG_ON)
         {
-            float64_t lat_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lat, 100.0);
-            float64_t lon_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lon, 100.0);
+            double lat_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lat, 100.0);
+            double lon_mod = fmod(pGNSSParser_Data->gpgga_data.xyz.lon, 100.0);
 
             PRINT_INFO("Debug ON.\r\n");
 
@@ -201,7 +201,8 @@ int32_t GNSS_DATA_TrackGotPos(GNSSParser_Data_t *pGNSSParser_Data, uint32_t how_
         NMEA_Copy_Data(&stored_positions[i], pGNSSParser_Data->gpgga_data);
         if (time != 0U)
         {
-            (void)OS_Delay(time * 1000U);
+            // Todo : Replace with zephyr API
+            // (void)OS_Delay(time * 1000U);
         }
     }
     return tracked;
@@ -212,8 +213,8 @@ void GNSS_DATA_PrintTrackedPositions(uint32_t how_many)
 {
     for (uint16_t i = 0; i < (uint16_t)how_many; i++)
     {
-        float64_t lat_mod = fmod(stored_positions[i].xyz.lat, 100.0);
-        float64_t lon_mod = fmod(stored_positions[i].xyz.lon, 100.0);
+        double lat_mod = fmod(stored_positions[i].xyz.lat, 100.0);
+        double lon_mod = fmod(stored_positions[i].xyz.lon, 100.0);
 
         (void)snprintf((char *)msg, MSG_SZ, "Position n. %d:\r\n", i + 1U);
         PRINT_INFO((char *)msg);
@@ -298,8 +299,8 @@ void GNSS_DATA_GetGNSInfo(GNSSParser_Data_t *pGNSSParser_Data)
         /* nothing to do */
     }
 
-    float64_t lat_mod = fmod(pGNSSParser_Data->gns_data.xyz.lat, 100.0);
-    float64_t lon_mod = fmod(pGNSSParser_Data->gns_data.xyz.lon, 100.0);
+    double lat_mod = fmod(pGNSSParser_Data->gns_data.xyz.lat, 100.0);
+    double lon_mod = fmod(pGNSSParser_Data->gns_data.xyz.lon, 100.0);
     (void)snprintf((char *)msg, MSG_SZ, "UTC:\t\t\t[ %02d:%02d:%02d ]\n\r",
                    pGNSSParser_Data->gns_data.utc.hh,
                    pGNSSParser_Data->gns_data.utc.mm,
@@ -409,8 +410,8 @@ void GNSS_DATA_GetGPRMCInfo(GNSSParser_Data_t *pGNSSParser_Data)
         PRINT_INFO("-- Unknown status\n\r");
     }
 
-    float64_t lat_mod = fmod(pGNSSParser_Data->gprmc_data.xyz.lat, 100.0);
-    float64_t lon_mod = fmod(pGNSSParser_Data->gprmc_data.xyz.lon, 100.0);
+    double lat_mod = fmod(pGNSSParser_Data->gprmc_data.xyz.lat, 100.0);
+    double lon_mod = fmod(pGNSSParser_Data->gprmc_data.xyz.lon, 100.0);
 
     (void)snprintf((char *)msg, MSG_SZ, "Latitude:\t\t\t[ %.0f' %02d'' %f\" %c ]\n\r",
                    (pGNSSParser_Data->gprmc_data.xyz.lat - lat_mod) / 100.0,
@@ -678,7 +679,8 @@ void GNSS_DATA_GetGeofenceInfo(GNSSParser_Data_t *pGNSSParser_Data)
             (void)snprintf((char *)msg, MSG_SZ, "Geofence sub-system reply:\t[ %s ] (Saving params...)\t",
                            "GEOFENCE SUB-SYSTEM OK");
 
-            OS_Delay(500); /* Seems to mitigate error events in case of I2C channel */
+            // Todo : Replace with zephyr API
+            // OS_Delay(500); /* Seems to mitigate error events in case of I2C channel */
             GNSS_DATA_SendCommand((uint8_t *)"$PSTMSAVEPAR");
         }
         else
@@ -892,7 +894,8 @@ void GNSS_DATA_GetMsglistAck(const GNSSParser_Data_t *pGNSSParser_Data)
 {
     if (pGNSSParser_Data->result == GNSS_OP_OK)
     {
-        OS_Delay(500); /* Seems to mitigate error events in case of I2C */
+        // Todo : Replace with zephyr API
+        // OS_Delay(500); /* Seems to mitigate error events in case of I2C */
         GNSS_DATA_SendCommand((uint8_t *)"$PSTMSAVEPAR");
         (void)snprintf((char *)msg, MSG_SZ, "Saving NMEA msg configuration...\t");
         PRINT_INFO((char *)msg);

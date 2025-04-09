@@ -38,25 +38,25 @@
     barometer0: barometer0@76{
         compatible = "i2c-device";
         status = "okay";
-        reg = <0x76>;
+        reg = <0x00000076>;
     };
 
     accelerometer0: accelerometer0@18{
         compatible = "i2c-device";
         status = "okay";
-        reg = <0x18>;
+        reg = <0x00000018>;
     };
 
     accelerometer1: accelerometer1@19{
         compatible = "i2c-device";
         status = "okay";
-        reg = <0x19>;
+        reg = <0x00000019>;
     };
 
     expander0: expander0@20{
         compatible = "i2c-device";
         status = "okay";
-        reg = <0x20>;
+        reg = <0x00000020>;
     };
 };
 
