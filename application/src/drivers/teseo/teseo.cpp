@@ -50,17 +50,26 @@ LOG_MODULE_REGISTER(Teseo, PROJECT_LOG_LEVEL);
  * -----------------------------------------------------------------
  */
 // Let's define standard commands
-constexpr char *_NMEA_PPSEN = (char *)"$PSTMCFGPPSGEN,1,0,0,0*_\r\n\0";
-constexpr int _NMEA_PPSEN_LEN = 28;
-constexpr char *_NMEA_PPSOF = (char *)"$PSTMCFGPPSGEN,0,0,0,0*_\r\n\0";
-constexpr int _NMEA_PPSOF_LEN = 28;
-constexpr char *_NMEA_ODOEN = (char *)"$PSTMCFGODO,1,0,65535*_\r\n\0";
-constexpr int _NMEA_ODOEN_LEN = 27;
-constexpr char *_NMEA_ODOOF = (char *)"$PSTMCFGODO,0,0,65535*_\r\n\0";
-constexpr int _NMEA_ODOOF_LEN = 27;
-constexpr char *_NMEA_CONST = (char *)"$PSTMCFGCONST\0"; // No \r\n, they're added afterward
-                                                       // once the command is formatted.
-constexpr int _NMEA_CONST_LEN = 15;
+constexpr char *_NMEA_PPSEN = (char *)"$PSTMCFGPPSGEN,1,0,0,0*_\r\n";
+constexpr char *_NMEA_PPSOF = (char *)"$PSTMCFGPPSGEN,0,0,0,0*_\r\n";
+constexpr char *_NMEA_ODOEN = (char *)"$PSTMCFGODO,1,0,65535*_\r\n";
+constexpr char *_NMEA_ODOOF = (char *)"$PSTMCFGODO,0,0,65535*_\r\n";
+constexpr char *_NMEA_CONST = (char *)"$PSTMCFGCONST\0"; // No \r\n --> Formatted by after
+constexpr char *_NMEA_EPHER = (char *)"$PSTMCLREPHS*_\r\n";
+constexpr char *_NMEA_FREQR = (char *)"$PSTMSETRANGE,-57000,-37000*_\r\n";
+constexpr char *_NMEA_LOCFG = (char *)"$PSTMINITFRQ,-47000*_\r\n";
+constexpr char *_NMEA_AGPSC = (char *)"$PSTMCFGAGPS,1*_\r\n";
+constexpr char *_NMEA_PPSCF = (char *)"$PSTMPPS,1,8*_\r\n"; // FIX COND to get PPS
+constexpr int _NMEA_PPSCF_LEN = 17;
+constexpr int _NMEA_PPSEN_LEN = 27;
+constexpr int _NMEA_PPSOF_LEN = 27;
+constexpr int _NMEA_ODOEN_LEN = 26;
+constexpr int _NMEA_ODOOF_LEN = 26;
+constexpr int _NMEA_CONST_LEN = 14;
+constexpr int _NMEA_EPHER_LEN = 17;
+constexpr int _NMEA_FREQR_LEN = 32;
+constexpr int _NMEA_LOCFG_LEN = 24;
+constexpr int _NMEA_AGPSC_LEN = 19;
 
 // Define NMEA command delimiters
 constexpr char CMD_Addr = '$';
@@ -128,17 +137,33 @@ const char *NMEA_PPSEN = _TESEO_CHKSM(_NMEA_PPSEN, _NMEA_PPSEN_LEN);
 const char *NMEA_PPSOF = _TESEO_CHKSM(_NMEA_PPSOF, _NMEA_PPSOF_LEN);
 const char *NMEA_ODOEN = _TESEO_CHKSM(_NMEA_ODOEN, _NMEA_ODOEN_LEN);
 const char *NMEA_ODOOF = _TESEO_CHKSM(_NMEA_ODOOF, _NMEA_ODOOF_LEN);
+const char *NMEA_EPHER = _TESEO_CHKSM(_NMEA_EPHER, _NMEA_EPHER_LEN);
+const char *NMEA_FREQR = _TESEO_CHKSM(_NMEA_FREQR, _NMEA_FREQR_LEN);
+const char *NMEA_LOCFG = _TESEO_CHKSM(_NMEA_LOCFG, _NMEA_LOCFG_LEN);
+const char *NMEA_AGPSC = _TESEO_CHKSM(_NMEA_AGPSC, _NMEA_AGPSC_LEN);
+const char *NMEA_PPSCF = _TESEO_CHKSM(_NMEA_PPSCF, _NMEA_PPSCF_LEN);
 
 // Commands
 const char *NMEA_PSTIM = (char *)"$PSTMTIM\r\n\0";
 const char *NMEA_GPGLL = (char *)"$GPGLL\r\n\0";
 const char *NMEA_GNGSA = (char *)"$GNGSA\r\n\0";
 const char *NMEA_GPVTG = (char *)"$GPVTG\r\n\0";
+constexpr int NMEA_PSTIM_LEN = 12;
+constexpr int NMEA_GPGLL_LEN = 10;
+constexpr int NMEA_GNGSA_LEN = 10;
+constexpr int NMEA_GPVTG_LEN = 10;
 
 // Return values
-const char *PSTMCFGPPSGENOK = (char *)"$PSTMCFGPPSGENOK\0";
-const char *PSTMCFGODOOK = (char *)"$PSTMCFGODOOK\0";
-const char *PSTMCFGTHGNSSOK = (char *)"$PSTMCFGTHGNSSOK\0";
+const char *PSTMCFGPPSGENOK = (char *)"$PSTMCFGPPSGENOK";
+const char *PSTMCFGODOOK = (char *)"$PSTMCFGODOOK";
+const char *PSTMCFGTHGNSSOK = (char *)"$PSTMCFGTHGNSSOK";
+const char *PSTMCFGAGPSOK = (char*)"$PSTMCFGAGPSOK";
+const char *PSTMSETRANGEOK = (char*)"$PSTMSETRANGEOK";
+constexpr int PSTM_CFG_PPS_OK_LEN = 17;
+constexpr int PSTM_CFG_ODO_OK_LEN = 14;
+constexpr int PSTM_CFG_GNS_OK_LEN = 17;
+constexpr int PSTM_CFG_GAG_OK_LEN = 15;
+constexpr int PSTM_CFG_RAN_OK_LEN = 16;
 
 /* -----------------------------------------------------------------
  * CONSTRUCTORS AND DESTRUCTORS
@@ -228,7 +253,7 @@ TESEO::~TESEO()
 uint8_t TESEO::getUTCTime(GPGGA_Info_t *const date)
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_PSTIM, sizeof(NMEA_PSTIM));
+    int ret = this->write((uint8_t *)NMEA_PSTIM, NMEA_PSTIM_LEN);
     if (ret != 0)
     {
         return -1;
@@ -267,7 +292,7 @@ uint8_t TESEO::getUTCTime(GPGGA_Info_t *const date)
 uint8_t TESEO::enablePPS()
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_PPSEN, sizeof(NMEA_PPSEN));
+    int ret = this->write((uint8_t *)NMEA_PPSEN, _NMEA_PPSEN_LEN);
     if (ret != 0)
     {
         return -1;
@@ -307,7 +332,7 @@ uint8_t TESEO::enablePPS()
 uint8_t TESEO::disablePPS()
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_PPSOF, sizeof(NMEA_PPSOF));
+    int ret = this->write((uint8_t *)NMEA_PPSOF, _NMEA_PPSOF_LEN);
     if (ret != 0)
     {
         return -1;
@@ -347,7 +372,7 @@ uint8_t TESEO::disablePPS()
 uint8_t TESEO::enableOdometer()
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_ODOEN, sizeof(NMEA_ODOEN));
+    int ret = this->write((uint8_t *)NMEA_ODOEN, _NMEA_ODOEN_LEN);
     if (ret != 0)
     {
         return -1;
@@ -387,7 +412,7 @@ uint8_t TESEO::enableOdometer()
 uint8_t TESEO::disableOdometer()
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_ODOOF, sizeof(NMEA_ODOOF));
+    int ret = this->write((uint8_t *)NMEA_ODOOF, _NMEA_ODOOF_LEN);
     if (ret != 0)
     {
         return -1;
@@ -504,7 +529,7 @@ uint8_t TESEO::selectConstellations(bool GPS,
 uint8_t TESEO::getPosition(GNS_Info_t *const pos)
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_GPGLL, sizeof(NMEA_GPGLL));
+    int ret = this->write((uint8_t *)NMEA_GPGLL, NMEA_GPGLL_LEN);
     if (ret != 0)
     {
         return -1;
@@ -547,7 +572,7 @@ uint8_t TESEO::GetSatelites(struct Satellite *const sat,
                             uint8_t *const len)
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_GNGSA, sizeof(NMEA_GNGSA));
+    int ret = this->write((uint8_t *)NMEA_GNGSA, NMEA_GNGSA_LEN);
     if (ret != 0)
     {
         return -1;
@@ -587,7 +612,7 @@ uint8_t TESEO::GetSatelites(struct Satellite *const sat,
 uint8_t TESEO::GetGroundSpeed(struct VTG_Info_t *const vtg)
 {
     // First, write the command to the TESEO module
-    int ret = this->write((uint8_t *)NMEA_GPVTG, sizeof(NMEA_GPVTG));
+    int ret = this->write((uint8_t *)NMEA_GPVTG, NMEA_GPVTG_LEN);
     if (ret != 0)
     {
         return -1;
@@ -643,32 +668,148 @@ uint8_t TESEO::GetGroundSpeed(struct VTG_Info_t *const vtg)
 
 uint8_t TESEO::configureAGPS()
 {
-    return 0;
-}
-
-uint8_t TESEO::getAGPSStatus(bool *const status)
-{
-    return 0;
+        // First, write the command to the TESEO module
+        int ret = this->write((uint8_t *)NMEA_AGPSC, _NMEA_AGPSC_LEN);
+        if (ret != 0)
+        {
+            return -1;
+        }
+    
+        // Wait for the data to be ready by yielding the data (= exiting the task to let the remaining run...)
+        // This variable shall be configured to true by the ISR !
+        while (this->IO_DataReady == false)
+        {
+            k_yield();
+        }
+        this->IO_DataReady = false;
+    
+        // Checking the sanity of the message
+        // And returning if something when wrong...
+        int check = GNSS_PARSER_CheckSanity((uint8_t *)this->buf, sizeof(this->buf));
+        if (check != GNSS_PARSER_ERROR)
+        {
+            return -2;
+        }
+    
+        // Checking if the message is correctly returned
+        // Thus, we copy the N first characters
+        char tmp[PSTM_CFG_GAG_OK_LEN] = {'\0'};
+        memcpy((void *)tmp, (void *)&this->buf, PSTM_CFG_GAG_OK_LEN);
+    
+        // Compare the two strings
+        if (strcmp(tmp, PSTMCFGAGPSOK) != 0)
+        {
+            return -2;
+        }
+    
+        // Exit the function
+        return 0;
 }
 
 uint8_t TESEO::configurePPS()
 {
-    return 0;
+        // First, write the command to the TESEO module
+        int ret = this->write((uint8_t *)NMEA_PPSCF, _NMEA_PPSCF_LEN);
+        if (ret != 0)
+        {
+            return -1;
+        }
+    
+        // Wait for the data to be ready by yielding the data (= exiting the task to let the remaining run...)
+        // This variable shall be configured to true by the ISR !
+        while (this->IO_DataReady == false)
+        {
+            k_yield();
+        }
+        this->IO_DataReady = false;
+    
+        // Checking the sanity of the message
+        // And returning if something when wrong...
+        int check = GNSS_PARSER_CheckSanity((uint8_t *)this->buf, sizeof(this->buf));
+        if (check != GNSS_PARSER_ERROR)
+        {
+            return -2;
+        }
+    
+        // Checking if the message is correctly returned
+        // Thus, we copy the N first characters
+        char tmp[sizeof(PSTM_CFG_PPS_OK_LEN)] = {'\0'};
+        memcpy((void *)tmp, (void *)&this->buf, PSTM_CFG_PPS_OK_LEN);
+    
+        // Compare the two strings
+        if (strcmp(tmp, PSTMCFGPPSGENOK) != 0)
+        {
+            return -2;
+        }
+    
+        // Exit the function
+        return 0;
 }
 
 uint8_t TESEO::setFreqRange()
 {
-    return 0;
+        // First, write the command to the TESEO module
+        int ret = this->write((uint8_t *)NMEA_FREQR, _NMEA_FREQR_LEN);
+        if (ret != 0)
+        {
+            return -1;
+        }
+    
+        // Wait for the data to be ready by yielding the data (= exiting the task to let the remaining run...)
+        // This variable shall be configured to true by the ISR !
+        while (this->IO_DataReady == false)
+        {
+            k_yield();
+        }
+        this->IO_DataReady = false;
+    
+        // Checking the sanity of the message
+        // And returning if something when wrong...
+        int check = GNSS_PARSER_CheckSanity((uint8_t *)this->buf, sizeof(this->buf));
+        if (check != GNSS_PARSER_ERROR)
+        {
+            return -2;
+        }
+    
+        // Checking if the message is correctly returned
+        // Thus, we copy the N first characters
+        char tmp[sizeof(PSTM_CFG_RAN_OK_LEN)] = {'\0'};
+        memcpy((void *)tmp, (void *)&this->buf, PSTM_CFG_RAN_OK_LEN);
+    
+        // Compare the two strings
+        if (strcmp(tmp, PSTMSETRANGEOK) != 0)
+        {
+            return -2;
+        }
+    
+        // Exit the function
+        return 0;
 }
 
 uint8_t TESEO::setLocalOscillator()
 {
-    return 0;
+        // First, write the command to the TESEO module
+        int ret = this->write((uint8_t *)NMEA_LOCFG, _NMEA_LOCFG_LEN);
+        if (ret != 0)
+        {
+            return -1;
+        }
+    
+        // Exit the function
+        return 0;
 }
 
 uint8_t TESEO::resetEphemeris()
 {
-    return 0;
+        // First, write the command to the TESEO module
+        int ret = this->write((uint8_t *)NMEA_EPHER, _NMEA_EPHER_LEN);
+        if (ret != 0)
+        {
+            return -1;
+        }
+    
+        // Exit the function
+        return 0;
 }
 
 /* -----------------------------------------------------------------
