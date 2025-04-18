@@ -44,4 +44,30 @@
 #define CONTROLLER_PRIORITY 1
 #define SAFETY_PRIORITY     0
 
+/* -----------------------------------------------------------------
+ * ENUMS
+ * -----------------------------------------------------------------
+ */
+
+// To do : Add more here !
+enum ThreadStatus {
+    // OK
+    CONTROL_OK,
+    MEASURE_OK,
+    SAFETY_OK,
+    LOGGER_OK,
+
+    // Warnings
+    CONTROL_WRN,
+    MEASURE_WRN,
+    SAFETY_WRN,
+    LOGGER_WRN,
+
+    // Errors
+    CONTROL_ERR,
+    MEASURE_ERR,
+    SAFETY_ERR,
+    LOGGER_ERR
+};
+
 #endif /* _DEF_THREADS */

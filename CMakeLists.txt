@@ -65,4 +65,5 @@ target_sources(app PRIVATE application/src/drivers/ms5611/MS5611.cpp)
 target_sources(app PRIVATE application/src/threads/controller/controller.cpp)
 target_sources(app PRIVATE application/src/threads/logger/logger.cpp)
 target_sources(app PRIVATE application/src/threads/safety/safety.cpp)
+target_sources(app PRIVATE application/src/threads/measure/measure.cpp)
 
