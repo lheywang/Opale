@@ -30,7 +30,7 @@
 #include "drivers/teseo/teseo_liv3f_conf.h"
 
 // Internal libs
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 #include "drivers/teseo/teseo_struct.h"
 
@@ -173,7 +173,7 @@ constexpr int PSTM_CFG_RAN_OK_LEN = 16;
 TESEO::TESEO()
 {
     // Open the UART bus
-    this->bus = INIT_GetAnUART(UARTS::GPS);
+    this->bus = initializer::GetAnUART(UARTS::GPS);
     if (this->bus == nullptr)
     {
         this->device_openned = false;
@@ -233,7 +233,7 @@ TESEO::TESEO()
 TESEO::~TESEO()
 {
     // Closing UART HAL !
-    INIT_FreeAnUART(UARTS::GPS, this->bus);
+    initializer::FreeAnUART(UARTS::GPS, this->bus);
 }
 
 /* -----------------------------------------------------------------

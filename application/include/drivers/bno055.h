@@ -291,7 +291,7 @@ typedef unsigned long int u64;  /**< used for unsigned 64bit */
  *
  */
 
-#include "init/init.h"
+#include "init/init.hpp"
 
 /***************************************************************/
 /**\name    BUS READ AND WRITE FUNCTIONS           */

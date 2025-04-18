@@ -22,7 +22,7 @@ Edited by l.heywang in 2025 to make it compatible with nRF (Zephyr) API.
 #include <zephyr/kernel.h>
 
 // init lib
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 
 // STD
@@ -66,7 +66,7 @@ MS5611::MS5611()
         _C[k] = 69;
 
     // Fetch the associated device on the DT
-    this->dev = INIT_GetAnI2C(I2CS::BAROMETER);
+    this->dev = initializer::GetAnI2C(I2CS::BAROMETER);
 
     begin();
 }
@@ -74,7 +74,7 @@ MS5611::MS5611()
 MS5611::~MS5611()
 {
     // Close the I2C device
-    INIT_FreeAnI2C(I2CS::BAROMETER, this->dev);
+    initializer::FreeAnI2C(I2CS::BAROMETER, this->dev);
 
     // Variables are handled by the C++ compiler
 }

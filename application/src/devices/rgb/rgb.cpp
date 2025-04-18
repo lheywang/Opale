@@ -25,7 +25,7 @@
 // Local libs
 #include "devices/rgb.h"
 #include "config.h"
-#include "init/init.h"
+#include "init/init.hpp"
 
 // STD
 #include <math.h>
@@ -42,7 +42,7 @@ LOG_MODULE_REGISTER(RGB, PROJECT_LOG_LEVEL);
  * -----------------------------------------------------------------
  */
 
-int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
+int rgb::SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
                  Color const *Command)
 {
 

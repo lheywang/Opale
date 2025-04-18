@@ -29,7 +29,7 @@
 #include <zephyr/kernel.h>
 
 // Custom libs
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 
 /* -----------------------------------------------------------------
@@ -234,7 +234,7 @@ static bool _IsTimer3Initialized = false;
  * -----------------------------------------------------------------
  */
 
-struct gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
+struct gpio_dt_spec *initializer::GetAGPIO(GPIOS Pin)
 {
     // Switch over each GPIOS
     // We can't generlize due to the usage of macros by Zephyr kernel
@@ -630,7 +630,7 @@ struct gpio_dt_spec *INIT_GetAGPIO(GPIOS Pin)
     // Can't get this, but who knows...
     return nullptr;
 }
-void INIT_FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO)
+void initializer::FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO)
 {
     // First, set as High Z
     gpio_pin_configure_dt(GPIO, GPIO_DISCONNECTED);
@@ -715,7 +715,7 @@ void INIT_FreeAGPIO(GPIOS Pin, struct gpio_dt_spec *GPIO)
     return;
 }
 
-struct pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
+struct pwm_dt_spec *initializer::GetAPWM(PWMS Dev)
 {
     switch (Dev)
     {
@@ -889,7 +889,7 @@ struct pwm_dt_spec *INIT_GetAPWM(PWMS Dev)
     return nullptr;
 }
 
-void INIT_FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM)
+void initializer::FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM)
 {
     // First, set as inactive !
     pwm_set(PWM->dev,
@@ -936,7 +936,7 @@ void INIT_FreeAPWM(PWMS Dev, struct pwm_dt_spec *PWM)
     return;
 }
 
-struct spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
+struct spi_dt_spec *initializer::GetAnSPI(SPIS Dev)
 {
     switch (Dev)
     {
@@ -983,7 +983,7 @@ struct spi_dt_spec *INIT_GetAnSPI(SPIS Dev)
     return nullptr;
 }
 
-void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI)
+void initializer::FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI)
 {
     // no shutdown procedure here...
     switch (Dev)
@@ -1002,7 +1002,7 @@ void INIT_FreeAnSPI(SPIS Dev, struct spi_dt_spec *SPI)
     return;
 }
 
-const struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
+const struct i2c_dt_spec *initializer::GetAnI2C(I2CS Dev)
 {
     switch (Dev)
     {
@@ -1122,7 +1122,7 @@ const struct i2c_dt_spec *INIT_GetAnI2C(I2CS Dev)
     // Shall not get here, but anyway...
     return nullptr;
 }
-void INIT_FreeAnI2C(I2CS Dev, const struct i2c_dt_spec *I2C)
+void initializer::FreeAnI2C(I2CS Dev, const struct i2c_dt_spec *I2C)
 {
     // Update status of the I2C device
     switch (Dev)
@@ -1157,7 +1157,7 @@ void INIT_FreeAnI2C(I2CS Dev, const struct i2c_dt_spec *I2C)
     return;
 }
 
-const struct device *INIT_GetAnUART(UARTS Dev)
+const struct device *initializer::GetAnUART(UARTS Dev)
 {
     switch (Dev)
     {
@@ -1236,7 +1236,7 @@ const struct device *INIT_GetAnUART(UARTS Dev)
     return nullptr;
 }
 
-void INIT_FreeAnUART(UARTS Dev, const struct device *UART)
+void initializer::FreeAnUART(UARTS Dev, const struct device *UART)
 {
     switch (Dev)
     {
@@ -1262,14 +1262,14 @@ void INIT_FreeAnUART(UARTS Dev, const struct device *UART)
     return;
 }
 
-int INIT_CheckUSB()
+int initializer::CheckUSB()
 {
     if (usb_enable(NULL))
         return -1;
     return 0;
 }
 
-nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
+nrfx_timer_t *initializer::GetATimer(TIMERS Dev)
 {
     switch (Dev)
     {
@@ -1362,7 +1362,7 @@ nrfx_timer_t *INIT_GetATimer(TIMERS Dev)
     return nullptr;
 }
 
-void INIT_FreeATimer(TIMERS Dev, nrfx_timer_t *Timer)
+void initializer::FreeATimer(TIMERS Dev, nrfx_timer_t *Timer)
 {
     // Disable and free the memory for other usages
     switch (Dev)

@@ -22,14 +22,14 @@
 
 // Local libs
 #include "devices/eeprom.h"
-#include "init/init.h"
+#include "init/init.hpp"
 
 /* -----------------------------------------------------------------
  * FUNCTIONS TO COMMAND AN EEPROM
  * -----------------------------------------------------------------
  */
 
-int EEPROM_GetNextAddress(MemoryIO *const Command,
+int eeprom::GetNextAddress(MemoryIO *const Command,
                           const EEPROM_RW ReadOrWrite)
 {
 
@@ -70,7 +70,7 @@ int EEPROM_GetNextAddress(MemoryIO *const Command,
     return 0;
 }
 
-int EEPROM_IO(const struct spi_dt_spec *Target[],
+int eeprom::IO(const struct spi_dt_spec *Target[],
               const MemoryIO Command)
 {
     return 0;
