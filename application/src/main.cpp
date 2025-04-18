@@ -81,45 +81,44 @@ int main(void)
     * -----------------------------------------------------------------
     */
     // Allocating structs
-    struct k_fifo barom;
-    struct k_fifo adc;
-    struct k_fifo imu;
-    struct k_fifo gps;
-    struct k_fifo gpio;
-    struct k_fifo accels;
+    // Barometer
+    struct k_fifo barom1;
+    struct k_fifo barom2;
+    struct k_fifo barom3;
+    // ADC
+    struct k_fifo adc1;
+    struct k_fifo adc2;
+    struct k_fifo adc3;
+    // IMU
+    struct k_fifo imu1;
+    struct k_fifo imu2;
+    struct k_fifo imu3;
+    // GPS
+    struct k_fifo gps1;
+    struct k_fifo gps2;
+    // Accels
+    struct k_fifo accels1;
+    struct k_fifo accels2;
 
     // Initializing the fifos
-    k_fifo_init(&barom);
-    k_fifo_init(&adc);
-    k_fifo_init(&imu);
-    k_fifo_init(&gps);
-    k_fifo_init(&gpio);
-    k_fifo_init(&accels);
-
-    /* -----------------------------------------------------------------
-    * Creating p1 for threads, to give them access to different elements
-    * -----------------------------------------------------------------
-    */
-
-    struct safety_p1 safety_data = {    .barom_data = barom,
-                                        .adc_data = adc,
-                                        .imu_data = imu,
-                                        .gps_data = gps,
-                                        .gpio_data = gpio};
-
-    struct logger_p1 logger_data = {    .barom_data = barom,
-                                        .adc_data = adc,
-                                        .imu_data = imu,
-                                        .gps_data = gps};
-
-    struct controller_p1 controller_data = {    .barom_data = barom,
-                                                .adc_data = adc,
-                                                .imu_data = imu};
-
-    struct measure_p1 measure_data = {  .barom_data = barom,
-                                        .adc_data = adc,
-                                        .imu_data = imu};
-
+    // Barometer
+    k_fifo_init(&barom1);
+    k_fifo_init(&barom2);
+    k_fifo_init(&barom3);
+    // ADC
+    k_fifo_init(&adc1);
+    k_fifo_init(&adc2);
+    k_fifo_init(&adc3);
+    // IMU
+    k_fifo_init(&imu1);
+    k_fifo_init(&imu2);
+    k_fifo_init(&imu3);
+    // GPS
+    k_fifo_init(&gps1);
+    k_fifo_init(&gps2);
+    // Accels
+    k_fifo_init(&accels1);
+    k_fifo_init(&accels2);
 
     /* -----------------------------------------------------------------
     * CREATING THREADS
@@ -129,6 +128,36 @@ int main(void)
     struct k_thread logger_thread;
     struct k_thread safety_thread;
     struct k_thread measure_thread;
+
+    /* -----------------------------------------------------------------
+    * Creating p1 for threads, to give them access to different elements
+    * -----------------------------------------------------------------
+    */
+
+    struct safety_p1 safety_data = {    .barom_data = barom1,
+                                        .adc_data = adc1,
+                                        .imu_data = imu1,
+                                        .gps_data = gps1,
+                                        .accel_data = accels1,
+                                        .controller = controller_thread,
+                                        .logger = logger_thread,
+                                        .measures = measure_thread};
+
+    struct logger_p1 logger_data = {    .barom_data = barom3,
+                                        .adc_data = adc3,
+                                        .imu_data = imu3,
+                                        .gps_data = gps2};
+
+    struct controller_p1 controller_data = {    .barom_data = barom2,
+                                                .adc_data = adc2,
+                                                .imu_data = imu2,
+                                                .accel_data = accels2};
+
+    struct measure_p1 measure_data = {  .barom_data1 = barom1, .barom_data2 = barom2, .barom_data3 = barom3,
+                                        .adc_data1 = adc1, .adc_data2 = adc2, .adc_data3 = adc3,
+                                        .imu_data1 = imu1, .imu_data2 = imu2, .imu_data3 = imu3,
+                                        .gps_data1 = gps1, .gps_data2 = gps2,
+                                        .accels_data1 = accels1, .accels_data2 = accels2};
 
     /* -----------------------------------------------------------------
     * LAUNCHING THREADS
@@ -199,3 +228,8 @@ int main(void)
  * - Define values of bits for the globalEvent status
  * - Define messages
  */
+
+ /*
+  * Actually runned sample :
+  * Counter in one thread, print on another thread.
+  */

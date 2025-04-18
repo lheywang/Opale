@@ -19,6 +19,7 @@
  */
 //Header
 #include "threads/safety.h"
+#include "threads/threads.h"
 
 // Internal libs
 #include "config.h"
@@ -40,10 +41,20 @@ LOG_MODULE_REGISTER(SAFETY, PROJECT_LOG_LEVEL);
 
 void thread_safety(void *p1, void *p2, void *p3)
 {
+    // init phase : Fetching arguments
+    struct safety_p1 *IO = (safety_p1*)p1;
+    struct k_event *globalStatus = (k_event*)p2;
+    struct k_msgq *threadStatus = (k_msgq*)p3;
+
+    // Running init code :
+
     for (;;)
     {
-        LOG_INF("Hi from SAFETY !");
         k_usleep(1000 * 1000);
+
+        struct fifo_data *tmp = (fifo_data*)k_fifo_get(&IO->barom_data, K_FOREVER);
+
+        LOG_INF("Hi from SAFETY ! Value for CNT %d", tmp->value);  
     }
     return;
 }

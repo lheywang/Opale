@@ -49,7 +49,21 @@
  * -----------------------------------------------------------------
  */
 
-// To do : Add more here !
+/*
+ *  This enum define an integer value, to be used on the messages
+ *  queue. 
+ *  It define a "protocol" between the thread and the safety thread,
+ *  that decide if a task shall be performed. 
+ *  
+ *  It may be seen as a duplicate of the status register, and, for the
+ *  most basic usage, yes. At one exception : The status is only a 
+ *  basic data, as : The ADC is working !. 
+ * 
+ *  The messages are more like : The thread is alive, which is different, 
+ *  and only rode by the safety task. The safety task may cancel and 
+ *  reschedule any task, if needed (act as watchdog).
+ *
+ */
 enum ThreadStatus {
     // OK
     CONTROL_OK,
@@ -68,6 +82,60 @@ enum ThreadStatus {
     MEASURE_ERR,
     SAFETY_ERR,
     LOGGER_ERR
+};
+
+/* -----------------------------------------------------------------
+ * GLOBALS STATUS
+ * -----------------------------------------------------------------
+ */
+/* 
+ * Each bit of the 32 bits register define a status. They're defined 
+ * rigth above !
+ * 
+ * ------------------------------------------------------------------
+ * Bits 0-3 :   **Theses bits define the authorization to launch, 
+ *                as well as some actions during the flight**
+ * 0 :      Safety status. Set to 1 if operationnal, 0 otherwise.
+ * 1 :      Logger status. Set to 1 if operationnal, 0 otherwise.
+ * 2 :      Measure status. Set to 1 if operationnal, 0 otherwise.
+ * 3 :      Controller status. Set to 1 if operationnal, 0 otherwise.
+ * 
+ * -------------------------------------------------------------------
+ * Bits 4-10 :  **Theses bits define the status of available measures.
+ *                They may change during the execution of the flight !**
+ * 4 :      ADC status. Set to 1 if operationnal, 0 otherwise.
+ * 5 :      GPS Status. Set to 1 if operationnal, 0 otherwise.
+ * 6 :      Accelerometers. Set to 1 if operationnal, 0 otherwise.
+ * 7 :      Barometer. Set to 1 if operationnal, 0 otherwise.
+ * 8 :      GPIOS. Set to 1 if operationnal, 0 otherwise.
+ * 9 :      Servos. Set to 1 if operationnal, 0 otherwise.
+ * 10 :     SPI. Set to 1 if operationnal, 0 otherwise.
+ * 
+ * -------------------------------------------------------------------
+ *
+ */
+
+ // Bits 0-3
+#define STATUS_THREAD_BASE          0
+#define STATUS_SAFETY       (1 << (STATUS_THREAD_BASE + 0))
+#define STATUS_LOGGER       (1 << (STATUS_THREAD_BASE + 1))
+#define STATUS_MEASURES     (1 << (STATUS_THREAD_BASE + 2))
+#define STATUS_CONTROLLER   (1 << (STATUS_THREAD_BASE + 3))
+
+// Bits 4-10
+#define STATUS_PERIPH_BASE          4
+#define STATUS_ADC          (1 << (STATUS_PERIPH_BASE + 0))
+#define STATUS_GPS          (1 << (STATUS_PERIPH_BASE + 1))
+#define STATUS_ACCELS       (1 << (STATUS_PERIPH_BASE + 2))
+#define STATUS_BAROM        (1 << (STATUS_THREAD_BASE + 3))
+#define STATUS_GPIOS        (1 << (STATUS_PERIPH_BASE + 4))
+#define STATUS_SERVOS       (1 << (STATUS_PERIPH_BASE + 5))
+#define STATUS_SPI          (1 << (STATUS_PERIPH_BASE + 6))
+
+// TEST
+struct fifo_data {
+    void *reserved;
+    int value;
 };
 
 #endif /* _DEF_THREADS */

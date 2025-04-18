@@ -28,9 +28,24 @@
  
  struct measure_p1
  {
-     struct k_fifo &barom_data;
-     struct k_fifo &adc_data;
-     struct k_fifo &imu_data;
+    
+    struct k_fifo &barom_data1;
+    struct k_fifo &barom_data2;
+    struct k_fifo &barom_data3;
+
+    struct k_fifo &adc_data1;
+    struct k_fifo &adc_data2;
+    struct k_fifo &adc_data3;
+
+    struct k_fifo &imu_data1;
+    struct k_fifo &imu_data2;
+    struct k_fifo &imu_data3;
+
+    struct k_fifo &gps_data1;
+    struct k_fifo &gps_data2;
+
+    struct k_fifo &accels_data1;
+    struct k_fifo &accels_data2;
  };
  
  /* -----------------------------------------------------------------

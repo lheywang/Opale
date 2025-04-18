@@ -19,6 +19,7 @@
  */
 // Header
 #include "threads/controller.h"
+#include "threads/threads.h"
 
 // Internal libs
 #include "config.h"
@@ -40,6 +41,13 @@ LOG_MODULE_REGISTER(CONTROLLER, PROJECT_LOG_LEVEL);
 
 void thread_controller(void *p1, void *p2, void *p3)
 {
+    // init phase : Fetching arguments
+    struct controller_p1 *IO = (controller_p1*)p1;
+    struct k_event *globalStatus = (k_event*)p2;
+    struct k_msgq *threadStatus = (k_msgq*)p3;
+
+    // Running init code :
+
     for (;;)
     {
         LOG_INF("Hi from CONTROLLER !");
