@@ -30,7 +30,7 @@
  * -----------------------------------------------------------------
  */
 // Identify the module on the LOG Output
-LOG_MODULE_REGISTER(CONTROLLER, PROJECT_LOG_LEVEL);
+LOG_MODULE_REGISTER(MEASURER, PROJECT_LOG_LEVEL);
 
 /* -----------------------------------------------------------------
  * THREADS
