@@ -113,6 +113,10 @@ enum ThreadStatus {
  * 
  * -------------------------------------------------------------------
  *
+ * Bits 30-31 : **This bit is only changed by the safety thread**
+ * 30 :     Control enabled
+ * 31 :     Launch enabled
+ *
  */
 
  // Bits 0-3
@@ -131,6 +135,11 @@ enum ThreadStatus {
 #define STATUS_GPIOS        (1 << (STATUS_PERIPH_BASE + 4))
 #define STATUS_SERVOS       (1 << (STATUS_PERIPH_BASE + 5))
 #define STATUS_SPI          (1 << (STATUS_PERIPH_BASE + 6))
+
+// Bits 30-31
+#define STATUS_AUTH_BASE            30
+#define STATUS_AUTH_LAUNCH  (1 << (STATUS_AUTH_BASE + 0))
+#define STATUS_AUTH_CONTROL (1 << (STATUS_AUTH_BASE + 1))
 
 // TEST
 struct fifo_data {

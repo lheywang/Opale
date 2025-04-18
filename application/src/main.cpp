@@ -213,11 +213,17 @@ int main(void)
         K_NO_WAIT);
 
     /*
-    * Do nothing
-    */
+     * Do nothing (but remain alive !)
+     * 
+     * If we exit the task, memory if freed and we then loose FIFOS.
+     * This trigger a secure fault errors on the CPU.
+     */
 
     for (;;) k_msleep(1000 * 1000 * 1000); // Sleep for 16 minutes, repeatable...
 
+    /*
+     * We shall never get here...
+     */
     return 0;
 
 }
