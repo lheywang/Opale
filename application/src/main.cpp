@@ -31,7 +31,7 @@
 #include <zephyr/usb/usbd.h>
 
 // Custom headers
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 
 #include "devices/servo.h"
@@ -77,16 +77,16 @@ int main(void)
      * PERIPHERALS INITS
      * -----------------------------------------------------------------
      */
-    INIT_CheckUSB();
+    initializer::CheckUSB();
 
     // Fetch peripherals
-    gpio_dt_spec *peripheral_reset = INIT_GetAGPIO(GPIOS::PERIPHERAL_RESET);
-    pwm_dt_spec *pwm_wings = INIT_GetAPWM(PWMS::SERVOS);
-    pwm_dt_spec *pwm_rgb = INIT_GetAPWM(PWMS::RGB);
+    gpio_dt_spec *peripheral_reset = initializer::GetAGPIO(GPIOS::PERIPHERAL_RESET);
+    pwm_dt_spec *pwm_wings = initializer::GetAPWM(PWMS::SERVOS);
+    pwm_dt_spec *pwm_rgb = initializer::GetAPWM(PWMS::RGB);
 
-    int ret = GPIO_SetAsOutput(peripheral_reset, 1);
+    int ret = gpio::SetAsOutput(peripheral_reset, 1);
 
-    ret -= SAADC_Configure();
+    ret -= saadc::Configure();
 
     if (ret < 0)
         return 0;
@@ -170,28 +170,28 @@ int main(void)
                             .east = -90,
                             .west = 0};
 
-    ret += SERVO_SetPosition(pwm_wings, &Command);
+    ret += servo::SetPosition(pwm_wings, &Command);
 
     Color Command2 = {.red = 255,
                       .green = 255,
                       .blue = 255,
                       .alpha = 50};
 
-    ret += RGB_SetColor(pwm_rgb, &Command2);
+    ret += rgb::SetColor(pwm_rgb, &Command2);
 
     while (1)
     {
         Command.west = 1.5;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : -17.5 deg \n- West  : 0.5 deg \n\n");
         k_msleep(500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         Command.west = 0;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : -17.5 deg \n- West  : 0 deg \n\n");
         k_msleep(500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
     }
 
     /* -----------------------------------------------------------------
@@ -207,72 +207,72 @@ int main(void)
         Command.south = 45;
         Command.east = -17.5;
         Command.west = -50;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : -17.5 deg \n- West  : -50 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 2
         Command.east = -12.5;
         Command.west = -10;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : -12.5 deg \n- West  : -10 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 3
         Command.north = -90;
         Command.south = -45;
         Command.east = -7.5;
         Command.west = -30;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : -90 deg \n- South : -45 deg \n- East  : -7.5 deg \n- West  : -30 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 4
         Command.east = -2.5;
         Command.west = 10;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : -90 deg \n- South : -45 deg \n- East  : -2.5 deg \n- West  : 10 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 5
         Command.north = 90;
         Command.south = 45;
         Command.east = 2.5;
         Command.west = -10;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : 2.5 deg \n- West  : -10 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 6
         Command.east = 7.5;
         Command.west = 30;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : 90 deg \n- South : 45 deg \n- East  : 7.5 deg \n- West  : 30 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 7
         Command.north = -90;
         Command.south = -45;
         Command.east = 12.5;
         Command.west = 10;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : -90 deg \n- South : -45 deg \n- East  : 12.5 deg \n- West  : 10 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
 
         // Command 8
         Command.east = 17.5;
         Command.west = 50;
-        ret += SERVO_SetPosition(pwm_wings, &Command);
+        ret += servo::SetPosition(pwm_wings, &Command);
         LOG_INF("Configured engines to : \n- North : -90 deg \n- South : -45 deg \n- East  : 17.5 deg \n- West  : 50 deg \n\n");
         k_msleep(2500);
-        GPIO_Toggle(peripheral_reset);
+        gpio::Toggle(peripheral_reset);
     }
 }
 

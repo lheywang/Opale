@@ -26,7 +26,7 @@
 #include <zephyr/drivers/gpio.h>
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 #include "peripherals/gpio.h"
 
 /* -----------------------------------------------------------------
@@ -44,6 +44,7 @@ typedef enum
  * -----------------------------------------------------------------
  */
 
+namespace rocket{
 /**
  * @brief   Return the rocket operation mode, between LAUNCH or DEBUG.
  *          Theses are used to ensure a safety while operating the rocket.
@@ -55,8 +56,9 @@ typedef enum
  * @return  0   Operation complete.
  * @return -1   Error while calling kernel GPIO procedures.
  */
-int ROCKET_GetOperationMode(const struct gpio_dt_spec *Latch,
-                            const struct gpio_dt_spec *Status,
-                            OperationMode *const Mode);
+int GetOperationMode(   const struct gpio_dt_spec *Latch,
+                        const struct gpio_dt_spec *Status,
+                        OperationMode *const Mode);
+}
 
 #endif /* DEF_ROCKET*/

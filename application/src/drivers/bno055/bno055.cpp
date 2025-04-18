@@ -65,7 +65,7 @@
 #include <zephyr/drivers/uart.h>
 
 // Personnals libs
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 
 /*********************************************************/
@@ -106,7 +106,7 @@ BNO055::BNO055()
     this->IO_DataReady = false;
 
     // Open the UART bus
-    this->bus = INIT_GetAnUART(UARTS::IMU);
+    this->bus = initializer::GetAnUART(UARTS::IMU);
 
     // Then, register the bus communication ISR (and data)
     int ret = uart_callback_set(this->bus,
@@ -139,7 +139,7 @@ BNO055::BNO055()
 BNO055::~BNO055()
 {
     // First, free the UART
-    INIT_FreeAnUART(UARTS::IMU, this->bus);
+    initializer::FreeAnUART(UARTS::IMU, this->bus);
 
     // Then, free memory
     k_free((void *)this->IO_buf);

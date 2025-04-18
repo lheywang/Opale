@@ -26,7 +26,7 @@
 #include <cstdint>
 
 // Custom
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 #include "drivers/teseo/teseo_struct.h"
 

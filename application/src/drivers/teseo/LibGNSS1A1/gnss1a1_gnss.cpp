@@ -26,7 +26,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "drivers/teseo/gnss1a1_gnss.h"
-#include "init/init.h"
+#include "init/init.hpp"
 
 /** @addtogroup BSP BSP
  * @{

@@ -27,7 +27,7 @@
 #include <zephyr/drivers/pwm.h>
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 
 /* -----------------------------------------------------------------
  * FETCHING NODE PARAMETERS
@@ -90,38 +90,39 @@ typedef struct
  * FUNCTIONS TO COMMAND A SERVO
  * -----------------------------------------------------------------
  */
-
-/**
- * @brief   Compute the PWM duty cycle needed to place all servos position
- *
- * @details This function compute, in the backend a cross product to get
- *          the wanted pulse duration over the standard period.
- *
- *          This indeed does not integrate any form of feedback nor precision,
- *          we're handling floating points values that are rounded at the end.
- *
- *          The servo can expose a deadband where a slight modification of the
- *          pulse lenght won't change the position. A call to this function may in
- *          this case initiate a little to no movement.
- *
- *          The value produced are :
- *
- *                     Angle  | Pulse len
- *              ------------- | -------------
- *                        -90 | MIN_PULSE
- *                         90 | MAX_PULSE
- *
- *
- * @param   Target      The pwm_dt_spec that correspond to the servo
- *                      (defined as const)
- * @param   Command     A ServoAngles struct that contain the wanted position
- *                      for all the servos.
- *
- * @return  0 : Controlled servo position
- * @return -1 : Invalid angle
- * @return -2 : Error while controlling the peripheral
- */
-int SERVO_SetPosition(const struct pwm_dt_spec Target[PWM_SERVO_LEN],
-                      ServoAngles const *Command);
+namespace servo{
+    /**
+     * @brief   Compute the PWM duty cycle needed to place all servos position
+     *
+     * @details This function compute, in the backend a cross product to get
+     *          the wanted pulse duration over the standard period.
+     *
+     *          This indeed does not integrate any form of feedback nor precision,
+     *          we're handling floating points values that are rounded at the end.
+     *
+     *          The servo can expose a deadband where a slight modification of the
+     *          pulse lenght won't change the position. A call to this function may in
+     *          this case initiate a little to no movement.
+     *
+     *          The value produced are :
+     *
+     *                     Angle  | Pulse len
+     *              ------------- | -------------
+     *                        -90 | MIN_PULSE
+     *                         90 | MAX_PULSE
+     *
+     *
+     * @param   Target      The pwm_dt_spec that correspond to the servo
+     *                      (defined as const)
+     * @param   Command     A ServoAngles struct that contain the wanted position
+     *                      for all the servos.
+     *
+     * @return  0 : Controlled servo position
+     * @return -1 : Invalid angle
+     * @return -2 : Error while controlling the peripheral
+     */
+    int SetPosition(const struct pwm_dt_spec Target[PWM_SERVO_LEN],
+                    ServoAngles const *Command);
+}
 
 #endif /* DEF_SERVO*/

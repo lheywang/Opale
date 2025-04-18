@@ -27,7 +27,7 @@
 #include <nrfx_dppi.h> // This line must be replaced with nrfx_ppi for nRF52 and less series.
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 #include "peripherals/saadc.h"
 
@@ -46,10 +46,10 @@ LOG_MODULE_REGISTER(SAADC, PROJECT_LOG_LEVEL);
  * -----------------------------------------------------------------
  */
 
-int SAADC_Configure()
+int saadc::Configure()
 {
     // Fetch the timer
-    nrfx_timer_t *Target_Timer = INIT_GetATimer(TIMERS::SAADC_TIMER);
+    nrfx_timer_t *Target_Timer = initializer::GetATimer(TIMERS::SAADC_TIMER);
 
     // Initialize variables (and remove warnings)
     saadc_buffer_index = 0;
@@ -104,7 +104,7 @@ int SAADC_Configure()
     err = nrfx_saadc_advanced_mode_set(255UL,
                                        NRF_SAADC_RESOLUTION_12BIT,
                                        &saadc_adv_config,
-                                       saadc_event_handler);
+                                       saadc::Event_handler);
     if (err != NRFX_SUCCESS)
     {
         LOG_ERR("Failed to configure advanced mode of the SAADC: %08x", err);
@@ -169,7 +169,7 @@ int SAADC_Configure()
     return 0;
 }
 
-void saadc_event_handler(nrfx_saadc_evt_t const *p_event)
+void saadc::Event_handler(nrfx_saadc_evt_t const *p_event)
 {
     nrfx_err_t err;
     switch (p_event->type)

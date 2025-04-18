@@ -26,7 +26,7 @@
 #include <zephyr/drivers/spi.h>
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 
 // STDBLIB
 #include <assert.h>
@@ -191,37 +191,38 @@ typedef struct
  * -----------------------------------------------------------------
  */
 
-/**
- * @brief   This function return, on the pointer value the next
- *          write address for the data.
- *
- * @warning Any dummy call will create empty bytes
- *          (and thus, lost EEPROM space)
- *
- * @param   Address     A pointer to a MemoryIO structure
- *                      that will be flushed and filled with
- *                      computed values.
- * @param   ReadOrWrite A bool that defined the IO to be performed.
- *                      Set to True to Write, otherwise Read.
- *
- * @return  0   Value got correctly
- * @return -1   No more address available.
- */
-int EEPROM_GetNextAddress(MemoryIO *const Command, const EEPROM_RW ReadOrWrite);
+namespace eeprom {
+    /**
+     * @brief   This function return, on the pointer value the next
+     *          write address for the data.
+     *
+     * @warning Any dummy call will create empty bytes
+     *          (and thus, lost EEPROM space)
+     *
+     * @param   Address     A pointer to a MemoryIO structure
+     *                      that will be flushed and filled with
+     *                      computed values.
+     * @param   ReadOrWrite A bool that defined the IO to be performed.
+     *                      Set to True to Write, otherwise Read.
+     *
+     * @return  0   Value got correctly
+     * @return -1   No more address available.
+     */
+    int GetNextAddress(MemoryIO *const Command, const EEPROM_RW ReadOrWrite);
 
-/**
- * @brief   This function perform an IO operation on the eeprom,
- *          following the instructions and parameters passed on
- *          the Command struct.
- *
- * @param   Eeproms     The array of EEPROM available
- * @param   Command     The command struct that define parameters
- *                      for the operation.
- *
- * @return  0   IO completer correctly.
- * @return -1   EEPROM is busy (to recent write operation, within 5ms)
- * @return -2   Invalid Command structure
- */
-int EEPROM_IO(const struct spi_dt_spec *Target[], const MemoryIO Command);
-
+    /**
+     * @brief   This function perform an IO operation on the eeprom,
+     *          following the instructions and parameters passed on
+     *          the Command struct.
+     *
+     * @param   Eeproms     The array of EEPROM available
+     * @param   Command     The command struct that define parameters
+     *                      for the operation.
+     *
+     * @return  0   IO completer correctly.
+     * @return -1   EEPROM is busy (to recent write operation, within 5ms)
+     * @return -2   Invalid Command structure
+     */
+    int IO(const struct spi_dt_spec *Target[], const MemoryIO Command);
+}
 #endif /* DEF_EEPROM*/
