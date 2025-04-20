@@ -8,19 +8,17 @@ This folder contain all of the sources (.h and .c / .cpp) files that are used by
 Tasks
 ----------------
 
-The network core is used actively to :
+There is two core : The app core, and the network core. 
+The app core is used to acquire data, compute trajectories, ensure safety and so...
+The network core is used to ensure the UI over BT (start !).
 
-* Acquire measures 
+----------------
+Threads
+----------------
 
- * Via UART on the GPS ans 9 axis IMU
- * Via it's integrated ADC for the feedback of servo engines
- * Via I2C for 2 other accelerometers and a barometer
+There four threads that run concurrently on the MCU : 
 
-* Filter and compute the required correction for the rocket
-* Command outputs to control the different actuators
-
- * PWM for the four servo engines on the wings
- * PWM for the parachute servo engines
- * I2C for the optionnal GPIOs 
-
-* Store measurements into dedicated EEPROMS for future analysis
+* Safety thread : Ensure that the safety conditions are met before starting the rocket. Enable the rocket engine starter and some hardware locks.
+* Measurement thread : Acquire the data, compute basic values on it and send if to the other threads.
+* Logger thread : Log the data incomming at a known rate, and store it to the EEPROM
+* Controller thread : Compute the position and control the servo engines
