@@ -29,11 +29,17 @@
 
 struct safety_p1
 {
+    // Inputs FIFOS
     struct k_fifo &barom_data;
     struct k_fifo &adc_data;
     struct k_fifo &imu_data;
     struct k_fifo &gps_data;
-    struct k_fifo &gpio_data;
+    struct k_fifo &accel_data;
+
+    // Threads handler
+    struct k_thread &controller;
+    struct k_thread &logger;
+    struct k_thread &measures;
 };
 
 /* -----------------------------------------------------------------

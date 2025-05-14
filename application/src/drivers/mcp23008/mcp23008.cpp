@@ -23,7 +23,7 @@
 #include <zephyr/drivers/i2c.h>
 
 // Local libs
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 
 // STD
@@ -80,7 +80,7 @@ MCP23008::MCP23008(MCP23008_GPIOS pin)
     // First, check if the device is openned and available
     if (_IsDevOpenned == false)
     {
-        _dev = (i2c_dt_spec *)INIT_GetAnI2C(I2CS::EXPANDER);
+        _dev = (i2c_dt_spec *)initializer::GetAnI2C(I2CS::EXPANDER);
         if (_dev == nullptr)
         {
             LOG_ERR("Failed to get the I2C device. Aborting...");
@@ -147,7 +147,7 @@ MCP23008::~MCP23008()
     if (status == true)
     {
         // Free the device
-        INIT_FreeAnI2C(I2CS::BAROMETER, _dev);
+        initializer::FreeAnI2C(I2CS::BAROMETER, _dev);
         _dev = nullptr;
     }
 }

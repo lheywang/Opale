@@ -26,7 +26,7 @@
 #include <cstdint>
 
 // Custom
-#include "init/init.h"
+#include "init/init.hpp"
 #include "config.h"
 #include "drivers/teseo/teseo_struct.h"
 
@@ -185,7 +185,6 @@ public:
 
 private:
     uint8_t configureAGPS();
-    uint8_t getAGPSStatus(bool *const status);
     uint8_t configurePPS();
     uint8_t setFreqRange();
     uint8_t setLocalOscillator();

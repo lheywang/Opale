@@ -27,7 +27,7 @@
 #include <zephyr/drivers/pwm.h>
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 
 /* -----------------------------------------------------------------
  * FETCHING NODE PARAMETERS
@@ -64,18 +64,20 @@ typedef struct
  * -----------------------------------------------------------------
  */
 
-/**
- * @brief   Configure the PWM duty cycle to prompt a defined color
- *          on the onboard RGB led.
- *
- * @param   Target      The pointer to the struct that describe the leds
- * @param   Command     A pointer to a Color struct.
- *
- * @return  0   Value configured
- * @return -1   Incorrect command passed (alpha field)
- * @return -2   Error while calling the OS
- */
-int RGB_SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
-                 Color const *Command);
-
+namespace rgb{
+    /**
+     * @brief   Configure the PWM duty cycle to prompt a defined color
+     *          on the onboard RGB led.
+     *
+     * @param   Target      The pointer to the struct that describe the leds
+     * @param   Command     A pointer to a Color struct.
+     *
+     * @return  0   Value configured
+     * @return -1   Incorrect command passed (alpha field)
+     * @return -2   Error while calling the OS
+     */
+    int SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
+                    Color const *Command);
+    }
+                
 #endif /* DEF_RGB*/

@@ -19,7 +19,7 @@
  */
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 
 // Local lib
 #include "drivers/iis2dlpc_reg.h"

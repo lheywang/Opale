@@ -32,6 +32,7 @@ struct controller_p1
     struct k_fifo &barom_data;
     struct k_fifo &adc_data;
     struct k_fifo &imu_data;
+    struct k_fifo &accel_data;
 };
 
 /* -----------------------------------------------------------------

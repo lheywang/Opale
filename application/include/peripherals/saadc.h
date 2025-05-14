@@ -30,7 +30,7 @@
 #include <nrfx.h>
 
 // Libs
-#include "init/init.h"
+#include "init/init.hpp"
 
 /* -----------------------------------------------------------------
  * ADC CALIBRATION DATA
@@ -87,38 +87,40 @@ static volatile uint32_t saadc_buffer_index = 0;
  * -----------------------------------------------------------------
  */
 
-/**
- * @brief   This function configure the SAADC integrated into the
- *          chip for our usage. This require a timer that is going
- *          to be used to trigger regularely the start signal.
- *
- * @param   Target  The timer instance that is going to be used
- *                  to trigger the measures.
- *
- * @warning     Since this function will enable interrupts, it's
- *              recommended to call it in the last of the init
- *              procedure.
- *
- * @return  0   Configured successfully the SAADC
- * @return -1   Failed to configure the timer
- * @return -2   Failed to configure the SAADC
- * @return -3   Failed to configure the SAADC gain
- * @return -4   Failed to configure the advanced behavior of the SAADC
- * @return -5   Failed to configure the first buffer of the SAADC
- * @return -6   Failed to configure the second buffer of the SAADC
- * @return -7   Failed to initialize the SAADC to be ready to sample
- */
-int SAADC_Configure();
+namespace saadc{
+    /**
+     * @brief   This function configure the SAADC integrated into the
+     *          chip for our usage. This require a timer that is going
+     *          to be used to trigger regularely the start signal.
+     *
+     * @param   Target  The timer instance that is going to be used
+     *                  to trigger the measures.
+     *
+     * @warning     Since this function will enable interrupts, it's
+     *              recommended to call it in the last of the init
+     *              procedure.
+     *
+     * @return  0   Configured successfully the SAADC
+     * @return -1   Failed to configure the timer
+     * @return -2   Failed to configure the SAADC
+     * @return -3   Failed to configure the SAADC gain
+     * @return -4   Failed to configure the advanced behavior of the SAADC
+     * @return -5   Failed to configure the first buffer of the SAADC
+     * @return -6   Failed to configure the second buffer of the SAADC
+     * @return -7   Failed to initialize the SAADC to be ready to sample
+     */
+    int Configure();
 
-/**
- * @brief   This is the main even handler for the SAADC interrupt !
- *
- * @warning This function is defined as ISR_CALLBACK to get rid of unused function warning.
- *
- * @param   p_event A pointer to an interrup context
- *
- * @return  None
- */
-void saadc_event_handler(nrfx_saadc_evt_t const *p_event);
+    /**
+     * @brief   This is the main even handler for the SAADC interrupt !
+     *
+     * @warning This function is defined as ISR_CALLBACK to get rid of unused function warning.
+     *
+     * @param   p_event A pointer to an interrup context
+     *
+     * @return  None
+     */
+    void Event_handler(nrfx_saadc_evt_t const *p_event);
+}
 
 #endif /* DEF_SAADC*/
