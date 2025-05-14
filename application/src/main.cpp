@@ -107,26 +107,26 @@ int main(void)
     k_fifo_init(&toto);
 
     struct safety_p1 tmp1 = {.barom_data = toto,
-                            .adc_data = toto,
-                            .imu_data = toto,
-                            .gps_data = toto,
-                            .gpio_data = toto};
+                             .adc_data = toto,
+                             .imu_data = toto,
+                             .gps_data = toto,
+                             .gpio_data = toto};
 
     struct logger_p1 tmp2 = {.barom_data = toto,
-                            .adc_data = toto,
-                            .imu_data = toto,
-                            .gps_data = toto};
+                             .adc_data = toto,
+                             .imu_data = toto,
+                             .gps_data = toto};
 
     struct controller_p1 tmp3 = {.barom_data = toto,
-                                .adc_data = toto,
-                                .imu_data = toto};
+                                 .adc_data = toto,
+                                 .imu_data = toto};
 
     struct k_thread controller_data;
     struct k_thread logger_data;
     struct k_thread safety_data;
 
-    k_thread_create(&controller_data, 
-                    controller_stack, 
+    k_thread_create(&controller_data,
+                    controller_stack,
                     K_THREAD_STACK_SIZEOF(controller_stack),
                     thread_controller,
                     (void *)&tmp3,
@@ -161,20 +161,20 @@ int main(void)
     // This works fine !
 
     /* -----------------------------------------------------------------
-        * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
-        * -----------------------------------------------------------------
-        */
+     * INITIALIZING EXTERNAL DEVICES TO KNOWN POSITION
+     * -----------------------------------------------------------------
+     */
 
     ServoAngles Command = {.north = 90,
-                            .south = 0,
-                            .east = -90,
-                            .west = 0};
+                           .south = 0,
+                           .east = -90,
+                           .west = 0};
 
     ret += SERVO_SetPosition(pwm_wings, &Command);
 
-    Color Command2 = {.red = 255,
-                      .green = 255,
-                      .blue = 255,
+    Color Command2 = {.red = 0,
+                      .green = 63,
+                      .blue = 127,
                       .alpha = 50};
 
     ret += RGB_SetColor(pwm_rgb, &Command2);
