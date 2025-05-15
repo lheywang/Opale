@@ -16,23 +16,23 @@
 // Virtual device that map physical pins to names
 &pinctrl {
     inputs {
-		compatible = "gpio-keys";
+        compatible = "gpio-keys";
 
         imuboot: imuboot {
-            gpios =     <&gpio0 3 GPIO_ACTIVE_HIGH>;
-            label =     "IMU (9 axis sensor) boot pin";
+            gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+            label = "IMU (9 axis sensor) boot pin";
         };
 
         imustatus: imustatus {
-            gpios =     <&gpio0 21 GPIO_ACTIVE_HIGH>;
-            label =     "IMU (9 axis sensor) status pin";
+            gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+            label = "IMU (9 axis sensor) status pin";
         };
 
         mode: mode{
-            gpios =     <&gpio1 5 GPIO_ACTIVE_HIGH>;
-            label =     "DLatch output value";
+            gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+            label = "DLatch output value";
         };
-	};
+    };
 };
 
 /{

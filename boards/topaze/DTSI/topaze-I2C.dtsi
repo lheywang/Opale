@@ -1,5 +1,5 @@
 /* ============================================================
- * This file is the overlay DTS for topaze that define the I2C 
+ * This file is the overlay DTS for topaze that define the I2C
  * devices
  *
  * We describe here the peripherals configuration, and so on...
@@ -28,32 +28,32 @@
         group1  {
             psels = <NRF_PSEL(TWIM_SCL, 0, 19)>,
                     <NRF_PSEL(TWIM_SDA, 0, 17)>;
-		};
-	};
+        };
+    };
 };
 
 // Register the devices.
 &i2c3 {
 
-    barometer0: barometer0@76{
+    barometer0: barometer0@76 {
         compatible = "i2c-device";
         status = "okay";
         reg = <0x00000076>;
     };
 
-    accelerometer0: accelerometer0@18{
+    accelerometer0: accelerometer0@18 {
         compatible = "i2c-device";
         status = "okay";
         reg = <0x00000018>;
     };
 
-    accelerometer1: accelerometer1@19{
+    accelerometer1: accelerometer1@19 {
         compatible = "i2c-device";
         status = "okay";
         reg = <0x00000019>;
     };
 
-    expander0: expander0@20{
+    expander0: expander0@20 {
         compatible = "i2c-device";
         status = "okay";
         reg = <0x00000020>;
