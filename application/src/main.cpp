@@ -62,8 +62,6 @@
 // Identify the module on the LOG Output
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 
-#define I2C_NODE DT_NODELABEL(barometer0)
-
 K_THREAD_STACK_DEFINE(controller_stack, THREAD_STACKSIZE);
 K_THREAD_STACK_DEFINE(logger_stack, THREAD_STACKSIZE);
 K_THREAD_STACK_DEFINE(safety_stack, THREAD_STACKSIZE);
