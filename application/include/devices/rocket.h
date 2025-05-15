@@ -44,21 +44,22 @@ typedef enum
  * -----------------------------------------------------------------
  */
 
-namespace rocket{
-/**
- * @brief   Return the rocket operation mode, between LAUNCH or DEBUG.
- *          Theses are used to ensure a safety while operating the rocket.
- *
- * @param   Latch   The GPIO used to latch the D-Flip-Flop gate.
- * @param   Status  The GPIO used to read the D-Flip-Flop status.
- * @param   Mode    The return value.
- *
- * @return  0   Operation complete.
- * @return -1   Error while calling kernel GPIO procedures.
- */
-int GetOperationMode(   const struct gpio_dt_spec *Latch,
-                        const struct gpio_dt_spec *Status,
-                        OperationMode *const Mode);
+namespace rocket
+{
+    /**
+     * @brief   Return the rocket operation mode, between LAUNCH or DEBUG.
+     *          Theses are used to ensure a safety while operating the rocket.
+     *
+     * @param   Latch   The GPIO used to latch the D-Flip-Flop gate.
+     * @param   Status  The GPIO used to read the D-Flip-Flop status.
+     * @param   Mode    The return value.
+     *
+     * @return  0   Operation complete.
+     * @return -1   Error while calling kernel GPIO procedures.
+     */
+    int GetOperationMode(const struct gpio_dt_spec *Latch,
+                         const struct gpio_dt_spec *Status,
+                         OperationMode *const Mode);
 }
 
 #endif /* DEF_ROCKET*/

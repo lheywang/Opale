@@ -58,13 +58,6 @@ extern "C"
     void GNSS_DATA_SendCommand(uint8_t *pCommand);
 
     /**
-     * @brief  Function that retrieves data from correctly parsed GPGGA sentence.
-     * @param  pGNSSParser_Data The parsed GPGGA sentence
-     * @retval None
-     */
-    void GNSS_DATA_GetValidInfo(GNSSParser_Data_t *pGNSSParser_Data);
-
-    /**
      * @brief  This function retrieves the tracking data using the result of parsed GPGGA sentence.
      * @param  pGNSSParser_Data Handler of the GNSS data
      * @param  how_many         The number of the position to track

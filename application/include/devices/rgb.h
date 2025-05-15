@@ -64,7 +64,8 @@ typedef struct
  * -----------------------------------------------------------------
  */
 
-namespace rgb{
+namespace rgb
+{
     /**
      * @brief   Configure the PWM duty cycle to prompt a defined color
      *          on the onboard RGB led.
@@ -77,7 +78,7 @@ namespace rgb{
      * @return -2   Error while calling the OS
      */
     int SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
-                    Color const *Command);
-    }
-                
+                 Color const *Command);
+}
+
 #endif /* DEF_RGB*/

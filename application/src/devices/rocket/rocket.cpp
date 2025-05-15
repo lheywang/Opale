@@ -41,8 +41,8 @@ LOG_MODULE_REGISTER(Rocket, PROJECT_LOG_LEVEL);
  */
 
 int rocket::GetOperationMode(const struct gpio_dt_spec *Latch,
-                            const struct gpio_dt_spec *Status,
-                            OperationMode *const Mode)
+                             const struct gpio_dt_spec *Status,
+                             OperationMode *const Mode)
 {
 
     // First, trigger the GPIO latching process

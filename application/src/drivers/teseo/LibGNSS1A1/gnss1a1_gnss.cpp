@@ -15,14 +15,14 @@
  *
  ******************************************************************************/
 
-   /*
-    * This file was heavily modified to become compatible with the nRF SDK.
-    *
-    * Changes shall be documented.
-    *
-    * @todo   Need to be rewrote !
-    *
-    */
+/*
+ * This file was heavily modified to become compatible with the nRF SDK.
+ *
+ * Changes shall be documented.
+ *
+ * @todo   Need to be rewrote !
+ *
+ */
 
 /* Includes ------------------------------------------------------------------*/
 #include "drivers/teseo/gnss1a1_gnss.h"

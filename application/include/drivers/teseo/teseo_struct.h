@@ -23,12 +23,13 @@
  * -----------------------------------------------------------------
  */
 
- struct VTG_Info_t {
+struct VTG_Info_t
+{
     double TrackDifReal;
     double TrackDifMag;
     double KnotsSpeed;
     double KMSpeed;
     char Mode;
- };
+};
 
 #endif /* _DEF_TESEO_STRUCTS */

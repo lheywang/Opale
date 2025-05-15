@@ -43,7 +43,7 @@ LOG_MODULE_REGISTER(RGB, PROJECT_LOG_LEVEL);
  */
 
 int rgb::SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
-                 Color const *Command)
+                  Color const *Command)
 {
 
     // Checking the parameters

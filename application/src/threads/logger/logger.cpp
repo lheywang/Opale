@@ -42,9 +42,9 @@ LOG_MODULE_REGISTER(LOGGER, PROJECT_LOG_LEVEL);
 void thread_logger(void *p1, void *p2, void *p3)
 {
     // init phase : Fetching arguments
-    struct logger_p1 *IO = (logger_p1*)p1;
-    struct k_event *globalStatus = (k_event*)p2;
-    struct k_msgq *threadStatus = (k_msgq*)p3;
+    struct logger_p1 *IO = (logger_p1 *)p1;
+    struct k_event *globalStatus = (k_event *)p2;
+    struct k_msgq *threadStatus = (k_msgq *)p3;
 
     // Running init code :
 

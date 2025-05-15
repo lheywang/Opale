@@ -191,7 +191,8 @@ typedef struct
  * -----------------------------------------------------------------
  */
 
-namespace eeprom {
+namespace eeprom
+{
     /**
      * @brief   This function return, on the pointer value the next
      *          write address for the data.

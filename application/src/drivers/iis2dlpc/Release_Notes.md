@@ -12,6 +12,7 @@ header-includes: <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png
 Copyright &copy; 2021 STMicroelectronics\
 
 [![ST logo](_htmresc/st_logo_2020.png)](https://www.st.com){.logo}
+
 </center>
 
 # License
@@ -27,11 +28,13 @@ This directory contains the IIS2DLPC component drivers.
 :::
 
 ::: {.col-sm-12 .col-lg-8}
+
 # Update history
 
 ::: {.collapse}
 <input type="checkbox" id="collapse-section1" aria-hidden="true">
 <label for="collapse-section1" aria-hidden="true">V1.0.0 / 18-June-2021</label>
+
 <div>
 
 ## Main changes
@@ -50,7 +53,7 @@ This directory contains the IIS2DLPC component drivers.
 
 ## Main changes
 
-- Add __weak directive to read/write registers routines
+- Add \_\_weak directive to read/write registers routines
 - Extend stmdev_ctx_t structure with mdelay callback
 - repo name changed adding '-pid' extension
 
@@ -82,7 +85,6 @@ This directory contains the IIS2DLPC component drivers.
 
 </div>
 :::
-
 
 :::
 :::
