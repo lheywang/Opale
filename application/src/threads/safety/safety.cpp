@@ -23,9 +23,14 @@
 
 // Internal libs
 #include "config.h"
+#include "init/init.hpp"
+#include "devices/rgb.h"
 
 // Zephyr
 #include <zephyr/logging/log.h>
+
+// STD
+#include "math.h"
 
 /* -----------------------------------------------------------------
  * LOGGER MODULE
@@ -48,13 +53,32 @@ void thread_safety(void *p1, void *p2, void *p3)
 
     // Running init code :
 
+    // Inititalize peripherals
+    struct pwm_dt_spec *pwm_rgb = initializer::GetAPWM(PWMS::RGB);
+
+    // Define some parameters and constants
+    double t = 0.0;
+    double inc = 0.031415976; // ~ Pi / 100
+    double p0 = 0.0;
+    double p120 = 2.0943951024;
+    double p240 = 4.1887902048;
+
     for (;;)
     {
-        k_usleep(1000 * 1000);
+        // Wait 50 ms : Full cycle is ~10 s
+        k_usleep(50 * 1000);
 
-        struct fifo_data *tmp = (fifo_data *)k_fifo_get(&IO->barom_data, K_FOREVER);
+        // Compute the color (using cosines and phases)
+        Color Command = {.red = cos((float)(t + p0)),
+                         .green = cos((float)(t + p120)),
+                         .blue = cos((float)(t + p240)),
+                         .alpha = 255};
 
-        LOG_INF("Hi from SAFETY ! Value for CNT %d", tmp->value);
+        // Apply the color
+        rgb::SetColor(pwm_rgb, &Command);
+
+        // Increment time
+        t += inc;
     }
     return;
 }

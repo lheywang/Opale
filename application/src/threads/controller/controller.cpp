@@ -23,6 +23,7 @@
 
 // Internal libs
 #include "config.h"
+#include "init/init.hpp"
 
 // Zephyr
 #include <zephyr/logging/log.h>
@@ -47,6 +48,9 @@ void thread_controller(void *p1, void *p2, void *p3)
     struct k_msgq *threadStatus = (k_msgq *)p3;
 
     // Running init code :
+
+    // Init peripherals
+    struct pwm_dt_spec *pwm_wings = initializer::GetAPWM(PWMS::SERVOS);
 
     for (;;)
     {

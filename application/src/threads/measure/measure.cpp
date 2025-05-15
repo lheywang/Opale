@@ -22,6 +22,7 @@
 
 // Internal libs
 #include "config.h"
+#include "init/init.hpp"
 
 // Zephyr
 #include <zephyr/logging/log.h>
