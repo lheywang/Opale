@@ -19,7 +19,7 @@
 [x] Servo 1
 [x] Servo 2
 [x] Servo 3
-[ ] Servo 4 (Incorrect soldering ? No signal on the MOS input)
+[ ] Servo 4 (No signal on PWM input. Incorrect soldering.)
 [ ] Parachute
 
 ### Feedback tests
@@ -33,7 +33,7 @@
 
 ### Buzzer
 
-[ ] Buzzer
+[x] Buzzer (extremely quiet. Not enough voltage ? current ?)
 
 ## UART Section
 
@@ -44,21 +44,27 @@
 
 ### IMU
 
-[ ] UART waveforms are correct on the bus
+[ ] UART waveforms are correct on the bus (read)
+[ ] UART waveforms are correct on the bus (write)
 [ ] IMU respond to answers
 [ ] All functions of the IMU are tested
 
 ### TESEO
 
-[ ] UART waveforms are correct on the bus
+[x] UART waveforms are correct on the bus (read) --> No FIX
+[ ] UART waveforms are correct on the bus (write)
 [ ] TESEO respond to answers
 [ ] All functions of the TESEO are tested
 
 ## GPIO
 
+### Reset
+
+[x] GPIO does strobe to 0 when booting.
+
 ### Safety toggling
 
-[ ] Able to toggle the latch
+[x] Able to toggle the latch (Hardware change output state. No reading by the MCU. Incorrect soldering.)
 [ ] Latch output match our requirements
 
 ### Engines
