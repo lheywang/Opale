@@ -55,7 +55,8 @@ namespace rocket
      * @param   Mode    The return value.
      *
      * @return  0   Operation complete.
-     * @return -1   Error while calling kernel GPIO procedures.
+     * @return -1   Error while calling kernel GPIO procedures (writes).
+     * @return -2   Error while calling kernel GPIO procedures (reads).
      */
     int GetOperationMode(const struct gpio_dt_spec *Latch,
                          const struct gpio_dt_spec *Status,

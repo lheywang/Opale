@@ -22,31 +22,11 @@
 // Zephyr
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/pwm.h>
-#include <zephyr/drivers/uart.h>
-#include <zephyr/drivers/i2c.h>
-#include <zephyr/logging/log.h>
-#include <zephyr/usb/usb_device.h>
-#include <zephyr/usb/usbd.h>
 
 // Custom headers
 #include "init/init.hpp"
 #include "config.h"
-
-#include "devices/servo.h"
-#include "devices/rgb.h"
-#include "devices/eeprom.h"
-
 #include "peripherals/gpio.h"
-#include "peripherals/saadc.h"
-
-// Devices drivers
-#include "drivers/MS5611.h"
-#include "drivers/mcp23008.h"
-#include "drivers/bno055.h"
-#include "drivers/iis2dlpc_reg.h"
-#include "drivers/teseo.h"
 
 // Threads
 #include "threads/controller.h"
@@ -74,6 +54,23 @@ K_THREAD_STACK_DEFINE(measure_stack, THREAD_STACKSIZE);
 int main(void)
 {
     /* -----------------------------------------------------------------
+     * First, reseting all of the peripherals at boot / reset
+     * -----------------------------------------------------------------
+     */
+    // Fetch the GPIO and set it as output
+    struct gpio_dt_spec *rst = initializer::GetAGPIO(GPIOS::PERIPHERAL_RESET);
+
+    // Trigerring reset procedure
+    gpio::SetAsOutput(rst, 1);
+    k_msleep(50);
+    gpio::Set(rst, 0);
+    k_msleep(50);
+    gpio::Set(rst, 1);
+
+    // Exiting reset procedure
+    initializer::FreeAGPIO(GPIOS::PERIPHERAL_RESET, rst);
+
+    /* -----------------------------------------------------------------
      * Creating main event to sync threads
      * -----------------------------------------------------------------
      */
@@ -82,6 +79,7 @@ int main(void)
 
     // Init
     k_event_init(&globalStatus);
+    k_event_set(&globalStatus, 0x00000000);
 
     /* -----------------------------------------------------------------
      * Creating main messages queue
