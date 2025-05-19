@@ -16,7 +16,7 @@
 // Enable I2C and configure it
 &i2c3 {
     status = "okay";
-    clock-frequency = <400000>;
+    clock-frequency = <100000>;
     pinctrl-0 = <&i2c3_topaze>;
     pinctrl-names = "default";
 };

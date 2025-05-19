@@ -35,7 +35,7 @@
     buzzer {
         compatible = "pwm-buzzer";
         buzzer: buzzer {
-            pwms = <&pwm2 0 PWM_HZ(2400) PWM_POLARITY_NORMAL>;
+            pwms = <&pwm2 0 PWM_HZ(2400) PWM_POLARITY_INVERTED>;
             period = <PWM_HZ(2400)>;
         };
     };
