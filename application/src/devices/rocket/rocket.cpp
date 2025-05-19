@@ -47,7 +47,7 @@ int rocket::GetOperationMode(const struct gpio_dt_spec *Latch,
 
     // First, trigger the GPIO latching process
     if (!gpio::Set(Latch, 1))
-        return 1;
+        return -1;
 
     k_msleep(5);
     if (!gpio::Set(Latch, 0))
@@ -59,6 +59,7 @@ int rocket::GetOperationMode(const struct gpio_dt_spec *Latch,
     gpio::Read(Status, &tmp);
 
     // Copy the data back.
+    LOG_INF("Read tmp = %d", tmp);
     *Mode = OperationMode(tmp);
     return 0;
 }
