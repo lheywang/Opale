@@ -2,17 +2,15 @@
 To-Do
 =============
 
-------------
-Drivers
-------------
-
-- Implement IIS2DPLC IO functions (and handle the two sensors !)
-- Finish GNSS driver from provided ST examples and drivers
-- Implement UART.cpp / .h ? (Always needed ?)
-
 -----------
 Threads
 -----------
 
-- Implement threading management and init (50%)
+* Implement boot process over multiples Threads
+* Test the whole system
 
+-----------
+TESTS
+-----------
+
+* Rewrite TESEO driver to always listen and parse data. No need to configure the IC ?
