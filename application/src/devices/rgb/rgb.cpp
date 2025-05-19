@@ -82,7 +82,7 @@ int rgb::SetColor(const struct pwm_dt_spec Target[PWM_RGB_LEN],
     // End log, and return
     if (err != 0)
     {
-        LOG_ERR("Failed to configure the PWM duty cycle for the RGB leds : %d", err);
+        LOG_ERR("Failed to co<nfigure the PWM duty cycle for the RGB leds : %d", err);
         return -2;
     }
     return 0;

@@ -69,16 +69,17 @@ void thread_safety(void *p1, void *p2, void *p3)
         k_usleep(50 * 1000);
 
         // Compute the color (using cosines and phases)
-        Color Command = {.red = cos((float)(t + p0)),
-                         .green = cos((float)(t + p120)),
-                         .blue = cos((float)(t + p240)),
-                         .alpha = 255};
+        Color Command = {.red = (uint8_t)round((cos((t + p0)) + 1) * 127),
+                         .green = (uint8_t)round((cos((t + p120)) + 1) * 127),
+                         .blue = (uint8_t)round((cos((t + p240)) + 1) * 127),
+                         .alpha = 99};
 
         // Apply the color
         rgb::SetColor(pwm_rgb, &Command);
 
         // Increment time
         t += inc;
+
     }
     return;
 }
