@@ -19,11 +19,11 @@
  */
 // Header
 #include "threads/logger.h"
-#include "threads/threads.h"
 
 // Internal libs
 #include "config.h"
 #include "init/init.hpp"
+#include "threads/threads.h"
 
 // Zephyr
 #include <zephyr/logging/log.h>
@@ -42,12 +42,35 @@ LOG_MODULE_REGISTER(LOGGER, PROJECT_LOG_LEVEL);
 
 void thread_logger(void *p1, void *p2, void *p3)
 {
+    /* -----------------------------------------------------------------
+     * Initialization
+     * -----------------------------------------------------------------
+     */
     // init phase : Fetching arguments
     __unused struct logger_p1 *IO = (logger_p1 *)p1;
-    __unused struct k_event *globalStatus = (k_event *)p2;
+    struct k_event *globalStatus = (k_event *)p2;
     __unused struct k_msgq *threadStatus = (k_msgq *)p3;
 
-    // Running init code :
+    // Wait for the order of boot to be valid :
+    bool wait = true;
+    while (wait == true)
+    {
+        uint32_t val = k_event_test(globalStatus, STATUS_SAFETY);
+        wait = (val != 0) ? false : true;
+        k_msleep(20);
+    }
+
+    // Getting SPI devices openned :
+
+    // Set ready bit before enterring main loop
+    int thread_rval = ThreadStatus::LOGGER_OK;
+    k_event_set_masked(globalStatus, 0xFFFFFFFF, STATUS_LOGGER);
+    k_msgq_put(threadStatus, &thread_rval, K_MSEC(50));
+
+    /* -----------------------------------------------------------------
+     * Loop
+     * -----------------------------------------------------------------
+     */
 
     for (;;)
     {
