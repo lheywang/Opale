@@ -61,6 +61,7 @@ void thread_logger(void *p1, void *p2, void *p3)
     }
 
     // Getting SPI devices openned :
+    struct spi_dt_spec *eeprom = initializer::GetAnSPI(SPIS::EEPROM);
 
     // Set ready bit before enterring main loop
     int thread_rval = ThreadStatus::LOGGER_OK;

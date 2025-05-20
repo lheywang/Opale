@@ -72,6 +72,10 @@ void thread_measure(void *p1, void *p2, void *p3)
 
     // Openning classes
     MS5611 barometer = MS5611();
+    BNO055 imu = BNO055();
+    TESEO gps = TESEO();
+
+    // Configuring devices
 
     // Set ready bit before enterring main loop
     int thread_rval = ThreadStatus::MEASURE_OK;
