@@ -21,10 +21,12 @@
 
 // Zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
+#include <zephyr/device.h>
 
 // Custom headers
+#include "init/init.hpp"
 #include "config.h"
+#include "peripherals/gpio.h"
 
 // Threads
 #include "threads/controller.h"
@@ -40,10 +42,6 @@
 // Identify the module on the LOG Output
 LOG_MODULE_REGISTER(Main, PROJECT_LOG_LEVEL);
 
-/* -----------------------------------------------------------------
- * ALLOCATING STACK
- * -----------------------------------------------------------------
- */
 K_THREAD_STACK_DEFINE(controller_stack, THREAD_STACKSIZE);
 K_THREAD_STACK_DEFINE(logger_stack, THREAD_STACKSIZE);
 K_THREAD_STACK_DEFINE(safety_stack, THREAD_STACKSIZE);
@@ -56,30 +54,48 @@ K_THREAD_STACK_DEFINE(measure_stack, THREAD_STACKSIZE);
 int main(void)
 {
     /* -----------------------------------------------------------------
-    * Creating main event to sync threads
-    * -----------------------------------------------------------------
-    */
+     * First, reseting all of the peripherals at boot / reset
+     * -----------------------------------------------------------------
+     */
+    // Fetch the GPIO and set it as output
+    struct gpio_dt_spec *rst = initializer::GetAGPIO(GPIOS::PERIPHERAL_RESET);
+
+    // Trigerring reset procedure
+    gpio::SetAsOutput(rst, 1);
+    k_msleep(50);
+    gpio::Set(rst, 0);
+    k_msleep(50);
+    gpio::Set(rst, 1);
+
+    // Exiting reset procedure
+    initializer::FreeAGPIO(GPIOS::PERIPHERAL_RESET, rst);
+
+    /* -----------------------------------------------------------------
+     * Creating main event to sync threads
+     * -----------------------------------------------------------------
+     */
     // Allocating struct
     struct k_event globalStatus;
 
     // Init
     k_event_init(&globalStatus);
+    k_event_set(&globalStatus, 0x00000000);
 
     /* -----------------------------------------------------------------
-    * Creating main messages queue
-    * -----------------------------------------------------------------
-    */
+     * Creating main messages queue
+     * -----------------------------------------------------------------
+     */
     // Allocating struct and memory space
     struct k_msgq threadStatus;
     char threadStatus_buf[10 * sizeof(ThreadStatus)];
-    
+
     // Init
     k_msgq_init(&threadStatus, threadStatus_buf, sizeof(ThreadStatus), 10);
 
     /* -----------------------------------------------------------------
-    * Creating fifos :
-    * -----------------------------------------------------------------
-    */
+     * Creating fifos :
+     * -----------------------------------------------------------------
+     */
     // Allocating structs
     // Barometer
     struct k_fifo barom1;
@@ -121,48 +137,56 @@ int main(void)
     k_fifo_init(&accels2);
 
     /* -----------------------------------------------------------------
-    * CREATING THREADS
-    * -----------------------------------------------------------------
-    */
+     * CREATING THREADS
+     * -----------------------------------------------------------------
+     */
     struct k_thread controller_thread;
     struct k_thread logger_thread;
     struct k_thread safety_thread;
     struct k_thread measure_thread;
 
     /* -----------------------------------------------------------------
-    * Creating p1 for threads, to give them access to different elements
-    * -----------------------------------------------------------------
-    */
+     * Creating p1 for threads, to give them access to different elements
+     * -----------------------------------------------------------------
+     */
 
-    struct safety_p1 safety_data = {    .barom_data = barom1,
-                                        .adc_data = adc1,
-                                        .imu_data = imu1,
-                                        .gps_data = gps1,
-                                        .accel_data = accels1,
-                                        .controller = controller_thread,
-                                        .logger = logger_thread,
-                                        .measures = measure_thread};
+    struct safety_p1 safety_data = {.barom_data = barom1,
+                                    .adc_data = adc1,
+                                    .imu_data = imu1,
+                                    .gps_data = gps1,
+                                    .accel_data = accels1,
+                                    .controller = controller_thread,
+                                    .logger = logger_thread,
+                                    .measures = measure_thread};
 
-    struct logger_p1 logger_data = {    .barom_data = barom3,
-                                        .adc_data = adc3,
-                                        .imu_data = imu3,
-                                        .gps_data = gps2};
+    struct logger_p1 logger_data = {.barom_data = barom3,
+                                    .adc_data = adc3,
+                                    .imu_data = imu3,
+                                    .gps_data = gps2};
 
-    struct controller_p1 controller_data = {    .barom_data = barom2,
-                                                .adc_data = adc2,
-                                                .imu_data = imu2,
-                                                .accel_data = accels2};
+    struct controller_p1 controller_data = {.barom_data = barom2,
+                                            .adc_data = adc2,
+                                            .imu_data = imu2,
+                                            .accel_data = accels2};
 
-    struct measure_p1 measure_data = {  .barom_data1 = barom1, .barom_data2 = barom2, .barom_data3 = barom3,
-                                        .adc_data1 = adc1, .adc_data2 = adc2, .adc_data3 = adc3,
-                                        .imu_data1 = imu1, .imu_data2 = imu2, .imu_data3 = imu3,
-                                        .gps_data1 = gps1, .gps_data2 = gps2,
-                                        .accels_data1 = accels1, .accels_data2 = accels2};
+    struct measure_p1 measure_data = {.barom_data1 = barom1,
+                                      .barom_data2 = barom2,
+                                      .barom_data3 = barom3,
+                                      .adc_data1 = adc1,
+                                      .adc_data2 = adc2,
+                                      .adc_data3 = adc3,
+                                      .imu_data1 = imu1,
+                                      .imu_data2 = imu2,
+                                      .imu_data3 = imu3,
+                                      .gps_data1 = gps1,
+                                      .gps_data2 = gps2,
+                                      .accels_data1 = accels1,
+                                      .accels_data2 = accels2};
 
     /* -----------------------------------------------------------------
-    * LAUNCHING THREADS
-    * -----------------------------------------------------------------
-    */
+     * LAUNCHING THREADS
+     * -----------------------------------------------------------------
+     */
 
     // Safety checker
     k_thread_create(&safety_thread,
@@ -201,41 +225,29 @@ int main(void)
                     K_NO_WAIT);
 
     // Controller
-    k_thread_create(&controller_thread, 
-        controller_stack, 
-        K_THREAD_STACK_SIZEOF(controller_stack),
-        thread_controller,
-        (void *)&controller_data,
-        (void *)&globalStatus,
-        (void *)&threadStatus,
-        CONTROLLER_PRIORITY,
-        0,
-        K_NO_WAIT);
+    k_thread_create(&controller_thread,
+                    controller_stack,
+                    K_THREAD_STACK_SIZEOF(controller_stack),
+                    thread_controller,
+                    (void *)&controller_data,
+                    (void *)&globalStatus,
+                    (void *)&threadStatus,
+                    CONTROLLER_PRIORITY,
+                    0,
+                    K_NO_WAIT);
 
     /*
      * Do nothing (but remain alive !)
-     * 
+     *
      * If we exit the task, memory if freed and we then loose FIFOS.
      * This trigger a secure fault errors on the CPU.
      */
 
-    for (;;) k_msleep(1000 * 1000 * 1000); // Sleep for 16 minutes, repeatable...
+    for (;;)
+        k_msleep(1000 * 1000 * 1000); // Sleep for 16 minutes, repeatable...
 
     /*
      * We shall never get here...
      */
     return 0;
-
 }
-
-/*
- * Todo: 
- * - Add a init controller, to enable launch of the rocket once every process as booted
- * - Define values of bits for the globalEvent status
- * - Define messages
- */
-
- /*
-  * Actually runned sample :
-  * Counter in one thread, print on another thread.
-  */

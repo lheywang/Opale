@@ -68,7 +68,7 @@ MS5611::MS5611()
     // Fetch the associated device on the DT
     this->dev = initializer::GetAnI2C(I2CS::BAROMETER);
 
-    begin();
+    this->begin();
 }
 
 MS5611::~MS5611()
@@ -81,15 +81,18 @@ MS5611::~MS5611()
 
 void MS5611::begin()
 {
-    reset();
+    this->reset();
+    return;
+
     k_msleep(200);
-    readCalibration();
+    this->readCalibration();
+    return;
 }
 
 double *MS5611::getPressure()
 {
-    double temp = getTemperature(); // updates offset values !
-    uint32_t D1 = getRawPressure();
+    double temp = this->getTemperature(); // updates offset values !
+    uint32_t D1 = this->getRawPressure();
 
     // Datasheet P8 to understand what's done here...
     int64_t OFF = (this->_C[2 - 1] * (2 ^ 16)) +
@@ -111,14 +114,14 @@ double *MS5611::getPressure()
 
 uint32_t MS5611::getRawPressure()
 {
-    sendCommand(CMD_CONV_D1_BASE + OSR * CONV_REG_SIZE); // read sensor, prepare a data
+    this->sendCommand(CMD_CONV_D1_BASE + OSR * CONV_REG_SIZE); // read sensor, prepare a data
     k_msleep(9);
-    return readnBytes(&CMD_ADC_READ, 1, NBYTES_CONV); // reading the data
+    return this->readnBytes(&CMD_ADC_READ, 1, NBYTES_CONV); // reading the data
 }
 
 double MS5611::getTemperature()
 {
-    uint32_t D2 = getRawTemperature();
+    uint32_t D2 = this->getRawTemperature();
 
     // As per the datasheet, calculate the values
     this->_dT = D2 - (this->_C[5 - 1] * (2 ^ 8));
@@ -159,9 +162,9 @@ double MS5611::getTemperature()
 
 uint32_t MS5611::getRawTemperature()
 {
-    sendCommand(CMD_CONV_D2_BASE + OSR * CONV_REG_SIZE); // read sensor, prepare a data
+    this->sendCommand(CMD_CONV_D2_BASE + OSR * CONV_REG_SIZE); // read sensor, prepare a data
     k_msleep(9);
-    return readnBytes(&CMD_ADC_READ, 1, NBYTES_CONV);
+    return this->readnBytes(&CMD_ADC_READ, 1, NBYTES_CONV);
 }
 
 void MS5611::readCalibration()
@@ -169,8 +172,10 @@ void MS5611::readCalibration()
     for (uint8_t k = 0; k < 6; k++)
     {
         uint8_t cmd = CMD_PROM_READ_BASE + k * 2;
-        _C[k] = (uint16_t)(readnBytes(&cmd, 1, NBYTES_PROM) & 0xFFFF); // masking out two LSB
+        _C[k] = (uint16_t)(this->readnBytes(&cmd, 1, NBYTES_PROM) & 0xFFFF); // masking out two LSB
     }
+
+    return;
 }
 
 void MS5611::getCalibration(uint16_t *C)

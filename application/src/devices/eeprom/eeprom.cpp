@@ -30,7 +30,7 @@
  */
 
 int eeprom::GetNextAddress(MemoryIO *const Command,
-                          const EEPROM_RW ReadOrWrite)
+                           const EEPROM_RW ReadOrWrite)
 {
 
     // Initializing a tab if none are existing for now...
@@ -71,7 +71,7 @@ int eeprom::GetNextAddress(MemoryIO *const Command,
 }
 
 int eeprom::IO(const struct spi_dt_spec *Target[],
-              const MemoryIO Command)
+               const MemoryIO Command)
 {
     return 0;
 }

@@ -46,7 +46,7 @@ LOG_MODULE_REGISTER(Servo, PROJECT_LOG_LEVEL);
  */
 
 int servo::SetPosition(const struct pwm_dt_spec Target[PWM_SERVO_LEN],
-                      ServoAngles const *Command)
+                       ServoAngles const *Command)
 {
 
     // Checking the parameters

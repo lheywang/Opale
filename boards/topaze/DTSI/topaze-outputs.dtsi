@@ -1,7 +1,7 @@
 /* ============================================================
  * This file is the overlay DTS for topaze that define the GPIOs
  *
- * We describe here the peripherals configuration for the outputs 
+ * We describe here the peripherals configuration for the outputs
  * only.
  *
  * l.heywang
@@ -15,38 +15,38 @@
 // ============================================================
 &pinctrl {
     outputs {
-		compatible = "gpio-leds";
+        compatible = "gpio-leds";
 
         peripheralreset: peripheralreset {
-            gpios =     <&gpio1 1 GPIO_ACTIVE_LOW>;
-            label =     "Peripheral reset pins, active low...";
+            gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+            label = "Peripheral reset pins, active low...";
         };
 
         latch: latch {
-            gpios =     <&gpio0 2 GPIO_ACTIVE_HIGH>;
-            label =     "CLK command for the DLATCH";
+            gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+            label = "CLK command for the DLATCH";
         };
 
         engine1: engine1{
-            gpios =     <&gpio0 2 GPIO_ACTIVE_HIGH>; // 22 on the PCB
-            label =     "Start signal for engine n1";
+            gpios = <&gpio0 22 GPIO_ACTIVE_HIGH>;
+            label = "Start signal for engine n1";
         };
 
         engine2: engine2{
-            gpios =     <&gpio0 23 GPIO_ACTIVE_HIGH>;
-            label =     "Start signal for engine n2";
+            gpios = <&gpio0 23 GPIO_ACTIVE_HIGH>;
+            label = "Start signal for engine n2";
         };
 
         engine3: engine3{
-            gpios =     <&gpio1 8 GPIO_ACTIVE_HIGH>;
-            label =     "Start signal for engine n3";
+            gpios = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+            label = "Start signal for engine n3";
         };
 
         engine4: engine4{
-            gpios =     <&gpio1 6 GPIO_ACTIVE_HIGH>;
-            label =     "Start signal for engine n4";
+            gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+            label = "Start signal for engine n4";
         };
-	};
+    };
 };
 
 /{

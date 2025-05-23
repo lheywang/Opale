@@ -121,7 +121,8 @@ typedef enum
 
 // Place all of this stuff inside a namespace
 
-namespace initializer {
+namespace initializer
+{
 
     /**
      * @brief   This function initialize a GPIO, test it and return it for the user.

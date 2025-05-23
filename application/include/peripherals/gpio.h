@@ -32,7 +32,8 @@
  */
 
 // Place inside a namespace
-namespace gpio {
+namespace gpio
+{
     /**
      * @brief   Set a defined GPIO as input.
      *

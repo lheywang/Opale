@@ -13,10 +13,10 @@
 // ADC
 // ============================================================
 /*
- * Due to the limitations by the zephyr API listed here : 
- *      https://academy.nordicsemi.com/courses/nrf-connect-sdk-intermediate/lessons/lesson-6-analog-to-digital-converter-adc/topic/exercise-3-interfacing-with-adc-using-nrfx-drivers-and-timer-ppi/
+ * Due to the limitations by the zephyr API listed here:
+ *      https: //academy.nordicsemi.com/courses/nrf-connect-sdk-intermediate/lessons/lesson-6-analog-to-digital-converter-adc/topic/exercise-3-interfacing-with-adc-using-nrfx-drivers-and-timer-ppi/
  *
- * We're going to configure the ADC by hand using the nrfx API rather 
+ * We're going to configure the ADC by hand using the nrfx API rather
  * than the zephyr one. This will gave us a better control over the ADC.
  *
  */

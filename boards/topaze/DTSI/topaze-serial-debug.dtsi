@@ -16,47 +16,47 @@
 &uart0 {
     status = "okay";
     current-speed = <115200>;
-    pinctrl-0 = <&uart0_default>;
+    pinctrl-0 = <&uart0_topaze>;
     pinctrl-names = "default";
 };
 
-// We're using here default pins for UART0 to use the dk output 
+// We're using here default pins for UART0 to use the dk output
 // capabilities, while on the topaze board they're redirected
 // to two unused GPIO
 &pinctrl {
     uart0_topaze: uart0_topaze {
-		group1 {
-			psels = <NRF_PSEL(UART_TX, 0, 18)>,
-                    <0xffffffff>; // RTS : Value for unused pin.
-		};
-		group2 {
-			psels = <NRF_PSEL(UART_RX, 0, 20)>,
-                    <0xffffffff>; // CTS : Value for unused pin.
-			bias-pull-up;
-		};
-	};
+        group1 {
+            psels = <NRF_PSEL(UART_TX, 0, 20)>,
+                    <0xffffffff>; // RTS: Value for unused pin.
+                };
+        group2 {
+            psels = <NRF_PSEL(UART_RX, 0, 18)>,
+                    <0xffffffff>; // CTS: Value for unused pin.
+                    bias-pull-up;
+        };
+    };
 
     // This is the default DK
     uart0_default: uart0_default {
-		group1 {
-			psels = <NRF_PSEL(UART_TX, 0, 20)>,
-				<NRF_PSEL(UART_RTS, 0, 19)>;
-		};
-		group2 {
-			psels = <NRF_PSEL(UART_RX, 0, 22)>,
-				<NRF_PSEL(UART_CTS, 0, 21)>;
-			bias-pull-up;
-		};
-	};
+        group1 {
+            psels = <NRF_PSEL(UART_TX, 0, 20)>,
+                    <NRF_PSEL(UART_RTS, 0, 19)>;
+        };
+        group2 {
+            psels = <NRF_PSEL(UART_RX, 0, 22)>,
+                    <NRF_PSEL(UART_CTS, 0, 21)>;
+            bias-pull-up;
+        };
+    };
 };
 
-// Configure the console output as UART0 and 
+// Configure the console output as UART0 and
 // set aliases for this module
 / {
     chosen {
         zephyr,console = &uart0;
         zephyr,shell-uart = &uart0;
-		zephyr,uart-mcumgr = &uart0;
+        zephyr,uart-mcumgr = &uart0;
     };
 
     aliases {

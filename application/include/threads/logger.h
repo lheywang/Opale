@@ -22,13 +22,13 @@
  */
 #include <zephyr/kernel.h>
 
-
 /* -----------------------------------------------------------------
  * STRUCTS
  * -----------------------------------------------------------------
  */
 
-struct logger_p1 {
+struct logger_p1
+{
     struct k_fifo &barom_data;
     struct k_fifo &adc_data;
     struct k_fifo &imu_data;

@@ -87,7 +87,8 @@ static volatile uint32_t saadc_buffer_index = 0;
  * -----------------------------------------------------------------
  */
 
-namespace saadc{
+namespace saadc
+{
     /**
      * @brief   This function configure the SAADC integrated into the
      *          chip for our usage. This require a timer that is going

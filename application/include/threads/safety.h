@@ -3,7 +3,7 @@
  *
  * @brief   This file declare the safety subsystem, who regularly
  *          check that everything is fine !
- * 
+ *
  * @date    07-04-2025
  *
  * @version 1.0.0

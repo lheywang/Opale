@@ -90,7 +90,8 @@ typedef struct
  * FUNCTIONS TO COMMAND A SERVO
  * -----------------------------------------------------------------
  */
-namespace servo{
+namespace servo
+{
     /**
      * @brief   Compute the PWM duty cycle needed to place all servos position
      *
