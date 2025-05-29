@@ -27,6 +27,35 @@
  * -----------------------------------------------------------------
  */
 
+// Barometer data
+struct barometerData{
+    void *reserved;
+    float pressure;
+    float temperature;
+};
+
+// ADC data for control surfaces
+struct adcData{
+    void *reserved;
+    float pos[4];   // Position of control surfaces
+};
+
+//Main IMU data
+struct imuData{
+    void *reserved;
+    float acc[3];   // Accelerometer data   [X, Y, Z]           in m/s^2
+    float gyro[3];  // Gyroscope data       [wX, wY, wZ]        in degrees/s
+    float euler[3]; // Euler angles         [roll, pitch, yaw]  in degrees
+    float mag[3];   // Magnetometer data    [x, y, z]           in microteslas
+};
+
+// Auxiliary accelerometer data
+struct accelData{
+    void *reserved;
+    float auxAcc[3][2];
+    // /!\ Still need to fuse the data /!\ 
+};
+
 struct controller_p1
 {
     struct k_fifo &barom_data;
@@ -34,6 +63,8 @@ struct controller_p1
     struct k_fifo &imu_data;
     struct k_fifo &accel_data;
 };
+
+
 
 /* -----------------------------------------------------------------
  * THREADS

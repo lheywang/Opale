@@ -32,11 +32,6 @@
  */
 
 /**
- * @brief   Defines the PID controller structure using the CMSIS-DSP library.
- */
-arm_pid_instance_f32 PID[3];
-
-/**
  * @brief   Defines and initiate the output matrix of the PID controller.
  */
 float outputPID[3] = {0.0f, 0.0f, 0.0f}; // Initialize PID values to zero
@@ -45,14 +40,25 @@ arm_mat_init_f32(outputMatrix, 3, 1, (float *)outputPID);
 
 /**
  * @brief   Defines and initiate the control matrix for the angle output of the PID controller.
- */
+ * 
+ * @details This matrix holds the control surface angles for pitch, yaw, and roll :
+ * 
+ *   Direction are designated as :
+ *
+ *                      North
+ *                        |
+ *                West-- PCB -- East
+ *                        |
+ *                      South
+ **/
 float control[4][3] = {
 //  pitch,  yaw,  roll
-    {1.0f,  0.0f, 1.0f}, // Control surface 1
-    {0.0f,  1.0f, 1.0f}, // Control surface 2
-    {-1.0f, 0.0f, 1.0f}, // Control surface 3
-    {0.0f, -1.0f, 1.0f}  // Control surface 3
+    {0.0f, 0.0f, 0.0f}, // Control surface 1
+    {0.0f, 0.0f, 0.0f}, // Control surface 2
+    {0.0f, 0.0f, 0.0f}, // Control surface 3
+    {0.0f, 0.0f, 0.0f}  // Control surface 3
 };
+
 arm_matrix_instance_f32 controlMatrix[3];
 arm_mat_init_f32(controlMatrix, 3, 4, (float *)control);
 

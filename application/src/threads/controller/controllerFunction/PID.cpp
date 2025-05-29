@@ -47,7 +47,7 @@ LOG_MODULE_REGISTER(PID, PROJECT_LOG_LEVEL);
  * -----------------------------------------------------------------
  */
 
-int PID_Init_3Axis(arm_pid_instance_f32 pid[3], const float Kp[3], const float Ki[3], const float Kd[3])
+void PID_Init_3Axis(arm_pid_instance_f32 pid[3], const float Kp[3], const float Ki[3], const float Kd[3])
 {
     for (int i = 0; i < 3; ++i) {
         pid[i].Kp = Kp[i];
@@ -56,10 +56,10 @@ int PID_Init_3Axis(arm_pid_instance_f32 pid[3], const float Kp[3], const float K
         arm_pid_init_f32(&pid[i], 1); // 1 = reset state value
     }
 
-    return 0; // Return 0 to indicate successful initialization
+    return;
 }
 
-arm_matrix_instance_f32* Control_Matrix_Init(const float controlConst[3][4]) {
+void Control_Matrix_Init(const float controlConst[3][4]) {
     // Already defined in the header file
     extern float control[3][4];
     extern arm_matrix_instance_f32 controlMatrix[3];
@@ -72,8 +72,7 @@ arm_matrix_instance_f32* Control_Matrix_Init(const float controlConst[3][4]) {
     }
 
     arm_mat_init_f32(&controlMatrix, 3, 4, (float *)control);
-    
-    return (arm_matrix_instance_f32*)controlMatrix;
+    return;
 }
 
 arm_matrix_instance_f32* PID_Compute_3Axis(arm_pid_instance_f32 pid[3], const float setpoint[3], const float measured[3])
