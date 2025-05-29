@@ -91,11 +91,8 @@ arm_matrix_instance_f32* PID_Compute_3Axis(arm_pid_instance_f32 pid[3], const fl
     for(int i = 0; i < 3; ++i) {
         // Compute the PID output for each axis
         outputPID[i] = arm_pid_f32(&pid[i], setpoint[i] - measured[i]);
-    }
 
-    for(int i = 0; i < 4; ++i) {
-        // Compute the output matrix
-       arm_mat_mult_f32(&controlMatrix[i], &outputMatrix[i], &angleMatrix[i]);
+        arm_mat_mult_f32(&controlMatrix[i], &outputMatrix[i], &angleMatrix[i]);
 
         if (outputAngle[i] > 10.0f) {
             outputAngle[i] = 10.0f; // Limit to max angle
